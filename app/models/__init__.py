@@ -1,0 +1,10 @@
+from app.models.usuario import Usuario  # noqa: F401
+from app.models.especialidade import Especialidade  # noqa: F401
+from app.models.cliente import Cliente  # noqa: F401
+from app.models.funcionario import Funcionario  # noqa: F401
+from app.models.paciente import Paciente  # noqa: F401
+from app.models.plano import Plano  # noqa: F401
+from app.models.sessao import Sessao  # noqa: F401
+from app.models.historico_remarcacao import HistoricoRemarcacao  # noqa: F401
+from app.models.laudo import Laudo  # noqa: F401
+from app.models.pagamento import Pagamento  # noqa: F401

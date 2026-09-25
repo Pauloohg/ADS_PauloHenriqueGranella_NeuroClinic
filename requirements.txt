@@ -1,0 +1,29 @@
+# Back-end
+fastapi==0.141.0
+uvicorn[standard]==0.34.0
+jinja2==3.1.4
+python-multipart==0.0.20
+
+# Banco de dados
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+
+# Validação (schemas)
+pydantic==2.10.3
+pydantic-settings==2.7.0
+
+# Autenticação (RF01)
+pyjwt==2.9.0
+passlib[bcrypt]==1.7.4
+
+# Configuração
+python-dotenv==1.0.1
+
+# Pagamento (RF06 — a partir da Semana 4) e e-mail
+httpx==0.28.1
+fastapi-mail==1.4.2
+
+# Testes (RNF14)
+pytest==8.3.4
+pytest-asyncio==0.25.0
