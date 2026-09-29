@@ -20,7 +20,8 @@ class Sessao(Base):
     plano_id: Mapped[int] = mapped_column(ForeignKey("plano.id"), nullable=False)
     data_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[StatusSessao] = mapped_column(
-        Enum(StatusSessao, name="status_sessao"), nullable=False, default=StatusSessao.PENDENTE_PAGAMENTO
+        # values_callable obrigatório: sem isso, o SQLAlchemy salva o NOME do enum Python (maiúsculo), não o valor — quebra contra o enum do Postgres
+        Enum(StatusSessao, name="status_sessao", values_callable=lambda enum_cls: [e.value for e in enum_cls]), nullable=False, default=StatusSessao.PENDENTE_PAGAMENTO
     )
     foi_remarcada: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

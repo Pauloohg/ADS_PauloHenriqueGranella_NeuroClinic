@@ -29,7 +29,8 @@ class Plano(Base):
     data_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     data_fim: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[StatusPlano] = mapped_column(
-        Enum(StatusPlano, name="status_plano"), nullable=False, default=StatusPlano.ATIVO
+        # values_callable obrigatório: sem isso, o SQLAlchemy salva o NOME do enum Python (maiúsculo), não o valor — quebra contra o enum do Postgres
+        Enum(StatusPlano, name="status_plano", values_callable=lambda enum_cls: [e.value for e in enum_cls]), nullable=False, default=StatusPlano.ATIVO
     )
     observacao: Mapped[str | None] = mapped_column(Text)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
