@@ -1,3 +1,4 @@
+# Todo model novo precisa ser importado aqui, senão o alembic --autogenerate gera drop_table da tabela dele
 from app.models.usuario import Usuario  # noqa: F401
 from app.models.especialidade import Especialidade  # noqa: F401
 from app.models.cliente import Cliente  # noqa: F401

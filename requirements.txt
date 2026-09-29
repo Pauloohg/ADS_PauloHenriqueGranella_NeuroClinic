@@ -11,11 +11,13 @@ psycopg2-binary==2.9.10
 
 # Validação (schemas)
 pydantic==2.10.3
+email-validator==2.3.0  # necessário para EmailStr
 pydantic-settings==2.7.0
 
 # Autenticação (RF01)
 pyjwt==2.9.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1  # passlib 1.7.4 é incompatível com bcrypt>=4.1 (quebra no hash)
 
 # Configuração
 python-dotenv==1.0.1

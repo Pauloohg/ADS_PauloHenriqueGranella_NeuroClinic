@@ -9,7 +9,7 @@ class Cliente(Base):
 
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuario.id"), primary_key=True)
     telefone: Mapped[str | None] = mapped_column(String(20))
-    cpf: Mapped[str] = mapped_column(String(14), nullable=False, unique=True)
+    cpf: Mapped[str | None] = mapped_column(String(14), nullable=True, unique=True)  # nullable de propósito: CPF só é exigido na contratação (RF05)
     abacatepay_customer_id: Mapped[str | None] = mapped_column(String(50), unique=True)
 
     def __repr__(self) -> str:

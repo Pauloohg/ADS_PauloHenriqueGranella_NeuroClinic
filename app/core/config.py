@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     # Autenticação (RF01)
     SECRET_KEY: str = "troque-esta-chave-antes-de-qualquer-coisa"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8h de sessão
-    RESET_TOKEN_EXPIRE_MINUTES: int = 30       # RF01 — link de redefinição de senha
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30
 
     # AbacatePay (RF06)
     ABACATEPAY_API_KEY: str = ""
