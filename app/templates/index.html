@@ -2,13 +2,181 @@
 
 {% block title %}NeuroClinic{% endblock %}
 
+{% block head %}
+{% if not usuario %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&display=swap" rel="stylesheet">
+{% endif %}
+{% endblock %}
+
+{% block main_class %}{% if usuario %}{{ super() }}{% endif %}{% endblock %}
+
+{% block rodape_classe %}{% if usuario %}{{ super() }}{% else %}rodape-completo{% endif %}{% endblock %}
+
 {% block content %}
+{% if usuario %}
+{% set rotulos_tipo = {"cliente": "cliente", "funcionario": "funcionário", "admin": "administrador"} %}
 <div class="text-center py-5">
-    <h1 class="display-6">NeuroClinic está no ar</h1>
-    {% if usuario %}
-    <p class="text-muted">Olá, {{ usuario.nome }}! Você está conectado como {{ usuario.tipo.value }}.</p>
-    {% else %}
-    <p class="text-muted">Entre com sua conta ou crie um cadastro para começar.</p>
-    {% endif %}
+    <h1 class="display-6 mb-3">Bem-vindo(a), {{ usuario.nome }}!</h1>
+    <p class="lead text-muted">Você está conectado como {{ rotulos_tipo.get(usuario.tipo.value, usuario.tipo.value) }}.</p>
 </div>
+{% else %}
+
+<section class="faixa faixa-creme">
+    <div class="container-wide">
+        <div class="row align-items-center g-4 g-lg-5">
+            <div class="col-lg-7">
+                <span class="badge rounded-pill text-primary-emphasis bg-primary-subtle fw-medium px-3 py-2 mb-3">
+                    <i class="bi bi-people me-1"></i> Atendimento multidisciplinar
+                </span>
+                <h1 class="titulo-serifa display-4 mb-3">Acompanhamento psicopedagógico organizado do início ao fim.</h1>
+                <p class="lead text-muted mb-4">
+                    A NeuroClinic reúne psicopedagogia, fonoaudiologia e psicologia em planos de
+                    atendimento recorrentes: em vez de marcar consulta por consulta, você contrata um
+                    plano e as sessões são calculadas e agendadas automaticamente.
+                </p>
+                <div class="d-grid gap-2 d-sm-flex">
+                    <a href="/cadastro" class="btn btn-primary btn-lg px-4">Agendar avaliação</a>
+                    <a href="/login" class="btn btn-outline-primary btn-lg px-4">Já sou cliente</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4">
+                        <p class="small text-uppercase text-muted fw-semibold mb-3">Prévia da interface · exemplo ilustrativo</p>
+                        <ul class="list-unstyled mb-0">
+                            <li class="d-flex gap-3 pb-3 border-bottom">
+                                <i class="bi bi-calendar-check fs-4 text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold">Consulta agendada</div>
+                                    <div class="small text-muted">Data, horário e profissional de cada sessão do plano</div>
+                                </div>
+                            </li>
+                            <li class="d-flex gap-3 py-3 border-bottom">
+                                <i class="bi bi-file-earmark-text fs-4 text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold">Laudo disponível</div>
+                                    <div class="small text-muted">Laudos e histórico do paciente reunidos no painel</div>
+                                </div>
+                            </li>
+                            <li class="d-flex gap-3 pt-3">
+                                <i class="bi bi-shield-lock fs-4 text-primary"></i>
+                                <div>
+                                    <div class="fw-semibold">Dados protegidos</div>
+                                    <div class="small text-muted">Acesso restrito conforme o perfil de cada usuário</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="faixa faixa-creme-escuro">
+    <div class="container-wide">
+        <div class="text-center mb-5">
+            <p class="small text-uppercase text-primary fw-semibold mb-2">Por que escolher a NeuroClinic</p>
+            <h2 class="titulo-serifa">Menos burocracia, mais acompanhamento</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="icone-destaque mb-3"><i class="bi bi-arrow-repeat"></i></div>
+                <h3 class="titulo-serifa h5">Planos recorrentes</h3>
+                <p class="text-muted small mb-0">Escolha a frequência e a duração uma vez; o sistema gera todas as sessões, sem agendar uma por uma.</p>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
+                <h3 class="titulo-serifa h5">Acompanhamento multidisciplinar</h3>
+                <p class="text-muted small mb-0">Psicopedagogia, fonoaudiologia e psicologia no mesmo lugar, com a mesma organização.</p>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="icone-destaque mb-3"><i class="bi bi-folder2-open"></i></div>
+                <h3 class="titulo-serifa h5">Laudos e histórico centralizados</h3>
+                <p class="text-muted small mb-0">Laudos e registro dos atendimentos de cada paciente acessíveis a partir do painel.</p>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="icone-destaque mb-3"><i class="bi bi-shield-lock"></i></div>
+                <h3 class="titulo-serifa h5">Dados sensíveis protegidos</h3>
+                <p class="text-muted small mb-0">Acesso restrito por perfil, em conformidade com a LGPD.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="faixa bg-white">
+    <div class="container-wide">
+        <div class="text-center mb-5">
+            <p class="small text-uppercase text-primary fw-semibold mb-2">Especialidades</p>
+            <h2 class="titulo-serifa">O que oferecemos</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                    <div class="card-body">
+                        <div class="icone-destaque mb-3"><i class="bi bi-book"></i></div>
+                        <h3 class="titulo-serifa h5">Psicopedagogia</h3>
+                        <p class="text-muted small mb-0">Avaliação e intervenção nas dificuldades de aprendizagem, com foco no desenvolvimento escolar.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                    <div class="card-body">
+                        <div class="icone-destaque mb-3"><i class="bi bi-chat-dots"></i></div>
+                        <h3 class="titulo-serifa h5">Fonoaudiologia</h3>
+                        <p class="text-muted small mb-0">Acompanhamento da fala, da linguagem oral e escrita e da comunicação.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                    <div class="card-body">
+                        <div class="icone-destaque mb-3"><i class="bi bi-heart"></i></div>
+                        <h3 class="titulo-serifa h5">Psicologia</h3>
+                        <p class="text-muted small mb-0">Apoio aos aspectos emocionais e comportamentais que influenciam o desenvolvimento.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="faixa faixa-creme-escuro">
+    <div class="container-wide">
+        <div class="text-center mb-5">
+            <p class="small text-uppercase text-primary fw-semibold mb-2">Como funciona</p>
+            <h2 class="titulo-serifa">Do cadastro ao acompanhamento</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="passo-numero mb-3">1</div>
+                <h3 class="titulo-serifa h5">Escolha a especialidade e o profissional</h3>
+                <p class="text-muted small mb-0">Veja os profissionais de cada especialidade e os horários disponíveis.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="passo-numero mb-3">2</div>
+                <h3 class="titulo-serifa h5">Contrate o plano</h3>
+                <p class="text-muted small mb-0">Defina a frequência e a duração; o valor é calculado pelas sessões geradas.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="passo-numero mb-3">3</div>
+                <h3 class="titulo-serifa h5">Acompanhe pelo seu painel</h3>
+                <p class="text-muted small mb-0">Consulte as sessões agendadas, os laudos e o histórico sempre que precisar.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="faixa faixa-escura text-white text-center">
+    <div class="container-wide">
+        <h2 class="titulo-serifa mb-2">Pronto para começar?</h2>
+        <p class="text-white-50 mb-4">Crie sua conta e contrate o primeiro plano de atendimento.</p>
+        <a href="/cadastro" class="btn btn-light btn-lg px-4">Criar minha conta</a>
+    </div>
+</section>
+
+{% endif %}
 {% endblock %}

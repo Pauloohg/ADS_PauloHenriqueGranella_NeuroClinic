@@ -30,3 +30,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Valores fictícios (placeholder) até definirmos os dados reais da clínica
+DADOS_CLINICA = {
+    "nome": "NeuroClinic",
+    "endereco": "Rua Example, 123 — Cidade, UF",
+    "telefone": "(00) 0000-0000",
+    "horario": "Seg. a sex., 8h às 18h",
+}

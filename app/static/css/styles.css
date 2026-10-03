@@ -1,1 +1,178 @@
+:root {
+    --bs-primary: #3F4A3D;
+    --bs-primary-rgb: 63, 74, 61;
+    --bs-primary-text-emphasis: #2F3830;
+    --bs-primary-bg-subtle: #E3E8E0;
+    --bs-primary-border-subtle: #C4CEC1;
+    --bs-link-color: #3F4A3D;
+    --bs-link-color-rgb: 63, 74, 61;
+    --bs-link-hover-color: #2F3830;
+    --bs-link-hover-color-rgb: 47, 56, 48;
+    --bs-focus-ring-color: rgba(63, 74, 61, 0.35);
 
+    --cor-primaria-hover: #2F3830;
+    --cor-primaria-ativa: #262E27;
+    --cor-fundo-creme: #F6F2EA;
+    --cor-fundo-creme-escuro: #EDE7D9;
+    --cor-texto-escuro: #1F2A22;
+}
+
+/* Bootstrap 5.3 fixa as cores dos botões em variáveis locais (--bs-btn-*), sem ler --bs-primary */
+.btn-primary {
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--cor-primaria-hover);
+    --bs-btn-hover-border-color: var(--cor-primaria-hover);
+    --bs-btn-active-bg: var(--cor-primaria-ativa);
+    --bs-btn-active-border-color: var(--cor-primaria-ativa);
+    --bs-btn-disabled-bg: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+    --bs-btn-active-bg: var(--cor-primaria-hover);
+    --bs-btn-active-border-color: var(--cor-primaria-hover);
+    --bs-btn-disabled-color: var(--bs-primary);
+    --bs-btn-disabled-border-color: var(--bs-primary);
+    --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+
+/* Mesmo motivo: o foco de .form-control usa azul fixo no CSS do Bootstrap */
+.form-control:focus,
+.form-select:focus {
+    border-color: #9AA697;
+    box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+.container-wide {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .container-wide {
+        padding-inline: 2.5rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-wide {
+        padding-inline: 5rem;
+    }
+}
+
+.faixa {
+    padding-block: 5rem;
+}
+
+.faixa-creme {
+    background-color: var(--cor-fundo-creme);
+}
+
+.faixa-creme-escuro {
+    background-color: var(--cor-fundo-creme-escuro);
+}
+
+.faixa-escura {
+    background-color: var(--cor-texto-escuro);
+}
+
+.titulo-serifa {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.faixa-escura .titulo-serifa {
+    color: #fff;
+}
+
+.icone-destaque,
+.passo-numero {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.35rem;
+}
+
+.icone-destaque {
+    border-radius: 0.75rem;
+    background-color: #fff;
+    color: var(--bs-primary);
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.passo-numero {
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.rodape {
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
+}
+
+.rodape a {
+    color: var(--cor-texto-escuro);
+    text-decoration: none;
+}
+
+.rodape a:hover,
+.rodape a:focus {
+    color: var(--bs-primary);
+    text-decoration: underline;
+}
+
+.rodape-titulo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bs-primary);
+    margin-bottom: 0.75rem;
+}
+
+.rodape-copyright {
+    border-top: 1px solid rgba(var(--bs-primary-rgb), 0.15);
+    text-align: center;
+    color: var(--bs-secondary-color);
+    margin: 0;
+}
+
+.rodape-completo {
+    padding-top: 4rem;
+    font-size: 0.95rem;
+}
+
+.rodape-completo .rodape-copyright {
+    margin-top: 3rem;
+    padding-block: 1.5rem;
+    font-size: 0.85rem;
+}
+
+.rodape-compacto {
+    padding-top: 1.75rem;
+    font-size: 0.85rem;
+}
+
+.rodape-compacto .rodape-titulo {
+    margin-bottom: 0.4rem;
+}
+
+.rodape-compacto .rodape-copyright {
+    margin-top: 1.5rem;
+    padding-block: 1rem;
+    font-size: 0.8rem;
+}
