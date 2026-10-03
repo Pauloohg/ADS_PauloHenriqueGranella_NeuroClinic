@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # E-mail (fastapi-mail)
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
-    MAIL_FROM: str = "no-reply@neuroclinic.local"
+    MAIL_FROM: str = "no-reply@neuroclinic.example"  # fastapi-mail rejeita domínios reservados como .local e .test
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_PORT: int = 587
 

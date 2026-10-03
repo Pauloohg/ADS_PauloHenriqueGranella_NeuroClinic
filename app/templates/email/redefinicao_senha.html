@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redefinição de senha</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F6F2EA; font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color:#1F2A22;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F2EA;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border:1px solid #EDE7D9; border-radius:8px;">
+        <tr>
+          <td style="background-color:#3F4A3D; border-radius:8px 8px 0 0; padding:20px 32px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#ffffff;">
+            {{ clinica.nome }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px; font-size:16px; line-height:1.5;">
+            <h1 style="margin:0 0 16px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#1F2A22;">Redefinição de senha</h1>
+            <p style="margin:0 0 16px;">Olá, {{ nome }}.</p>
+            <p style="margin:0 0 24px;">Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para escolher uma nova senha:</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+              <tr>
+                <td style="background-color:#3F4A3D; border-radius:6px;">
+                  <a href="{{ link }}" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:600; color:#ffffff; text-decoration:none;">Redefinir minha senha</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 16px; font-size:14px; color:#4A544B;">Este link é válido por {{ validade_minutos }} minutos e só pode ser usado uma vez. Se o botão não funcionar, copie e cole este endereço no navegador:</p>
+            <p style="margin:0 0 24px; font-size:14px; word-break:break-all;"><a href="{{ link }}" style="color:#3F4A3D;">{{ link }}</a></p>
+            <p style="margin:0; font-size:14px; color:#4A544B;">Se você não pediu a redefinição, ignore este e-mail — sua senha continua a mesma.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top:1px solid #EDE7D9; padding:16px 32px; font-size:12px; color:#6B746C;">
+            {{ clinica.nome }} · {{ clinica.endereco }} · {{ clinica.telefone }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

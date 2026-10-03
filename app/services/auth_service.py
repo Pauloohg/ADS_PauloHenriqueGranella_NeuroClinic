@@ -1,10 +1,14 @@
 import logging
 from datetime import datetime, timezone
 
+from fastapi import BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import security
+from app.core.config import settings
+from app.core.email import enviar_email
+from app.core.templating import templates
 from app.models.cliente import Cliente
 from app.models.usuario import TipoUsuario, Usuario
 from app.schemas.usuario import (
@@ -15,6 +19,8 @@ from app.schemas.usuario import (
 )
 
 logger = logging.getLogger(__name__)
+
+ASSUNTO_REDEFINICAO_SENHA = "NeuroClinic — redefinição de senha"
 
 
 class EmailJaCadastrado(Exception):
@@ -57,7 +63,11 @@ def autenticar(db: Session, dados: Login, agora: datetime) -> str:
 
 
 def solicitar_redefinicao_senha(
-    db: Session, dados: SolicitacaoRedefinicaoSenha, url_base: str, agora: datetime
+    db: Session,
+    dados: SolicitacaoRedefinicaoSenha,
+    url_base: str,
+    agora: datetime,
+    tarefas: BackgroundTasks | None = None,
 ) -> str | None:
     usuario = buscar_por_email(db, dados.email)
     if usuario is None:
@@ -66,6 +76,11 @@ def solicitar_redefinicao_senha(
     token = security.criar_token_redefinicao(usuario.id, usuario.senha_hash, agora)
     link = f"{url_base.rstrip('/')}/redefinir-senha/{token}"
     logger.info("Link de redefinição de senha para %s: %s", usuario.email, link)
+    if tarefas is not None:
+        corpo = templates.get_template("email/redefinicao_senha.html").render(
+            nome=usuario.nome, link=link, validade_minutos=settings.RESET_TOKEN_EXPIRE_MINUTES
+        )
+        tarefas.add_task(enviar_email, usuario.email, ASSUNTO_REDEFINICAO_SENHA, corpo)
     return link
 
 

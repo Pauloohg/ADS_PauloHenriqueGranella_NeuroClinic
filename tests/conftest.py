@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
+from fastapi_mail import FastMail
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -10,6 +11,14 @@ import app.models  # noqa: F401 — registra todas as tabelas no metadata
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app as fastapi_app
+
+
+@pytest.fixture(autouse=True)
+def sem_smtp_real(monkeypatch):
+    async def nao_enviar(self, mensagem):
+        return None
+
+    monkeypatch.setattr(FastMail, "send_message", nao_enviar)
 
 
 @pytest.fixture

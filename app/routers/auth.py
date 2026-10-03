@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -192,7 +192,12 @@ def esqueci_senha_form(request: Request):
 
 
 @router.post("/esqueci-senha")
-def esqueci_senha(request: Request, email: Annotated[str, Form()] = "", db: Session = Depends(get_db)):
+def esqueci_senha(
+    request: Request,
+    tarefas: BackgroundTasks,
+    email: Annotated[str, Form()] = "",
+    db: Session = Depends(get_db),
+):
     try:
         dados = SolicitacaoRedefinicaoSenha(email=email)
     except ValidationError:
@@ -200,7 +205,7 @@ def esqueci_senha(request: Request, email: Annotated[str, Form()] = "", db: Sess
             request, "auth/esqueci_senha.html", {"email": email, "erro": "Informe um e-mail válido."},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    auth_service.solicitar_redefinicao_senha(db, dados, str(request.base_url), agora_utc())
+    auth_service.solicitar_redefinicao_senha(db, dados, str(request.base_url), agora_utc(), tarefas)
     # Não diferenciar e-mail existente de inexistente na resposta (HU02: enumeração de contas)
     return templates.TemplateResponse(request, "auth/esqueci_senha.html", {"email": "", "enviado": True})
 
