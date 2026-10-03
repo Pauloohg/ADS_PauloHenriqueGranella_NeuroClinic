@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_marca.html" import marca %}
+
+{% block navbar %}{% endblock %}
+{% block rodape %}{% endblock %}
+{% block main_class %}auth-split{% endblock %}
+
+{% block content %}
+<section class="auth-painel">
+    <a href="/" class="auth-painel-marca" aria-label="NeuroClinic — página inicial">{{ marca(32) }}</a>
+    <div class="auth-painel-texto">
+        <p class="titulo-serifa auth-painel-titulo">{% block painel_titulo %}{% endblock %}</p>
+        <p class="auth-painel-descricao">{% block painel_descricao %}{% endblock %}</p>
+    </div>
+    <p class="auth-painel-lgpd"><i class="bi bi-shield-lock me-1"></i>Seus dados são protegidos conforme a LGPD.</p>
+</section>
+
+<section class="auth-formulario">
+    <div class="auth-formulario-conteudo">
+        {% block formulario %}{% endblock %}
+    </div>
+    <footer class="auth-rodape">
+        © {{ ano_atual() }} {{ clinica.nome }} · {{ clinica.telefone }} · {{ clinica.horario }}
+    </footer>
+</section>
+{% endblock %}

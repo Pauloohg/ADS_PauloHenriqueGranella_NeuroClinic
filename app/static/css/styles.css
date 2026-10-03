@@ -15,6 +15,16 @@
     --cor-fundo-creme: #F6F2EA;
     --cor-fundo-creme-escuro: #EDE7D9;
     --cor-texto-escuro: #1F2A22;
+
+    --cor-psicopedagogia: #C68A3D;
+    --cor-psicopedagogia-texto: #7A4E14;
+    --cor-psicopedagogia-fundo: #F6E8D3;
+    --cor-fonoaudiologia: #3D8B8B;
+    --cor-fonoaudiologia-texto: #1F5C5C;
+    --cor-fonoaudiologia-fundo: #DCEDEC;
+    --cor-psicologia: #B4607A;
+    --cor-psicologia-texto: #7E3A50;
+    --cor-psicologia-fundo: #F4E0E6;
 }
 
 /* Bootstrap 5.3 fixa as cores dos botões em variáveis locais (--bs-btn-*), sem ler --bs-primary */
@@ -175,4 +185,252 @@
     margin-top: 1.5rem;
     padding-block: 1rem;
     font-size: 0.8rem;
+}
+
+.btn {
+    --bs-btn-border-radius: 10px;
+    transition: all 0.15s ease;
+}
+
+.btn-sm {
+    --bs-btn-border-radius: 8px;
+}
+
+.btn-lg {
+    --bs-btn-border-radius: 12px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -6px rgba(var(--bs-primary-rgb), 0.55);
+}
+
+.btn:active {
+    transform: none;
+    box-shadow: none;
+}
+
+.navbar .btn:hover,
+.faixa-escura .btn:hover {
+    box-shadow: 0 6px 14px -6px rgba(15, 22, 17, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn {
+        transition: none;
+    }
+
+    .btn:hover {
+        transform: none;
+    }
+}
+
+.marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.marca-simbolo {
+    flex-shrink: 0;
+}
+
+.marca-texto {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+}
+
+.esp-psicopedagogia {
+    --esp-cor: var(--cor-psicopedagogia);
+    --esp-texto: var(--cor-psicopedagogia-texto);
+    --esp-fundo: var(--cor-psicopedagogia-fundo);
+}
+
+.esp-fonoaudiologia {
+    --esp-cor: var(--cor-fonoaudiologia);
+    --esp-texto: var(--cor-fonoaudiologia-texto);
+    --esp-fundo: var(--cor-fonoaudiologia-fundo);
+}
+
+.esp-psicologia {
+    --esp-cor: var(--cor-psicologia);
+    --esp-texto: var(--cor-psicologia-texto);
+    --esp-fundo: var(--cor-psicologia-fundo);
+}
+
+.card-especialidade {
+    border: 0;
+    border-top: 4px solid var(--esp-cor);
+}
+
+.card-especialidade .icone-destaque {
+    color: var(--esp-texto);
+}
+
+.calendario {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.calendario-cabecalho {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+}
+
+.calendario-dia {
+    min-height: 3.1rem;
+    padding: 0.3rem 0.35rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 0.5rem;
+    background-color: var(--cor-fundo-creme);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.calendario-numero {
+    font-size: 0.7rem;
+    color: var(--bs-secondary-color);
+    line-height: 1;
+}
+
+.sessao {
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.2rem 0.35rem;
+    border-radius: 0.3rem;
+    border-left: 3px solid var(--esp-cor);
+    background-color: var(--esp-fundo);
+    color: var(--esp-texto);
+}
+
+.legenda li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--bs-secondary-color);
+}
+
+.legenda-ponto {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 0.2rem;
+    background-color: var(--esp-cor);
+}
+
+.auth-split {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-painel {
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.auth-painel-marca {
+    color: var(--cor-texto-escuro);
+    text-decoration: none;
+    font-size: 1.15rem;
+    align-self: flex-start;
+}
+
+.auth-painel-marca:hover {
+    color: var(--bs-primary);
+}
+
+.auth-painel-titulo {
+    font-size: 1.2rem;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.auth-painel-descricao,
+.auth-painel-lgpd {
+    display: none;
+}
+
+.auth-formulario {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--cor-fundo-creme);
+    padding: 2rem 1.25rem 1.25rem;
+}
+
+.auth-formulario-conteudo {
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto auto;
+}
+
+.auth-titulo {
+    font-size: 1.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.auth-subtitulo {
+    color: var(--bs-secondary-color);
+    margin-bottom: 1.5rem;
+}
+
+.auth-rodape {
+    margin-top: 2.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
+}
+
+@media (min-width: 992px) {
+    .auth-split {
+        flex-direction: row;
+    }
+
+    .auth-painel {
+        flex: 0 0 46%;
+        padding: 3rem;
+        justify-content: space-between;
+    }
+
+    .auth-painel-texto {
+        max-width: 30rem;
+    }
+
+    .auth-painel-titulo {
+        font-size: clamp(1.9rem, 2.6vw, 2.5rem);
+        margin-bottom: 1rem;
+    }
+
+    .auth-painel-descricao,
+    .auth-painel-lgpd {
+        display: block;
+    }
+
+    .auth-painel-descricao {
+        font-size: 1.05rem;
+        color: var(--bs-secondary-color);
+        margin: 0;
+    }
+
+    .auth-painel-lgpd {
+        font-size: 0.85rem;
+        color: var(--bs-secondary-color);
+        margin: 0;
+    }
+
+    .auth-formulario {
+        padding: 3rem;
+    }
+
+    .auth-formulario-conteudo {
+        margin: auto;
+    }
 }

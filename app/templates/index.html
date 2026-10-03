@@ -2,14 +2,6 @@
 
 {% block title %}NeuroClinic{% endblock %}
 
-{% block head %}
-{% if not usuario %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&display=swap" rel="stylesheet">
-{% endif %}
-{% endblock %}
-
 {% block main_class %}{% if usuario %}{{ super() }}{% endif %}{% endblock %}
 
 {% block rodape_classe %}{% if usuario %}{{ super() }}{% else %}rodape-completo{% endif %}{% endblock %}
@@ -42,31 +34,50 @@
                 </div>
             </div>
             <div class="col-lg-5">
-                <div class="card border-0 shadow-sm rounded-4">
+                {% set nomes_especialidade = {"psicopedagogia": "Psicopedagogia", "fonoaudiologia": "Fonoaudiologia", "psicologia": "Psicologia"} %}
+                <div class="card cartao-plano border-0 shadow-sm rounded-4">
                     <div class="card-body p-4">
-                        <p class="small text-uppercase text-muted fw-semibold mb-3">Prévia da interface · exemplo ilustrativo</p>
-                        <ul class="list-unstyled mb-0">
-                            <li class="d-flex gap-3 pb-3 border-bottom">
-                                <i class="bi bi-calendar-check fs-4 text-primary"></i>
-                                <div>
-                                    <div class="fw-semibold">Consulta agendada</div>
-                                    <div class="small text-muted">Data, horário e profissional de cada sessão do plano</div>
-                                </div>
-                            </li>
-                            <li class="d-flex gap-3 py-3 border-bottom">
-                                <i class="bi bi-file-earmark-text fs-4 text-primary"></i>
-                                <div>
-                                    <div class="fw-semibold">Laudo disponível</div>
-                                    <div class="small text-muted">Laudos e histórico do paciente reunidos no painel</div>
-                                </div>
-                            </li>
-                            <li class="d-flex gap-3 pt-3">
-                                <i class="bi bi-shield-lock fs-4 text-primary"></i>
-                                <div>
-                                    <div class="fw-semibold">Dados protegidos</div>
-                                    <div class="small text-muted">Acesso restrito conforme o perfil de cada usuário</div>
-                                </div>
-                            </li>
+                        <div class="d-flex justify-content-between align-items-baseline">
+                            <p class="titulo-serifa h5 mb-0">Seu plano</p>
+                            <span class="small text-muted">Exemplo ilustrativo</span>
+                        </div>
+                        <p class="small text-muted mb-3">Cada sessão tem dia e horário fixos</p>
+
+                        <p class="visually-hidden">
+                            Exemplo de calendário: fonoaudiologia toda terça às 14h, psicopedagogia toda
+                            quinta às 15h e psicologia a cada duas semanas, na sexta às 9h.
+                        </p>
+                        <div class="calendario" aria-hidden="true">
+                            {% for dia_semana in ["Seg", "Ter", "Qua", "Qui", "Sex"] %}
+                            <div class="calendario-cabecalho">{{ dia_semana }}</div>
+                            {% endfor %}
+                            {% for inicio_semana in [5, 12, 19, 26] %}
+                            {% set semana = loop.index0 %}
+                            {% for i in range(5) %}
+                            {% if i == 1 %}{% set sessao = ("fonoaudiologia", "14h") %}
+                            {% elif i == 3 %}{% set sessao = ("psicopedagogia", "15h") %}
+                            {% elif i == 4 and semana is even %}{% set sessao = ("psicologia", "9h") %}
+                            {% else %}{% set sessao = none %}{% endif %}
+                            <div class="calendario-dia">
+                                <span class="calendario-numero">{{ inicio_semana + i }}</span>
+                                {% if sessao %}<span class="sessao esp-{{ sessao[0] }}">{{ sessao[1] }}</span>{% endif %}
+                            </div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+
+                        <ul class="legenda list-unstyled d-flex flex-wrap gap-3 small mt-3 mb-0">
+                            {% for chave, nome in nomes_especialidade.items() %}
+                            <li class="esp-{{ chave }}"><span class="legenda-ponto"></span>{{ nome }}</li>
+                            {% endfor %}
+                        </ul>
+
+                        <hr class="my-3">
+
+                        <ul class="list-unstyled small mb-0 d-grid gap-2">
+                            <li><i class="bi bi-check2 text-primary me-2"></i>Data, horário e profissional de cada sessão</li>
+                            <li><i class="bi bi-check2 text-primary me-2"></i>Laudos e histórico reunidos no seu painel</li>
+                            <li><i class="bi bi-check2 text-primary me-2"></i>Acesso restrito conforme o perfil de cada usuário</li>
                         </ul>
                     </div>
                 </div>
@@ -114,7 +125,7 @@
         </div>
         <div class="row g-4">
             <div class="col-md-4">
-                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                <div class="card card-especialidade esp-psicopedagogia h-100 faixa-creme rounded-4 p-3">
                     <div class="card-body">
                         <div class="icone-destaque mb-3"><i class="bi bi-book"></i></div>
                         <h3 class="titulo-serifa h5">Psicopedagogia</h3>
@@ -123,7 +134,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                <div class="card card-especialidade esp-fonoaudiologia h-100 faixa-creme rounded-4 p-3">
                     <div class="card-body">
                         <div class="icone-destaque mb-3"><i class="bi bi-chat-dots"></i></div>
                         <h3 class="titulo-serifa h5">Fonoaudiologia</h3>
@@ -132,7 +143,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card h-100 border-0 faixa-creme rounded-4 p-3">
+                <div class="card card-especialidade esp-psicologia h-100 faixa-creme rounded-4 p-3">
                     <div class="card-body">
                         <div class="icone-destaque mb-3"><i class="bi bi-heart"></i></div>
                         <h3 class="titulo-serifa h5">Psicologia</h3>

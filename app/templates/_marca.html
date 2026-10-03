@@ -1,0 +1,14 @@
+{% macro simbolo(tamanho=28) %}
+<svg class="marca-simbolo" width="{{ tamanho }}" height="{{ tamanho }}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <g stroke="#fff" stroke-width="0.8" stroke-linejoin="round">
+        <path d="M12 12V0.6A11.4 11.4 0 0 1 23.4 12Z" fill="#C68A3D"/>
+        <path d="M12 12H23.4A11.4 11.4 0 0 1 12 23.4Z" fill="#3D8B8B"/>
+        <path d="M12 12V23.4A11.4 11.4 0 0 1 0.6 12Z" fill="#8FAF89"/>
+        <path d="M12 12H0.6A11.4 11.4 0 0 1 12 0.6Z" fill="#B4607A"/>
+    </g>
+</svg>
+{% endmacro %}
+
+{% macro marca(tamanho=28) %}
+<span class="marca">{{ simbolo(tamanho) }}<span class="marca-texto">NeuroClinic</span></span>
+{% endmacro %}

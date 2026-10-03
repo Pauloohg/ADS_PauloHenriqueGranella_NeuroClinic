@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "auth/_layout.html" %}
 
 {% block title %}Criar conta — NeuroClinic{% endblock %}
 
@@ -14,25 +14,21 @@
 </div>
 {% endmacro %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h1 class="h4 mb-4">Criar conta</h1>
-                {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
-                <form method="post" action="/cadastro" novalidate>
-                    {{ campo("nome", "Nome completo", autocomplete="name") }}
-                    {{ campo("email", "E-mail", tipo="email", autocomplete="email") }}
-                    {{ campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") }}
-                    {% call campo("senha", "Senha", tipo="password", autocomplete="new-password") %}
-                        <div class="form-text">Mínimo de 8 caracteres.</div>
-                    {% endcall %}
-                    <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
-                </form>
-                <p class="text-center small mt-3 mb-0">Já tem conta? <a href="/login">Entrar</a></p>
-            </div>
-        </div>
-    </div>
-</div>
+{% block painel_titulo %}Contrate um plano e deixe o agendamento com a gente.{% endblock %}
+{% block painel_descricao %}Crie sua conta para escolher a especialidade, o profissional e a frequência das sessões.{% endblock %}
+
+{% block formulario %}
+<h1 class="titulo-serifa auth-titulo">Criar conta</h1>
+<p class="auth-subtitulo">Preencha seus dados para começar.</p>
+{% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+<form method="post" action="/cadastro" novalidate>
+    {{ campo("nome", "Nome completo", autocomplete="name") }}
+    {{ campo("email", "E-mail", tipo="email", autocomplete="email") }}
+    {{ campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") }}
+    {% call campo("senha", "Senha", tipo="password", autocomplete="new-password") %}
+        <div class="form-text">Mínimo de 8 caracteres.</div>
+    {% endcall %}
+    <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+</form>
+<p class="text-center small mt-3 mb-0">Já tem conta? <a href="/login">Entrar</a></p>
 {% endblock %}

@@ -1,40 +1,36 @@
-{% extends "base.html" %}
+{% extends "auth/_layout.html" %}
 
 {% block title %}Entrar — NeuroClinic{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-5">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h1 class="h4 mb-4">Entrar</h1>
+{% block painel_titulo %}Suas sessões e laudos, no mesmo painel.{% endblock %}
+{% block painel_descricao %}Entre para acompanhar as próximas sessões do plano e o histórico de atendimentos.{% endblock %}
 
-                {% if request.query_params.get("cadastro") == "ok" %}
-                <div class="alert alert-success">Cadastro realizado! Faça login para continuar.</div>
-                {% elif request.query_params.get("senha") == "redefinida" %}
-                <div class="alert alert-success">Senha redefinida com sucesso. Faça login com a nova senha.</div>
-                {% endif %}
-                {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+{% block formulario %}
+<h1 class="titulo-serifa auth-titulo">Entrar</h1>
+<p class="auth-subtitulo">Use o e-mail e a senha da sua conta.</p>
 
-                <form method="post" action="/login">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">E-mail</label>
-                        <input type="email" id="email" name="email" class="form-control"
-                               value="{{ email }}" autocomplete="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="senha" class="form-label">Senha</label>
-                        <input type="password" id="senha" name="senha" class="form-control"
-                               autocomplete="current-password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                </form>
-                <div class="d-flex justify-content-between small mt-3">
-                    <a href="/esqueci-senha">Esqueci minha senha</a>
-                    <a href="/cadastro">Criar conta</a>
-                </div>
-            </div>
-        </div>
+{% if request.query_params.get("cadastro") == "ok" %}
+<div class="alert alert-success">Cadastro realizado! Faça login para continuar.</div>
+{% elif request.query_params.get("senha") == "redefinida" %}
+<div class="alert alert-success">Senha redefinida com sucesso. Faça login com a nova senha.</div>
+{% endif %}
+{% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+
+<form method="post" action="/login">
+    <div class="mb-3">
+        <label for="email" class="form-label">E-mail</label>
+        <input type="email" id="email" name="email" class="form-control"
+               value="{{ email }}" autocomplete="email" required>
     </div>
+    <div class="mb-3">
+        <label for="senha" class="form-label">Senha</label>
+        <input type="password" id="senha" name="senha" class="form-control"
+               autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+</form>
+<div class="d-flex justify-content-between small mt-3">
+    <a href="/esqueci-senha">Esqueci minha senha</a>
+    <a href="/cadastro">Criar conta</a>
 </div>
 {% endblock %}

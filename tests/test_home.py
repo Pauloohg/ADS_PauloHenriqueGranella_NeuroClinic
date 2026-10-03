@@ -22,7 +22,8 @@ def test_home_visitante_mostra_landing_institucional(client):
     for texto in [
         "Atendimento multidisciplinar",
         "planos de atendimento recorrentes",
-        "Prévia da interface",
+        "Seu plano",
+        "Exemplo ilustrativo",
         "Por que escolher a NeuroClinic",
         "O que oferecemos",
         "Psicopedagogia",
@@ -52,3 +53,10 @@ def test_home_autenticado_mostra_boas_vindas_sem_landing(client, db):
     assert "Por que escolher a NeuroClinic" not in html
     assert 'href="/login"' not in html
     assert 'href="/cadastro"' not in html
+
+
+def test_home_calendario_exemplo_marca_sessoes_por_especialidade(client):
+    html = _html_normalizado(client.get("/"))
+    for especialidade in ["psicopedagogia", "fonoaudiologia", "psicologia"]:
+        assert f'class="sessao esp-{especialidade}"' in html
+        assert f'card card-especialidade esp-{especialidade}' in html
