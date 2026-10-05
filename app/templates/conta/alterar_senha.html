@@ -1,0 +1,20 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas, voltar with context %}
+
+{% block title %}Alterar senha — NeuroClinic{% endblock %}
+{% block voltar %}{% if usuario and usuario.tipo.value == "cliente" %}{{ voltar("/perfil", "Meu perfil") }}{% endif %}{% endblock %}
+{% block titulo_pagina %}Alterar senha{% endblock %}
+{% block subtitulo_pagina %}Confirme a senha atual e escolha uma nova.{% endblock %}
+
+{% block conteudo %}
+<section class="cartao cartao-formulario">
+    {{ alertas("Senha alterada com sucesso. Use a nova senha no próximo acesso." if sucesso else none, erro) }}
+    <form method="post" action="/conta/alterar-senha" novalidate>
+        {{ campo("senha_atual", "Senha atual", tipo="password", autocomplete="current-password") }}
+        {{ campo("nova_senha", "Nova senha", tipo="password", autocomplete="new-password", ajuda="Mínimo de 8 caracteres.") }}
+        {{ campo("confirmacao_senha", "Confirme a nova senha", tipo="password", autocomplete="new-password") }}
+        <button type="submit" class="btn btn-primary">Alterar senha</button>
+    </form>
+    <p class="small text-muted mt-3 mb-0">Esqueceu a senha atual? Saia da conta e use “Esqueci minha senha” na tela de login.</p>
+</section>
+{% endblock %}

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -28,12 +29,26 @@ MSG_LINK_EXPIRADO = "Este link de redefinição expirou. Solicite um novo."
 MSG_LINK_INVALIDO = "Este link de redefinição é inválido ou já foi utilizado. Solicite um novo."
 
 
+FUSO_CLINICA = ZoneInfo("America/Sao_Paulo")
+
+
 def agora_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def utc_para_local(dt_utc: datetime) -> datetime:
+    if dt_utc.tzinfo is None:
+        dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+    return dt_utc.astimezone(FUSO_CLINICA).replace(tzinfo=None)
+
+
+def agora_local() -> datetime:
+    return utc_para_local(agora_utc())
+
+
 MSG_CAMPO_OBRIGATORIO = "Este campo é obrigatório."
 MSG_EMAIL_INVALIDO = "Informe um e-mail válido, como nome@exemplo.com."
+MSG_DATA_INVALIDA = "Informe uma data válida."
 MSG_ERRO_GENERICO = "Verifique este campo."
 
 _ORIGENS_LOC = {"body", "query", "path", "header", "cookie"}
@@ -48,6 +63,8 @@ def mensagem_erro(campo: str, erro: dict) -> str:
         return MSG_CAMPO_OBRIGATORIO
     if campo == "email":
         return MSG_EMAIL_INVALIDO
+    if isinstance(tipo, str) and tipo.startswith("date_"):
+        return MSG_DATA_INVALIDA
     if tipo == "value_error" and ctx.get("error"):
         return str(ctx["error"])
     if tipo == "string_too_short" and "min_length" in ctx:

@@ -1,0 +1,48 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas %}
+
+{% block title %}Meus pacientes — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Meus pacientes{% endblock %}
+{% block subtitulo_pagina %}Pessoas atendidas pela clínica sob a sua responsabilidade.{% endblock %}
+{% block acoes_pagina %}
+<a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo paciente</a>
+{% endblock %}
+
+{% block conteudo %}
+{{ alertas(sucesso) }}
+{% if pacientes %}
+<section class="cartao cartao-tabela">
+    <div class="table-responsive">
+        <table class="table tabela align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Data de nascimento</th>
+                    <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paciente in pacientes %}
+                <tr>
+                    <td class="fw-medium">{{ paciente.nome }}</td>
+                    <td>{{ paciente.data_nascimento.strftime("%d/%m/%Y") }}</td>
+                    <td class="text-end">
+                        <a href="/pacientes/{{ paciente.id }}/editar" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-pencil me-1"></i>Editar<span class="visually-hidden"> {{ paciente.nome }}</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
+    <h2 class="titulo-serifa h5">Nenhum paciente cadastrado</h2>
+    <p class="text-muted">Cadastre a pessoa que será atendida para poder contratar um plano para ela.</p>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar paciente</a>
+</section>
+{% endif %}
+{% endblock %}

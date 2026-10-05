@@ -1,0 +1,47 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% set editando = especialidade is defined and especialidade %}
+
+{% block title %}{{ "Alterar valor" if editando else "Nova especialidade" }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/admin/especialidades", "Especialidades") }}{% endblock %}
+{% block titulo_pagina %}{{ especialidade.nome if editando else "Nova especialidade" }}{% endblock %}
+{% block subtitulo_pagina %}{{ "Atualize o valor cobrado por sessão." if editando else "Informe o nome e o valor de cada sessão." }}{% endblock %}
+
+{% block conteudo %}
+<section class="cartao cartao-formulario">
+    {{ alertas(erro=erro) }}
+    <form method="post" action="{{ request.url.path }}" novalidate>
+        {% if not editando %}
+        {{ campo("nome", "Nome da especialidade", autocomplete="off", atributos={"placeholder": "Ex.: Terapia Ocupacional"}) }}
+        {% else %}
+        <div class="mb-3">
+            <span class="form-label d-block">Valor atual</span>
+            <span class="fs-5 fw-medium">{{ especialidade.valor_sessao | moeda }}</span>
+        </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <label for="valor_sessao" class="form-label">{{ "Novo valor da sessão" if editando else "Valor da sessão" }}</label>
+            <div class="input-group {% if erros.valor_sessao %}has-validation{% endif %}">
+                <span class="input-group-text">R$</span>
+                <input type="text" id="valor_sessao" name="valor_sessao" required inputmode="decimal"
+                       placeholder="150,00" value="{{ (dados or {}).get('valor_sessao', '') }}"
+                       class="form-control {% if erros.valor_sessao %}is-invalid{% endif %}">
+                {% if erros.valor_sessao %}<div class="invalid-feedback">{{ erros.valor_sessao }}</div>{% endif %}
+            </div>
+        </div>
+
+        {% if editando %}
+        <div class="alert alert-info d-flex gap-2 small" role="note">
+            <i class="bi bi-info-circle"></i>
+            <span>O novo valor vale só para planos contratados daqui em diante. Planos já existentes mantêm o valor cobrado na contratação.</span>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">{{ "Salvar novo valor" if editando else "Cadastrar especialidade" }}</button>
+            <a href="/admin/especialidades" class="btn btn-link text-decoration-none">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

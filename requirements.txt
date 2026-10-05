@@ -21,6 +21,7 @@ bcrypt==4.0.1  # passlib 1.7.4 é incompatível com bcrypt>=4.1 (quebra no hash)
 
 # Configuração
 python-dotenv==1.0.1
+tzdata==2026.5  # Python no Windows não traz a base de fusos: sem isso ZoneInfo("America/Sao_Paulo") falha
 
 # Pagamento (RF06 — a partir da Semana 4) e e-mail
 httpx==0.28.1

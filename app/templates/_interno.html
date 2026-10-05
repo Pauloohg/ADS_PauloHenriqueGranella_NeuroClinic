@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block main_class %}pagina-interna{% endblock %}
+
+{% block content %}
+<div class="container-wide py-4 py-lg-5">
+    <header class="pagina-cabecalho">
+        <div>
+            {% block voltar %}{% endblock %}
+            <h1 class="titulo-serifa pagina-titulo">{% block titulo_pagina %}{% endblock %}</h1>
+            <p class="pagina-subtitulo">{% block subtitulo_pagina %}{% endblock %}</p>
+        </div>
+        <div class="pagina-acoes">{% block acoes_pagina %}{% endblock %}</div>
+    </header>
+    {% block conteudo %}{% endblock %}
+</div>
+{% endblock %}

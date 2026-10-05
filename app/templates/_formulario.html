@@ -1,0 +1,23 @@
+{# Importar com "with context": os macros leem `dados` e `erros` do template que os chama #}
+
+{% macro campo(nome, rotulo, tipo="text", autocomplete="", ajuda="", obrigatorio=True, atributos={}) %}
+<div class="mb-3">
+    <label for="{{ nome }}" class="form-label">{{ rotulo }}{% if not obrigatorio %} <span class="text-muted fw-normal">(opcional)</span>{% endif %}</label>
+    <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}" {% if obrigatorio %}required{% endif %}
+           class="form-control {% if erros[nome] %}is-invalid{% endif %}"
+           {% if tipo != "password" %}value="{{ (dados or {}).get(nome, '') }}"{% endif %}
+           {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+           {% if ajuda %}aria-describedby="{{ nome }}-ajuda"{% endif %}{{ atributos | xmlattr }}>
+    {% if erros[nome] %}<div class="invalid-feedback">{{ erros[nome] }}</div>{% endif %}
+    {% if ajuda %}<div id="{{ nome }}-ajuda" class="form-text">{{ ajuda }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro alertas(sucesso=none, erro=none) %}
+{% if sucesso %}<div class="alert alert-success d-flex gap-2" role="status"><i class="bi bi-check-circle"></i><span>{{ sucesso }}</span></div>{% endif %}
+{% if erro %}<div class="alert alert-danger d-flex gap-2" role="alert"><i class="bi bi-exclamation-circle"></i><span>{{ erro }}</span></div>{% endif %}
+{% endmacro %}
+
+{% macro voltar(href, rotulo) %}
+<a href="{{ href }}" class="pagina-voltar"><i class="bi bi-arrow-left me-1"></i>{{ rotulo }}</a>
+{% endmacro %}

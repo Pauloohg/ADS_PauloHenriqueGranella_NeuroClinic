@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.templating import templates
 from app.models.usuario import Usuario
-from app.routers import auth
+from app.routers import admin, auth, cliente, conta
 from app.routers.auth import NaoAutenticado, erros_por_campo, get_usuario_opcional
 
 if settings.DEBUG:
@@ -21,6 +21,9 @@ app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
+app.include_router(conta.router)
+app.include_router(cliente.router)
+app.include_router(admin.router)
 
 
 @app.exception_handler(NaoAutenticado)
@@ -34,8 +37,16 @@ FORMULARIOS_POR_ROTA = {
     "/login": "auth/login.html",
     "/esqueci-senha": "auth/esqueci_senha.html",
     "/redefinir-senha/{token}": "auth/redefinir_senha.html",
+    "/conta/alterar-senha": "conta/alterar_senha.html",
+    "/perfil": "cliente/perfil.html",
+    "/pacientes/novo": "cliente/paciente_form.html",
+    "/pacientes/{paciente_id}/editar": "cliente/paciente_form.html",
+    "/admin/funcionarios/novo": "admin/funcionario_form.html",
+    "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
+    "/admin/especialidades/nova": "admin/especialidade_form.html",
+    "/admin/especialidades/{especialidade_id}/editar": "admin/especialidade_form.html",
 }
-CAMPOS_SENSIVEIS = {"senha", "nova_senha"}  # todo campo de senha novo precisa entrar aqui, senão volta preenchido no HTML
+CAMPOS_SENSIVEIS = {"senha", "nova_senha", "senha_atual", "confirmacao_senha"}  # todo campo de senha novo precisa entrar aqui, senão volta preenchido no HTML
 MSG_VALIDACAO_GERAL = "Alguns dados não foram aceitos. Confira os campos e tente novamente."
 
 

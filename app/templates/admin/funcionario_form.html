@@ -1,0 +1,59 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% set editando = funcionario is defined and funcionario %}
+{% set lista_especialidades = especialidades if especialidades is defined else [] %}
+
+{% block title %}{{ "Editar funcionário" if editando else "Novo funcionário" }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/admin/funcionarios", "Funcionários") }}{% endblock %}
+{% block titulo_pagina %}{{ "Editar funcionário" if editando else "Novo funcionário" }}{% endblock %}
+{% block subtitulo_pagina %}{{ "Altere o nome ou a especialidade do profissional." if editando else "O profissional entra com o e-mail e a senha provisória definidos aqui." }}{% endblock %}
+
+{% block conteudo %}
+<section class="cartao cartao-formulario">
+    {% if not lista_especialidades %}
+    <div class="alert alert-warning d-flex gap-2 mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span>
+            Nenhuma especialidade cadastrada ainda. Todo funcionário precisa de uma especialidade —
+            <a href="/admin/especialidades/nova" class="alert-link">cadastre uma especialidade</a> primeiro.
+        </span>
+    </div>
+    {% else %}
+    {{ alertas(erro=erro) }}
+    <form method="post" action="{{ request.url.path }}" novalidate>
+        {{ campo("nome", "Nome completo", autocomplete="off") }}
+
+        {% if editando %}
+        <div class="mb-3">
+            <span class="form-label d-block">E-mail de acesso</span>
+            <span class="text-muted">{{ funcionario.usuario.email }}</span>
+        </div>
+        {% else %}
+        {{ campo("email", "E-mail de acesso", tipo="email", autocomplete="off") }}
+        {% endif %}
+
+        <div class="mb-3">
+            <label for="especialidade_id" class="form-label">Especialidade</label>
+            <select id="especialidade_id" name="especialidade_id" required
+                    class="form-select {% if erros.especialidade_id %}is-invalid{% endif %}">
+                <option value="">Selecione…</option>
+                {% for especialidade in lista_especialidades %}
+                <option value="{{ especialidade.id }}" {% if (dados or {}).get("especialidade_id") == especialidade.id | string %}selected{% endif %}>{{ especialidade.nome }}</option>
+                {% endfor %}
+            </select>
+            {% if erros.especialidade_id %}<div class="invalid-feedback">{{ erros.especialidade_id }}</div>{% endif %}
+        </div>
+
+        {% if not editando %}
+        {{ campo("senha", "Senha provisória", tipo="password", autocomplete="new-password",
+                 ajuda="Mínimo de 8 caracteres. Repasse ao funcionário: ele pode trocá-la depois em “Alterar senha”.") }}
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar funcionário" }}</button>
+            <a href="/admin/funcionarios" class="btn btn-link text-decoration-none">Cancelar</a>
+        </div>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}

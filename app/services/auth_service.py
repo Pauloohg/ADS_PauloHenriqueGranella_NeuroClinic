@@ -12,6 +12,8 @@ from app.core.templating import templates
 from app.models.cliente import Cliente
 from app.models.usuario import TipoUsuario, Usuario
 from app.schemas.usuario import (
+    AdminCadastro,
+    AlteracaoSenha,
     ClienteCadastro,
     ConfirmacaoRedefinicaoSenha,
     Login,
@@ -32,6 +34,14 @@ class CredenciaisInvalidas(Exception):
     pass
 
 
+class SenhaAtualIncorreta(Exception):
+    pass
+
+
+def utc_sem_fuso(agora: datetime) -> datetime:
+    return agora.astimezone(timezone.utc).replace(tzinfo=None)
+
+
 def buscar_por_email(db: Session, email: str) -> Usuario | None:
     return db.scalar(select(Usuario).where(Usuario.email == email.lower()))
 
@@ -45,11 +55,28 @@ def cadastrar_cliente(db: Session, dados: ClienteCadastro, agora: datetime) -> U
         email=dados.email,
         senha_hash=security.gerar_hash_senha(dados.senha),
         tipo=TipoUsuario.CLIENTE,
-        criado_em=agora.astimezone(timezone.utc).replace(tzinfo=None),  # coluna sem fuso, em UTC
+        criado_em=utc_sem_fuso(agora),  # coluna sem fuso, em UTC
     )
     db.add(usuario)
     db.flush()  # não remover: Cliente precisa de usuario.id antes do commit
     db.add(Cliente(usuario_id=usuario.id, telefone=dados.telefone))
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+def cadastrar_admin(db: Session, dados: AdminCadastro, agora: datetime) -> Usuario:
+    if buscar_por_email(db, dados.email) is not None:
+        raise EmailJaCadastrado
+
+    usuario = Usuario(
+        nome=dados.nome,
+        email=dados.email,
+        senha_hash=security.gerar_hash_senha(dados.senha),
+        tipo=TipoUsuario.ADMIN,
+        criado_em=utc_sem_fuso(agora),
+    )
+    db.add(usuario)
     db.commit()
     db.refresh(usuario)
     return usuario
@@ -94,6 +121,14 @@ def validar_token_redefinicao(db: Session, token: str, agora: datetime) -> Usuar
 
 def redefinir_senha(db: Session, dados: ConfirmacaoRedefinicaoSenha, agora: datetime) -> Usuario:
     usuario = validar_token_redefinicao(db, dados.token, agora)
+    usuario.senha_hash = security.gerar_hash_senha(dados.nova_senha)
+    db.commit()
+    return usuario
+
+
+def alterar_senha(db: Session, usuario: Usuario, dados: AlteracaoSenha) -> Usuario:
+    if not security.verificar_senha(dados.senha_atual, usuario.senha_hash):
+        raise SenhaAtualIncorreta
     usuario.senha_hash = security.gerar_hash_senha(dados.nova_senha)
     db.commit()
     return usuario

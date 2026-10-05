@@ -1,0 +1,22 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% set editando = paciente is defined and paciente %}
+
+{% block title %}{{ "Editar paciente" if editando else "Novo paciente" }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/pacientes", "Meus pacientes") }}{% endblock %}
+{% block titulo_pagina %}{{ "Editar paciente" if editando else "Novo paciente" }}{% endblock %}
+{% block subtitulo_pagina %}{{ "Corrija o nome ou a data de nascimento." if editando else "Informe os dados da pessoa que será atendida." }}{% endblock %}
+
+{% block conteudo %}
+<section class="cartao cartao-formulario">
+    {{ alertas(erro=erro) }}
+    <form method="post" action="{{ request.url.path }}" novalidate>
+        {{ campo("nome", "Nome completo do paciente", autocomplete="off") }}
+        {{ campo("data_nascimento", "Data de nascimento", tipo="date", atributos={"max": hoje} if hoje is defined else {}) }}
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar paciente" }}</button>
+            <a href="/pacientes" class="btn btn-link text-decoration-none">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas with context %}
+
+{% block title %}Meu perfil — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Meu perfil{% endblock %}
+{% block subtitulo_pagina %}Mantenha seus dados de contato atualizados.{% endblock %}
+
+{% block conteudo %}
+<div class="row g-4">
+    <div class="col-lg-7 col-xl-6">
+        <section class="cartao">
+            <h2 class="cartao-titulo">Dados cadastrais</h2>
+            {{ alertas("Dados atualizados com sucesso." if sucesso else none, erro) }}
+            <form method="post" action="/perfil" novalidate>
+                {{ campo("nome", "Nome completo", autocomplete="name") }}
+                {{ campo("email", "E-mail", tipo="email", autocomplete="email") }}
+                <div class="row g-3">
+                    <div class="col-sm-6">{{ campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") }}</div>
+                    <div class="col-sm-6">{{ campo("cpf", "CPF", obrigatorio=False, ajuda="Será exigido na contratação de um plano.", atributos={"inputmode": "numeric", "placeholder": "000.000.000-00"}) }}</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar alterações</button>
+            </form>
+        </section>
+    </div>
+    <div class="col-lg-5 col-xl-4">
+        <section class="cartao">
+            <h2 class="cartao-titulo">Segurança</h2>
+            <p class="text-muted small">Para trocar a senha, você confirma a senha atual e escolhe uma nova.</p>
+            <a href="/conta/alterar-senha" class="btn btn-outline-primary"><i class="bi bi-key me-1"></i>Alterar senha</a>
+        </section>
+        <section class="cartao mt-4">
+            <h2 class="cartao-titulo">Pacientes</h2>
+            <p class="text-muted small">As pessoas atendidas pela clínica ficam cadastradas como pacientes vinculados à sua conta.</p>
+            <a href="/pacientes" class="btn btn-outline-primary"><i class="bi bi-people me-1"></i>Meus pacientes</a>
+        </section>
+    </div>
+</div>
+{% endblock %}

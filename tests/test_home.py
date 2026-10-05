@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from app.schemas.usuario import ClienteCadastro
 from app.services import auth_service
+from tests.fabricas import criar_especialidade, criar_funcionario, logar
 
 FORM_CADASTRO = {"nome": "João Lima", "email": "joao@exemplo.com", "telefone": "54 98888-0000", "senha": "senha123"}
 
@@ -60,3 +61,10 @@ def test_home_calendario_exemplo_marca_sessoes_por_especialidade(client):
     for especialidade in ["psicopedagogia", "fonoaudiologia", "psicologia"]:
         assert f'class="sessao esp-{especialidade}"' in html
         assert f'card card-especialidade esp-{especialidade}' in html
+
+
+def test_home_do_funcionario_usa_o_estilo_das_telas_autenticadas(client, db):
+    logar(client, criar_funcionario(db, criar_especialidade(db)).usuario.email)
+    html = _html_normalizado(client.get("/"))
+    assert re.search(r'<main class="[^"]*\bpagina-interna\b', html)
+    assert re.search(r'<h1 class="[^"]*\btitulo-serifa\b[^"]*">\s*Bem-vindo\(a\), Carlos Fono!', html)

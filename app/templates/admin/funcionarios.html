@@ -1,0 +1,74 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas %}
+
+{% block title %}Funcionários — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Funcionários{% endblock %}
+{% block subtitulo_pagina %}Profissionais que atendem na clínica.{% endblock %}
+{% block acoes_pagina %}
+<a href="/admin/funcionarios/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo funcionário</a>
+{% endblock %}
+
+{% block conteudo %}
+{{ alertas(sucesso, erro) }}
+{% if funcionarios %}
+<section class="cartao cartao-tabela">
+    <div class="table-responsive">
+        <table class="table tabela align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Especialidade</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in funcionarios %}
+                <tr class="{% if not item.funcionario.ativo %}linha-inativa{% endif %}">
+                    <td>
+                        <span class="fw-medium d-block">{{ item.usuario.nome }}</span>
+                        <span class="small text-muted">{{ item.usuario.email }}</span>
+                    </td>
+                    <td><span class="chip-especialidade {{ item.especialidade.nome | classe_especialidade }}">{{ item.especialidade.nome }}</span></td>
+                    <td>
+                        {% if item.funcionario.ativo %}
+                        <span class="badge rounded-pill status-ativo">Ativo</span>
+                        {% else %}
+                        <span class="badge rounded-pill status-inativo">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                            <a href="/admin/funcionarios/{{ item.usuario.id }}/editar" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-pencil me-1"></i>Editar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
+                            </a>
+                            {% if item.funcionario.ativo %}
+                            <form method="post" action="/admin/funcionarios/{{ item.usuario.id }}/desativar" class="m-0">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-person-dash me-1"></i>Desativar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="/admin/funcionarios/{{ item.usuario.id }}/reativar" class="m-0">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-person-check me-1"></i>Reativar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-person-badge"></i></div>
+    <h2 class="titulo-serifa h5">Nenhum funcionário cadastrado</h2>
+    <p class="text-muted">Cadastre os profissionais para que eles possam ser escolhidos na contratação de planos.</p>
+    <a href="/admin/funcionarios/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar funcionário</a>
+</section>
+{% endif %}
+{% endblock %}
