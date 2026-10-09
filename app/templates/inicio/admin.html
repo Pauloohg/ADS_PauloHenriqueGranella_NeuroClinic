@@ -1,0 +1,18 @@
+{% extends "inicio/_saudacao.html" %}
+{% from "inicio/_atalhos.html" import atalho %}
+
+{% block subtitulo_pagina %}Gerencie a equipe e as especialidades da clínica.{% endblock %}
+
+{% block conteudo %}
+<div class="row g-3 g-lg-4">
+    <div class="col-12 col-md-6 col-xl-4">
+        {{ atalho("/admin/funcionarios", "bi-person-badge", "Funcionários", "funcionário ativo" if total_funcionarios_ativos == 1 else "funcionários ativos", total_funcionarios_ativos) }}
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+        {{ atalho("/admin/especialidades", "bi-tags", "Especialidades", "especialidade cadastrada" if total_especialidades == 1 else "especialidades cadastradas", total_especialidades) }}
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+        {{ atalho("/conta/alterar-senha", "bi-person", "Meu perfil", "Altere a sua senha de acesso.") }}
+    </div>
+</div>
+{% endblock %}

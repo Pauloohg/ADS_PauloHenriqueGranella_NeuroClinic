@@ -16,9 +16,9 @@
 <body class="d-flex flex-column min-vh-100">
     {% block navbar %}
     {% set menus_por_tipo = {
-        "cliente": [("/perfil", "Meu Perfil", "bi-person"), ("/pacientes", "Meus Pacientes", "bi-people")],
+        "cliente": [("/", "Início", "bi-house"), ("/pacientes", "Pacientes", "bi-people"), ("/especialidades", "Contratar plano", "bi-calendar-plus"), ("/perfil", "Meu perfil", "bi-person")],
         "admin": [("/admin/funcionarios", "Funcionários", "bi-person-badge"), ("/admin/especialidades", "Especialidades", "bi-tags"), ("/conta/alterar-senha", "Alterar Senha", "bi-key")],
-        "funcionario": [("/conta/alterar-senha", "Alterar Senha", "bi-key")],
+        "funcionario": [("/", "Início", "bi-house"), ("/conta/alterar-senha", "Meu perfil", "bi-person")],
     } %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-wide d-flex flex-wrap align-items-center justify-content-between">
@@ -31,7 +31,8 @@
             <div class="collapse navbar-collapse" id="menu-principal">
                 <ul class="navbar-nav menu-principal me-auto">
                     {% for href, rotulo, icone in menus_por_tipo.get(usuario.tipo.value, []) %}
-                    {% set atual = request.url.path.startswith(href) %}
+                    {# "/" precisa de comparação exata: com startswith, Início ficaria ativo em todas as páginas #}
+                    {% set atual = request.url.path == "/" if href == "/" else request.url.path.startswith(href) or (href == "/especialidades" and request.url.path.startswith("/contratar")) %}
                     <li class="nav-item">
                         <a class="nav-link {% if atual %}active{% endif %}" href="{{ href }}" {% if atual %}aria-current="page"{% endif %}>
                             <i class="bi {{ icone }} me-1"></i>{{ rotulo }}

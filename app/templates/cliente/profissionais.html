@@ -1,0 +1,32 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import voltar %}
+
+{% block title %}{{ especialidade.nome }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/especialidades", "Especialidades") }}{% endblock %}
+{% block titulo_pagina %}{{ especialidade.nome }}{% endblock %}
+{% block subtitulo_pagina %}Profissionais que atendem nesta especialidade. Valor da sessão: <span class="font-monospace-num">{{ especialidade.valor_sessao | moeda }}</span>.{% endblock %}
+
+{% block conteudo %}
+{% if profissionais %}
+<section class="cartao cartao-tabela {{ especialidade.nome | classe_especialidade }}">
+    <ul class="lista-profissionais mb-0">
+        {% for profissional in profissionais %}
+        <li>
+            <span class="avatar-iniciais" aria-hidden="true">{{ profissional.nome | iniciais }}</span>
+            <span class="fw-medium me-auto">{{ profissional.nome }}</span>
+            <a href="/contratar/{{ profissional.id }}" class="btn btn-primary btn-sm">
+                Contratar<span class="visually-hidden"> plano com {{ profissional.nome }}</span>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-person-vcard"></i></div>
+    <h2 class="titulo-serifa h5">Nenhum profissional disponível no momento</h2>
+    <p class="text-muted">Ainda não há profissionais atendendo em {{ especialidade.nome }}. Confira as outras especialidades.</p>
+    <a href="/especialidades" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Ver especialidades</a>
+</section>
+{% endif %}
+{% endblock %}

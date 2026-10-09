@@ -2,18 +2,11 @@
 
 {% block title %}NeuroClinic{% endblock %}
 
-{% block main_class %}{% if usuario %}pagina-interna{% endif %}{% endblock %}
+{% block main_class %}{% endblock %}
 
-{% block rodape_classe %}{% if usuario %}{{ super() }}{% else %}rodape-completo{% endif %}{% endblock %}
+{% block rodape_classe %}rodape-completo{% endblock %}
 
 {% block content %}
-{% if usuario %}
-{% set rotulos_tipo = {"cliente": "cliente", "funcionario": "funcionário", "admin": "administrador"} %}
-<div class="container-wide text-center py-5">
-    <h1 class="titulo-serifa display-6 mb-3">Bem-vindo(a), {{ usuario.nome }}!</h1>
-    <p class="lead text-muted">Você está conectado como {{ rotulos_tipo.get(usuario.tipo.value, usuario.tipo.value) }}.</p>
-</div>
-{% else %}
 
 <section class="faixa faixa-creme">
     <div class="container-wide">
@@ -189,5 +182,4 @@
     </div>
 </section>
 
-{% endif %}
 {% endblock %}

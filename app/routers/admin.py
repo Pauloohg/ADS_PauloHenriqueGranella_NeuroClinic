@@ -24,7 +24,9 @@ TEMPLATE_ESPECIALIDADES = "admin/especialidades.html"
 TEMPLATE_ESPECIALIDADE_FORM = "admin/especialidade_form.html"
 
 MSG_ESPECIALIDADE_INVALIDA = "Selecione uma especialidade da lista."
-MSG_FUNCIONARIO_COM_SESSOES = "Não é possível desativar {nome}: ele possui sessões futuras agendadas."
+MSG_FUNCIONARIO_COM_SESSOES = (
+    "Não é possível desativar {nome}: ele possui sessões futuras agendadas ou aguardando pagamento."
+)
 MSG_ESPECIALIDADE_COM_SESSOES = (
     "Não é possível alterar a especialidade de {nome}: ele possui sessões futuras agendadas ou aguardando pagamento."
 )
@@ -152,7 +154,7 @@ def desativar_funcionario(
     resumo = _buscar_funcionario_ou_404(db, funcionario_id)
     try:
         funcionario_service.desativar(db, funcionario_id, agora_local())
-    except funcionario_service.FuncionarioComSessoesAgendadas:
+    except funcionario_service.FuncionarioComSessoesFuturas:
         erro = MSG_FUNCIONARIO_COM_SESSOES.format(nome=resumo.usuario.nome)
         return _lista_funcionarios(request, usuario, db, erro, status.HTTP_409_CONFLICT)
     return _redirecionar("/admin/funcionarios?ok=desativado")

@@ -8,9 +8,9 @@ from app.main import FORMULARIOS_POR_ROTA, app as fastapi_app
 from tests.fabricas import criar_admin, criar_cliente, criar_especialidade, criar_funcionario, logar
 
 LINKS_POR_PERFIL = {
-    "cliente": {"/perfil": "Meu Perfil", "/pacientes": "Meus Pacientes"},
+    "cliente": {"/": "Início", "/pacientes": "Pacientes", "/especialidades": "Contratar plano", "/perfil": "Meu perfil"},
     "admin": {"/admin/funcionarios": "Funcionários", "/admin/especialidades": "Especialidades", "/conta/alterar-senha": "Alterar Senha"},
-    "funcionario": {"/conta/alterar-senha": "Alterar Senha"},
+    "funcionario": {"/": "Início", "/conta/alterar-senha": "Meu perfil"},
 }
 TODOS_OS_LINKS = {href for links in LINKS_POR_PERFIL.values() for href in links}
 
@@ -51,12 +51,20 @@ def test_navbar_marca_a_pagina_atual(client, db):
     menu = _menu(client.get("/pacientes").text)
     assert re.search(r'class="nav-link active" href="/pacientes" aria-current="page"', menu)
     assert 'class="nav-link " href="/perfil"' in menu
+    assert 'class="nav-link " href="/"' in menu
+
+
+def test_navbar_marca_inicio_so_na_raiz(client, db):
+    _logar_perfil(client, db, "cliente")
+    menu = _menu(client.get("/").text)
+    assert re.search(r'class="nav-link active" href="/" aria-current="page"', menu)
+    assert menu.count("nav-link active") == 1
 
 
 def test_visitante_nao_ve_menu_de_perfil(client):
     html = client.get("/").text
     assert "menu-principal" not in html
-    for href in TODOS_OS_LINKS:
+    for href in TODOS_OS_LINKS - {"/"}:  # "/" é o link da marca, que o visitante também vê
         assert f'href="{href}"' not in html
 
 

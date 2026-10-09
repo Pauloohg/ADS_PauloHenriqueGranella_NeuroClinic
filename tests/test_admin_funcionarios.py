@@ -85,27 +85,28 @@ def test_rn05_desativa_funcionario_sem_sessoes(db, fono):
     assert db.get(Funcionario, resumo.usuario.id).ativo is False
 
 
+@pytest.mark.parametrize("status", [StatusSessao.PENDENTE_PAGAMENTO, StatusSessao.AGENDADA])
 @pytest.mark.parametrize("data_hora", [FUTURO, AGORA_RN])
-def test_rn05_bloqueia_desativacao_com_sessao_agendada_futura(db, fono, data_hora):
+def test_rn05_bloqueia_desativacao_com_sessao_futura(db, fono, status, data_hora):
     resumo = criar_funcionario(db, fono)
-    criar_plano_com_sessao(db, resumo.usuario.id, fono, StatusSessao.AGENDADA, data_hora=data_hora)
+    criar_plano_com_sessao(db, resumo.usuario.id, fono, status, data_hora=data_hora)
 
-    with pytest.raises(funcionario_service.FuncionarioComSessoesAgendadas):
+    with pytest.raises(funcionario_service.FuncionarioComSessoesFuturas):
         funcionario_service.desativar(db, resumo.usuario.id, AGORA_RN)
     assert db.get(Funcionario, resumo.usuario.id).ativo is True
 
 
-def test_rn05_sessao_agendada_so_no_passado_nao_bloqueia(db, fono):
+@pytest.mark.parametrize("status", list(StatusSessao))
+def test_rn05_sessoes_so_no_passado_nao_bloqueiam(db, fono, status):
     resumo = criar_funcionario(db, fono)
-    criar_plano_com_sessao(db, resumo.usuario.id, fono, StatusSessao.AGENDADA, data_hora=PASSADO)
+    criar_plano_com_sessao(db, resumo.usuario.id, fono, status, data_hora=PASSADO)
     funcionario_service.desativar(db, resumo.usuario.id, AGORA_RN)
     assert db.get(Funcionario, resumo.usuario.id).ativo is False
 
 
-@pytest.mark.parametrize("status", [StatusSessao.PENDENTE_PAGAMENTO, StatusSessao.REALIZADA])
-def test_rn05_so_considera_sessoes_com_status_agendada(db, fono, status):
+def test_rn05_sessao_realizada_futura_nao_bloqueia(db, fono):
     resumo = criar_funcionario(db, fono)
-    criar_plano_com_sessao(db, resumo.usuario.id, fono, status, data_hora=FUTURO)
+    criar_plano_com_sessao(db, resumo.usuario.id, fono, StatusSessao.REALIZADA, data_hora=FUTURO)
     funcionario_service.desativar(db, resumo.usuario.id, AGORA_RN)
     assert db.get(Funcionario, resumo.usuario.id).ativo is False
 
@@ -220,13 +221,17 @@ def test_editar_funcionario_pela_tela(client, db, fono, admin_logado, relogio_fi
     assert funcionario_service.buscar(db, resumo.usuario.id).especialidade.nome == "Psicologia"
 
 
-def test_rn05_desativacao_bloqueada_mostra_motivo(client, db, fono, admin_logado, relogio_fixo):
+@pytest.mark.parametrize("status", [StatusSessao.PENDENTE_PAGAMENTO, StatusSessao.AGENDADA])
+def test_rn05_desativacao_bloqueada_mostra_motivo(client, db, fono, admin_logado, relogio_fixo, status):
     resumo = criar_funcionario(db, fono)
-    criar_plano_com_sessao(db, resumo.usuario.id, fono, StatusSessao.AGENDADA, data_hora=FUTURO)
+    criar_plano_com_sessao(db, resumo.usuario.id, fono, status, data_hora=FUTURO)
 
     resposta = client.post(f"/admin/funcionarios/{resumo.usuario.id}/desativar")
     assert resposta.status_code == 409
-    assert "Não é possível desativar Carlos Fono: ele possui sessões futuras agendadas." in resposta.text
+    assert (
+        "Não é possível desativar Carlos Fono: "
+        "ele possui sessões futuras agendadas ou aguardando pagamento."
+    ) in resposta.text
     assert "transfira" not in resposta.text.lower()
     db.refresh(resumo.funcionario)
     assert resumo.funcionario.ativo is True
@@ -287,7 +292,7 @@ def test_rn05_limite_do_horario_da_sessao(db, fono, agora, bloqueia):
     resumo = criar_funcionario(db, fono)
     criar_plano_com_sessao(db, resumo.usuario.id, fono, StatusSessao.AGENDADA, data_hora=SESSAO_10H)
     if bloqueia:
-        with pytest.raises(funcionario_service.FuncionarioComSessoesAgendadas):
+        with pytest.raises(funcionario_service.FuncionarioComSessoesFuturas):
             funcionario_service.desativar(db, resumo.usuario.id, agora)
     else:
         funcionario_service.desativar(db, resumo.usuario.id, agora)

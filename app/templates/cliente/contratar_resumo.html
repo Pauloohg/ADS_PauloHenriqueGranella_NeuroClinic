@@ -1,0 +1,70 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas %}
+{% set sim = resumo.simulacao %}
+
+{% block title %}Resumo do plano — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Resumo do plano{% endblock %}
+{% block subtitulo_pagina %}Confira os dados do plano. Os valores foram recalculados agora, com a agenda atual do profissional.{% endblock %}
+
+{% block conteudo %}
+{% if resumo.cpf_registrado %}{{ alertas(sucesso="Seu CPF foi salvo no perfil.") }}{% endif %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <section class="cartao mb-4">
+            <h2 class="cartao-titulo">Dados do plano</h2>
+            <dl class="lista-dados">
+                <dt>Especialidade</dt>
+                <dd><span class="chip-especialidade {{ resumo.especialidade.nome | classe_especialidade }}">{{ resumo.especialidade.nome }}</span></dd>
+                <dt>Profissional</dt>
+                <dd>{{ resumo.profissional.nome }}</dd>
+                <dt>Paciente</dt>
+                <dd>{{ resumo.paciente.nome }}</dd>
+                <dt>Dias e horário</dt>
+                <dd>{% for dia in resumo.dias_semana %}{{ dia | nome_dia }}{% if not loop.last %}{{ " e " if loop.revindex == 2 else ", " }}{% endif %}{% endfor %}, às {{ resumo.horario.strftime("%H:%M") }} (60 minutos)</dd>
+                <dt>Frequência</dt>
+                <dd>{{ resumo.frequencia_semanal }}x por semana</dd>
+                <dt>Duração</dt>
+                <dd>{{ rotulos_duracao[resumo.duracao] }}</dd>
+                <dt>Período</dt>
+                <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }}</dd>
+                {% if resumo.observacao %}
+                <dt>Observação</dt>
+                <dd class="text-break">{{ resumo.observacao }}</dd>
+                {% endif %}
+            </dl>
+        </section>
+
+        <section class="cartao">
+            <h2 class="cartao-titulo">{{ sim.quantidade }} sessões</h2>
+            <ol class="lista-sessoes">
+                {% for sessao in sim.sessoes %}
+                <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
+                {% endfor %}
+            </ol>
+            {% if feriados %}
+            <div class="alert alert-secondary small mt-3 mb-0">
+                <p class="fw-semibold mb-1"><i class="bi bi-calendar-event me-1"></i>Feriados nacionais pulados</p>
+                <p class="mb-1">Não há atendimento em feriados. As datas abaixo foram puladas e o plano se estende até completar as {{ sim.quantidade }} sessões, sem mudar o valor.</p>
+                <ul class="mb-0">{% for dia, nome in feriados %}<li>{{ dia | data_br }} — {{ nome }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="col-lg-4">
+        <aside class="cartao resumo-plano">
+            <h2 class="cartao-titulo">Valor</h2>
+            <dl class="resumo-valores">
+                <dt>Valor da sessão</dt><dd class="font-monospace-num">{{ sim.valor_sessao | moeda }}</dd>
+                <dt>Sessões</dt><dd>{{ sim.quantidade }}</dd>
+                <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ sim.valor_total | moeda }}</dd>
+            </dl>
+            <div class="alert alert-warning small mt-3 mb-0" role="note">
+                <i class="bi bi-clock me-1"></i><strong>Prazo de pagamento:</strong> depois da confirmação, você terá
+                {{ prazo_horas }} horas para pagar. Sem o pagamento nesse prazo, os horários voltam a ficar livres para outros pacientes.
+            </div>
+            <a href="{{ url_editar }}" class="btn btn-outline-primary w-100 mt-4"><i class="bi bi-arrow-left me-1"></i>Voltar e editar</a>
+        </aside>
+    </div>
+</div>
+{% endblock %}

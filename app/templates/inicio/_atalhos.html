@@ -1,0 +1,11 @@
+{% macro atalho(href, icone, titulo, descricao, destaque=none) %}
+<a href="{{ href }}" class="cartao cartao-atalho">
+    <span class="icone-destaque"><i class="bi {{ icone }}"></i></span>
+    <span class="cartao-atalho-texto">
+        <span class="cartao-atalho-titulo">{{ titulo }}</span>
+        {% if destaque is not none %}<span class="cartao-atalho-numero font-monospace-num">{{ destaque }}</span>{% endif %}
+        <span class="cartao-atalho-descricao">{{ descricao }}</span>
+    </span>
+    <i class="bi bi-arrow-right cartao-atalho-seta" aria-hidden="true"></i>
+</a>
+{% endmacro %}

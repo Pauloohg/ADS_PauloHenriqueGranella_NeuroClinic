@@ -1,0 +1,180 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% set tem_contexto = profissional is defined and profissional %}
+{% set lista_pacientes = pacientes if pacientes is defined else [] %}
+{% set lista_conflitos = conflitos if conflitos is defined else [] %}
+{% set selecionadas = (dados or {}).get("celulas") or [] %}
+{% set frequencia = (dados or {}).get("frequencia_semanal") or "1" %}
+
+{% block title %}Contratar plano — NeuroClinic{% endblock %}
+{% block head %}
+{% if tem_contexto %}<script src="{{ url_estatico('js/contratar.js') }}" defer></script>{% endif %}
+{% endblock %}
+{% block voltar %}
+{% if tem_contexto %}{{ voltar("/especialidades/" ~ profissional.especialidade.id ~ "/profissionais", profissional.especialidade.nome) }}{% else %}{{ voltar("/especialidades", "Especialidades") }}{% endif %}
+{% endblock %}
+{% block titulo_pagina %}Contratar plano{% endblock %}
+{% block subtitulo_pagina %}{% if tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
+
+{% block conteudo %}
+{% if not tem_contexto %}
+{{ alertas(erro=erro) }}
+<a href="/especialidades" class="btn btn-outline-primary">Ver especialidades</a>
+
+{% elif not lista_pacientes %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-person-plus"></i></div>
+    <h2 class="titulo-serifa h5">Cadastre um paciente para contratar</h2>
+    <p class="text-muted">O plano é contratado para a pessoa que será atendida. Você ainda não tem nenhum paciente cadastrado.</p>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo paciente</a>
+</section>
+
+{% else %}
+{{ alertas(erro=erro) }}
+{% if lista_conflitos %}
+<div class="alert alert-danger" role="alert" id="alerta-conflitos">
+    <p class="fw-semibold mb-1"><i class="bi bi-calendar-x me-1"></i>Estes horários já estão ocupados para {{ profissional.usuario.nome }}:</p>
+    <ul class="mb-0">{% for data_hora in lista_conflitos %}<li>{{ data_hora | data_br }} às {{ data_hora.strftime("%H:%M") }} ({{ data_hora.weekday() | nome_dia }})</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form id="form-contratacao" method="post" action="{{ request.url.path }}" novalidate
+      data-url-disponibilidade="/contratar/{{ profissional.usuario.id }}/disponibilidade"
+      data-url-simulacao="/contratar/{{ profissional.usuario.id }}/simulacao">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <section class="cartao mb-4">
+                <h2 class="cartao-titulo">Paciente e plano</h2>
+                <div class="mb-3">
+                    <label for="paciente_id" class="form-label">Paciente</label>
+                    <select id="paciente_id" name="paciente_id" required class="form-select {% if erros.paciente_id %}is-invalid{% endif %}">
+                        <option value="">Selecione…</option>
+                        {% for paciente in lista_pacientes %}
+                        <option value="{{ paciente.id }}" {% if dados.paciente_id == paciente.id | string %}selected{% endif %}>{{ paciente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if erros.paciente_id %}<div class="invalid-feedback">{{ erros.paciente_id }}</div>{% endif %}
+                </div>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6">Frequência</legend>
+                    <div class="opcoes-frequencia {% if erros.frequencia_semanal %}is-invalid{% endif %}">
+                        {% for vezes in (1, 2, 3) %}
+                        <input type="radio" class="btn-check" name="frequencia_semanal" id="freq-{{ vezes }}" value="{{ vezes }}" autocomplete="off" {% if frequencia == vezes | string %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="freq-{{ vezes }}">{{ vezes }}x por semana</label>
+                        {% endfor %}
+                    </div>
+                    {% if erros.frequencia_semanal %}<div class="invalid-feedback d-block">{{ erros.frequencia_semanal }}</div>{% endif %}
+                </fieldset>
+
+                <div class="mb-0">
+                    <label for="duracao" class="form-label">Duração</label>
+                    <select id="duracao" name="duracao" class="form-select {% if erros.duracao %}is-invalid{% endif %}">
+                        {% for valor, rotulo in rotulos_duracao.items() %}
+                        <option value="{{ valor }}" {% if dados.duracao == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if erros.duracao %}<div class="invalid-feedback">{{ erros.duracao }}</div>{% endif %}
+                </div>
+            </section>
+
+            <section class="cartao mb-4" aria-labelledby="titulo-grade">
+                <h2 class="cartao-titulo mb-1" id="titulo-grade">Dias e horário</h2>
+                <p class="text-muted small mb-3" id="grade-instrucao">
+                    Escolha {{ frequencia }} horário(s) livre(s), todos na mesma hora e em dias diferentes. As sessões
+                    duram 60 minutos e se repetem toda semana.
+                </p>
+                {% if erros.celulas %}<div class="alert alert-danger py-2 small" role="alert">{{ erros.celulas }}</div>{% endif %}
+                <div class="grade-wrapper" id="grade" aria-busy="false">
+                    <table class="grade-horarios">
+                        <caption class="visually-hidden">Horários semanais livres de {{ profissional.usuario.nome }}</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="visually-hidden">Horário</span></th>
+                                {% for dia in dias_uteis %}
+                                <th scope="col"><span class="d-none d-sm-inline">{{ dia | nome_dia }}</span><span class="d-sm-none" aria-hidden="true">{{ (dia | nome_dia)[:3] }}</span></th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hora in horarios %}
+                            {% if loop.previtem is defined and hora - loop.previtem > 1 %}
+                            <tr class="linha-almoco"><th scope="row">{{ loop.previtem + 1 }}h–{{ hora }}h</th><td colspan="{{ dias_uteis | length }}">Intervalo de almoço — sem atendimento</td></tr>
+                            {% endif %}
+                            <tr>
+                                <th scope="row">{{ "%02d"|format(hora) }}:00</th>
+                                {% for dia in dias_uteis %}
+                                {% set chave = dia ~ "-" ~ hora %}
+                                {% set livre = hora in livres[dia] %}
+                                <td>
+                                    <input type="checkbox" class="btn-check celula-input" name="celula" value="{{ chave }}" id="celula-{{ chave }}"
+                                           data-dia="{{ dia }}" data-hora="{{ hora }}" data-livre="{{ 1 if livre else 0 }}" autocomplete="off"
+                                           {% if not livre %}disabled{% elif chave in selecionadas %}checked{% endif %}>
+                                    <label class="celula {% if not livre %}celula-ocupada{% endif %}" for="celula-{{ chave }}">
+                                        <span class="celula-livre">{{ "%02d"|format(hora) }}h</span>
+                                        <span class="celula-escolhida"><i class="bi bi-check-lg"></i></span>
+                                        <span class="celula-indisponivel"><i class="bi bi-dash"></i></span>
+                                        <span class="visually-hidden">{{ dia | nome_dia }}, {{ "%02d"|format(hora) }}:00<span class="celula-indisponivel">, indisponível</span></span>
+                                    </label>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="grade-carregando" aria-hidden="true"><span class="spinner-border spinner-border-sm me-2"></span>Atualizando horários…</div>
+                </div>
+                <p class="small text-danger mt-2 mb-0 d-none" id="grade-erro" role="alert"></p>
+                <ul class="legenda-grade">
+                    <li><span class="amostra amostra-livre"></span>Livre</li>
+                    <li><span class="amostra amostra-escolhida"></span>Escolhido</li>
+                    <li><span class="amostra amostra-ocupada"></span>Indisponível</li>
+                </ul>
+            </section>
+
+            <section class="cartao">
+                <div class="mb-3">
+                    <label for="observacao" class="form-label">Observação <span class="text-muted fw-normal">(opcional)</span></label>
+                    <textarea id="observacao" name="observacao" rows="3" maxlength="500"
+                              class="form-control {% if erros.observacao %}is-invalid{% endif %}"
+                              placeholder="Algo que o profissional deva saber antes da primeira sessão">{{ dados.observacao or "" }}</textarea>
+                    {% if erros.observacao %}<div class="invalid-feedback">{{ erros.observacao }}</div>{% endif %}
+                </div>
+                {% if pedir_cpf %}
+                {{ campo("cpf", "Seu CPF", autocomplete="off", ajuda="Necessário para gerar a cobrança. Fica salvo no seu perfil.",
+                         atributos={"inputmode": "numeric", "placeholder": "000.000.000-00", "maxlength": "14"}) }}
+                {% endif %}
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <aside class="cartao resumo-plano" aria-labelledby="titulo-resumo">
+                <h2 class="cartao-titulo" id="titulo-resumo">Resumo do plano</h2>
+                <div id="resumo-estado" aria-live="polite">
+                    <p class="text-muted mb-0" id="resumo-instrucao">Escolha os horários na grade para ver a quantidade de sessões e o valor.</p>
+                    <p class="text-muted mb-0 d-none" id="resumo-carregando"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Calculando…</p>
+                    <p class="text-danger mb-0 d-none" id="resumo-erro" role="alert"></p>
+                    <dl class="resumo-valores d-none" id="resumo-valores">
+                        <dt>Sessões</dt><dd id="resumo-quantidade"></dd>
+                        <dt>Período</dt><dd id="resumo-periodo"></dd>
+                        <dt>Valor da sessão</dt><dd id="resumo-valor-sessao" class="font-monospace-num"></dd>
+                        <dt class="resumo-total-rotulo">Valor total</dt><dd id="resumo-valor-total" class="resumo-total font-monospace-num"></dd>
+                    </dl>
+                    <div class="resumo-feriados d-none" id="resumo-feriados">
+                        <p class="small fw-semibold mb-1"><i class="bi bi-calendar-event me-1"></i>Feriados pulados (o plano se estende):</p>
+                        <ul class="small mb-0" id="resumo-feriados-lista"></ul>
+                    </div>
+                    <div class="alert alert-danger small mt-3 mb-0 d-none" id="resumo-conflitos" role="alert">
+                        <p class="fw-semibold mb-1">Horários já ocupados:</p>
+                        <ul class="mb-1" id="resumo-conflitos-lista"></ul>
+                        <p class="mb-0">Escolha outro dia ou horário.</p>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-4" id="btn-continuar">Continuar<i class="bi bi-arrow-right ms-1"></i></button>
+                <p class="small text-muted mt-2 mb-0">Na próxima tela você confere tudo antes de confirmar.</p>
+            </aside>
+        </div>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

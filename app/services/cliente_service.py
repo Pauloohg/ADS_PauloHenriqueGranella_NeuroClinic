@@ -26,11 +26,14 @@ def campos_em_uso(db: Session, usuario_id: int, email: str, cpf: str | None) -> 
         cpf = validar_cpf(cpf or "")
     except ValueError:
         cpf = None
-    if cpf is not None:
-        dono_cpf = db.scalar(select(Cliente).where(Cliente.cpf == cpf))
-        if dono_cpf is not None and dono_cpf.usuario_id != usuario_id:
-            campos.add("cpf")
+    if cpf is not None and cpf_em_uso(db, usuario_id, cpf):
+        campos.add("cpf")
     return campos
+
+
+def cpf_em_uso(db: Session, usuario_id: int, cpf_formatado: str) -> bool:
+    dono_cpf = db.scalar(select(Cliente).where(Cliente.cpf == cpf_formatado))
+    return dono_cpf is not None and dono_cpf.usuario_id != usuario_id
 
 
 def atualizar_perfil(db: Session, usuario: Usuario, dados: PerfilClienteAtualizacao) -> Cliente:

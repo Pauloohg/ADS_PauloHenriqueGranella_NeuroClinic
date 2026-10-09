@@ -19,12 +19,15 @@ class FuncionarioNaoEncontrado(Exception):
     pass
 
 
-class FuncionarioComSessoesAgendadas(Exception):
+class FuncionarioComSessoesFuturas(Exception):
     pass
 
 
 class EspecialidadeComSessoesFuturas(Exception):
     pass
+
+
+STATUS_QUE_PRENDEM = (StatusSessao.AGENDADA, StatusSessao.PENDENTE_PAGAMENTO)
 
 
 @dataclass
@@ -42,6 +45,16 @@ def listar(db: Session) -> list[FuncionarioResumo]:
         .order_by(Funcionario.ativo.desc(), Usuario.nome)
     )
     return [FuncionarioResumo(*linha) for linha in db.execute(consulta)]
+
+
+def listar_ativos_da_especialidade(db: Session, especialidade_id: int) -> list[Usuario]:
+    consulta = (
+        select(Usuario)
+        .join(Funcionario, Funcionario.usuario_id == Usuario.id)
+        .where(Funcionario.especialidade_id == especialidade_id, Funcionario.ativo.is_(True))
+        .order_by(Usuario.nome)
+    )
+    return list(db.scalars(consulta))
 
 
 def buscar(db: Session, funcionario_id: int) -> FuncionarioResumo:
@@ -76,8 +89,7 @@ def atualizar(db: Session, funcionario_id: int, dados: FuncionarioEdicao, agora:
     resumo = buscar(db, funcionario_id)
     especialidade_service.buscar(db, dados.especialidade_id)
     trocou_especialidade = dados.especialidade_id != resumo.funcionario.especialidade_id
-    status_que_prendem = (StatusSessao.AGENDADA, StatusSessao.PENDENTE_PAGAMENTO)
-    if trocou_especialidade and possui_sessoes_futuras(db, funcionario_id, agora, status_que_prendem):
+    if trocou_especialidade and possui_sessoes_futuras(db, funcionario_id, agora, STATUS_QUE_PRENDEM):
         raise EspecialidadeComSessoesFuturas
     resumo.usuario.nome = dados.nome
     resumo.funcionario.especialidade_id = dados.especialidade_id
@@ -101,8 +113,8 @@ def possui_sessoes_futuras(
 
 def desativar(db: Session, funcionario_id: int, agora: datetime) -> FuncionarioResumo:
     resumo = buscar(db, funcionario_id)
-    if possui_sessoes_futuras(db, funcionario_id, agora, (StatusSessao.AGENDADA,)):
-        raise FuncionarioComSessoesAgendadas  # RN05
+    if possui_sessoes_futuras(db, funcionario_id, agora, STATUS_QUE_PRENDEM):
+        raise FuncionarioComSessoesFuturas  # RN05
     resumo.funcionario.ativo = False
     db.commit()
     return resumo

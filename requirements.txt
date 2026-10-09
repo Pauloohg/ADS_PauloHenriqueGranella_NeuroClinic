@@ -23,6 +23,10 @@ bcrypt==4.0.1  # passlib 1.7.4 é incompatível com bcrypt>=4.1 (quebra no hash)
 python-dotenv==1.0.1
 tzdata==2026.5  # Python no Windows não traz a base de fusos: sem isso ZoneInfo("America/Sao_Paulo") falha
 
+# Agenda do plano (RF05 — RN06)
+holidays==0.106
+python-dateutil==2.9.0.post0  # já vem com holidays; fixado porque o plano_service importa relativedelta direto
+
 # Pagamento (RF06 — a partir da Semana 4) e e-mail
 httpx==0.28.1
 fastapi-mail==1.4.2

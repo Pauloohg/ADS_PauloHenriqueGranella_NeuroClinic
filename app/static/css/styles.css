@@ -594,3 +594,438 @@
     background-color: #ECEAE6;
     color: #5C5A55;
 }
+
+.cartao-especialidade {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-top: 4px solid var(--esp-cor, var(--bs-primary));
+}
+
+.cartao-especialidade-rotulo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin: 1.25rem 0 0.25rem;
+}
+
+.cartao-especialidade-valor {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    margin-bottom: 1.25rem;
+}
+
+.lista-profissionais {
+    list-style: none;
+    padding: 0;
+}
+
+.lista-profissionais li {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.lista-profissionais li:last-child {
+    border-bottom: 0;
+}
+
+.avatar-iniciais {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background-color: var(--esp-fundo, var(--bs-primary-bg-subtle));
+    color: var(--esp-texto, var(--cor-texto-escuro));
+}
+
+/* --- RF05: contratação ------------------------------------------------------------------------ */
+
+.opcoes-frequencia {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.grade-wrapper {
+    position: relative;
+}
+
+.grade-horarios {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0.35rem;
+    margin: 0 -0.35rem;
+}
+
+.grade-horarios th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.grade-horarios thead th:first-child,
+.grade-horarios tbody th {
+    width: 3.25rem;
+    text-align: right;
+    padding-right: 0.25rem;
+    white-space: nowrap;
+}
+
+.grade-horarios td {
+    padding: 0;
+}
+
+.celula {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    height: 2.5rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
+    border-radius: 8px;
+    background-color: #fff;
+    color: var(--cor-texto-escuro);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.celula .celula-escolhida,
+.celula .celula-indisponivel {
+    display: none;
+}
+
+.btn-check:not(:disabled) + .celula:hover {
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+}
+
+.btn-check:focus-visible + .celula {
+    outline: 3px solid rgba(var(--bs-primary-rgb), 0.45);
+    outline-offset: 2px;
+}
+
+.btn-check:checked + .celula {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+}
+
+.btn-check:checked + .celula .celula-escolhida {
+    display: inline;
+}
+
+.btn-check:disabled + .celula {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.celula.celula-ocupada {
+    opacity: 1 !important;
+    border-color: transparent;
+    background: repeating-linear-gradient(-45deg, #ECEAE6, #ECEAE6 6px, #E3E0DA 6px, #E3E0DA 12px);
+    color: #8A877F;
+}
+
+.celula.celula-ocupada .celula-livre {
+    display: none;
+}
+
+.celula.celula-ocupada .celula-indisponivel {
+    display: inline;
+}
+
+.linha-almoco th,
+.linha-almoco td {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+    font-weight: 400;
+}
+
+.linha-almoco td {
+    text-align: center;
+    border-top: 1px dashed var(--bs-border-color);
+    border-bottom: 1px dashed var(--bs-border-color);
+    padding: 0.35rem 0;
+}
+
+.grade-carregando {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--cor-texto-escuro);
+}
+
+.grade-wrapper[aria-busy="true"] .grade-carregando {
+    display: flex;
+}
+
+.legenda-grade {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
+}
+
+.legenda-grade li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.amostra {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 4px;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.35);
+    background-color: #fff;
+}
+
+.amostra-escolhida {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.amostra-ocupada {
+    border-color: transparent;
+    background: repeating-linear-gradient(-45deg, #ECEAE6, #ECEAE6 3px, #E3E0DA 3px, #E3E0DA 6px);
+}
+
+@media (min-width: 992px) {
+    .resumo-plano {
+        position: sticky;
+        top: 1.5rem;
+    }
+}
+
+.resumo-valores {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem 0;
+    margin: 0;
+}
+
+.resumo-valores dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.resumo-valores dd {
+    margin: 0;
+    padding-left: 1rem;
+    text-align: right;
+    font-weight: 500;
+}
+
+.resumo-valores .resumo-total-rotulo,
+.resumo-valores .resumo-total {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--bs-border-color);
+    align-self: stretch;
+}
+
+.resumo-valores .resumo-total-rotulo {
+    display: flex;
+    align-items: center;
+    color: var(--cor-texto-escuro);
+    font-weight: 600;
+}
+
+.resumo-total {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 600 !important;
+    color: var(--cor-texto-escuro);
+}
+
+.resumo-feriados {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--bs-border-color);
+}
+
+.lista-dados {
+    display: grid;
+    grid-template-columns: minmax(7rem, 30%) 1fr;
+    gap: 0.75rem 1rem;
+    margin: 0;
+}
+
+.lista-dados dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.lista-dados dd {
+    margin: 0;
+    font-weight: 500;
+}
+
+.lista-sessoes {
+    columns: 2;
+    column-gap: 1.5rem;
+    padding-left: 1.75rem;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.lista-sessoes li {
+    padding: 0.2rem 0;
+    break-inside: avoid;
+}
+
+@media (min-width: 768px) {
+    .lista-sessoes {
+        columns: 3;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .lista-dados {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+
+    .lista-dados dd {
+        margin-bottom: 0.6rem;
+    }
+
+    .celula {
+        font-size: 0.75rem;
+    }
+}
+
+/* --- Início pós-login ------------------------------------------------------------------------- */
+
+.status-pendente {
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+.cartao-atalho {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    padding: 1.25rem 1.5rem;
+    color: var(--cor-texto-escuro);
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.cartao-atalho:hover,
+.cartao-atalho:focus-visible {
+    color: var(--cor-texto-escuro);
+    border-color: var(--bs-primary-border-subtle);
+    transform: translateY(-1px);
+}
+
+.cartao-atalho .icone-destaque {
+    flex-shrink: 0;
+    background-color: var(--bs-primary-bg-subtle);
+    box-shadow: none;
+}
+
+.cartao-atalho-texto {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.cartao-atalho-titulo {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.cartao-atalho-numero {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+
+.cartao-atalho-descricao {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color);
+}
+
+.cartao-atalho-seta {
+    color: var(--bs-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cartao-atalho {
+        transition: none;
+    }
+
+    .cartao-atalho:hover {
+        transform: none;
+    }
+}
+
+.cartao-proxima-sessao,
+.cartao-plano-resumo {
+    height: 100%;
+    border-left: 4px solid var(--esp-cor, var(--bs-primary));
+}
+
+.proxima-sessao-quando {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    color: var(--cor-texto-escuro);
+    margin-bottom: 1.25rem;
+}
+
+.progresso-plano {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.progresso-plano .progress {
+    height: 0.5rem;
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.progresso-plano .progress-bar {
+    background-color: var(--bs-primary);
+}
+
+.aviso-pagamento {
+    margin-top: 1.25rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}

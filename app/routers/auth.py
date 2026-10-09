@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from typing import Annotated
-from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -9,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core import security
 from app.core.config import settings
+from app.core.fuso import FUSO_CLINICA, utc_para_local  # noqa: F401 — reexportados: routers e testes importam daqui
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -29,17 +29,8 @@ MSG_LINK_EXPIRADO = "Este link de redefinição expirou. Solicite um novo."
 MSG_LINK_INVALIDO = "Este link de redefinição é inválido ou já foi utilizado. Solicite um novo."
 
 
-FUSO_CLINICA = ZoneInfo("America/Sao_Paulo")
-
-
 def agora_utc() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def utc_para_local(dt_utc: datetime) -> datetime:
-    if dt_utc.tzinfo is None:
-        dt_utc = dt_utc.replace(tzinfo=timezone.utc)
-    return dt_utc.astimezone(FUSO_CLINICA).replace(tzinfo=None)
 
 
 def agora_local() -> datetime:

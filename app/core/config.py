@@ -31,6 +31,13 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Agenda da clínica (RF05 / RN08): dias_semana segue datetime.weekday() — 0 = segunda ... 6 = domingo
+DURACAO_SESSAO_MINUTOS = 60
+DIAS_UTEIS = (0, 1, 2, 3, 4)
+HORARIOS_ATENDIMENTO = [8, 9, 10, 11, 14, 15, 16, 17]  # hora cheia; 12h e 13h são almoço; a última sessão termina às 18h
+PRAZO_PAGAMENTO_HORAS = 4  # RN09
+ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS = PRAZO_PAGAMENTO_HORAS  # RN10: a primeira sessão não pode cair dentro do prazo de pagamento
+
 # Valores fictícios (placeholder) até definirmos os dados reais da clínica
 DADOS_CLINICA = {
     "nome": "NeuroClinic",

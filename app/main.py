@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
@@ -8,9 +8,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.templating import templates
-from app.models.usuario import Usuario
-from app.routers import admin, auth, cliente, conta
-from app.routers.auth import NaoAutenticado, erros_por_campo, get_usuario_opcional
+from app.routers import admin, auth, cliente, conta, inicio
+from app.routers.auth import NaoAutenticado, erros_por_campo
 
 if settings.DEBUG:
     # Sem isso o link de redefinição de senha (logado em auth_service) não aparece no console
@@ -20,6 +19,7 @@ app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+app.include_router(inicio.router)
 app.include_router(auth.router)
 app.include_router(conta.router)
 app.include_router(cliente.router)
@@ -41,6 +41,7 @@ FORMULARIOS_POR_ROTA = {
     "/perfil": "cliente/perfil.html",
     "/pacientes/novo": "cliente/paciente_form.html",
     "/pacientes/{paciente_id}/editar": "cliente/paciente_form.html",
+    "/contratar/{funcionario_id}": "cliente/contratar.html",
     "/admin/funcionarios/novo": "admin/funcionario_form.html",
     "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
     "/admin/especialidades/nova": "admin/especialidade_form.html",
@@ -72,7 +73,3 @@ async def reexibir_formulario_com_erros(request: Request, exc: RequestValidation
     }
     return templates.TemplateResponse(request, template, contexto, status_code=400)
 
-
-@app.get("/")
-def home(request: Request, usuario: Usuario | None = Depends(get_usuario_opcional)):
-    return templates.TemplateResponse(request, "index.html", {"usuario": usuario})

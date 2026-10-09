@@ -1,5 +1,5 @@
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -40,9 +40,51 @@ def classe_especialidade(nome: str) -> str:
     return f"esp-{chave}" if chave in CLASSES_ESPECIALIDADE else ""
 
 
+NOMES_DIAS = ("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
+ROTULOS_DURACAO = {
+    "quinzenal": "Quinzenal (2 semanas)",
+    "mensal": "Mensal (1 mês)",
+    "bimestral": "Bimestral (2 meses)",
+    "anual": "Anual (12 meses)",
+}
+
+
+def nome_dia(dia: int) -> str:
+    return NOMES_DIAS[dia]
+
+
+def data_br(valor) -> str:
+    return valor.strftime("%d/%m/%Y")
+
+
+def primeiro_nome(nome: str) -> str:
+    return nome.split()[0] if nome.split() else nome
+
+
+def tempo_curto(intervalo: timedelta) -> str:
+    minutos = int(intervalo.total_seconds() // 60)
+    horas, minutos = divmod(minutos, 60)
+    if horas and minutos:
+        return f"{horas}h {minutos:02d}min"
+    if horas:
+        return f"{horas}h"
+    return f"{minutos}min" if minutos else "menos de 1min"
+
+
+def iniciais(nome: str) -> str:
+    partes = nome.split()
+    return "".join(parte[0] for parte in (partes[:1] + partes[1:][-1:])).upper()
+
+
 templates.env.globals["url_estatico"] = url_estatico
 templates.env.globals["ano_atual"] = ano_atual
 templates.env.globals["clinica"] = DADOS_CLINICA
 templates.env.filters["moeda"] = moeda
 templates.env.filters["valor_formulario"] = valor_formulario
 templates.env.filters["classe_especialidade"] = classe_especialidade
+templates.env.filters["iniciais"] = iniciais
+templates.env.filters["primeiro_nome"] = primeiro_nome
+templates.env.filters["tempo_curto"] = tempo_curto
+templates.env.filters["nome_dia"] = nome_dia
+templates.env.filters["data_br"] = data_br
+templates.env.globals["rotulos_duracao"] = ROTULOS_DURACAO

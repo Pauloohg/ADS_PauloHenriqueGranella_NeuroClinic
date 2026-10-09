@@ -2,7 +2,8 @@ import enum
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Time
+from sqlalchemy import JSON, Date, DateTime, Enum, ForeignKey, Integer, Numeric, SmallInteger, String, Text, Time
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -21,7 +22,8 @@ class Plano(Base):
     funcionario_id: Mapped[int] = mapped_column(ForeignKey("funcionario.usuario_id"), nullable=False)
     especialidade_id: Mapped[int] = mapped_column(ForeignKey("especialidade.id"), nullable=False)
 
-    dia_semana: Mapped[str] = mapped_column(String(50), nullable=False)
+    # 0 = segunda ... 6 = domingo (datetime.weekday()); o variant JSON é só para a suíte de testes em SQLite
+    dias_semana: Mapped[list[int]] = mapped_column(ARRAY(SmallInteger).with_variant(JSON(), "sqlite"), nullable=False)
     horario: Mapped[datetime] = mapped_column(Time, nullable=False)
     frequencia_semanal: Mapped[int] = mapped_column(Integer, nullable=False)
     duracao: Mapped[str] = mapped_column(String(20), nullable=False)

@@ -34,7 +34,7 @@ def test_home_visitante_mostra_landing_institucional(client):
         "Pronto para começar?",
     ]:
         assert texto in html, texto
-    assert "Bem-vindo(a)" not in html
+    assert "menu-principal" not in html
 
 
 def test_home_visitante_mostra_botoes_de_cta(client):
@@ -44,13 +44,12 @@ def test_home_visitante_mostra_botoes_de_cta(client):
     assert _tem_link(html, "/cadastro", "Criar minha conta")
 
 
-def test_home_autenticado_mostra_boas_vindas_sem_landing(client, db):
+def test_home_autenticado_mostra_o_inicio_sem_landing(client, db):
     auth_service.cadastrar_cliente(db, ClienteCadastro(**FORM_CADASTRO), datetime.now(timezone.utc))
     client.post("/login", data={"email": "joao@exemplo.com", "senha": "senha123"})
 
     html = _html_normalizado(client.get("/"))
-    assert "Bem-vindo(a), João Lima!" in html
-    assert "Você está conectado como cliente." in html
+    assert re.search(r"(Bom dia|Boa tarde|Boa noite), João", html)
     assert "Por que escolher a NeuroClinic" not in html
     assert 'href="/login"' not in html
     assert 'href="/cadastro"' not in html
@@ -67,4 +66,4 @@ def test_home_do_funcionario_usa_o_estilo_das_telas_autenticadas(client, db):
     logar(client, criar_funcionario(db, criar_especialidade(db)).usuario.email)
     html = _html_normalizado(client.get("/"))
     assert re.search(r'<main class="[^"]*\bpagina-interna\b', html)
-    assert re.search(r'<h1 class="[^"]*\btitulo-serifa\b[^"]*">\s*Bem-vindo\(a\), Carlos Fono!', html)
+    assert re.search(r'<h1 class="[^"]*\btitulo-serifa\b[^"]*">\s*(Bom dia|Boa tarde|Boa noite), Carlos<', html)

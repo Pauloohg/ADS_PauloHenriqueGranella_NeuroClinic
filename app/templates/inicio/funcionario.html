@@ -1,0 +1,19 @@
+{% extends "inicio/_saudacao.html" %}
+{% from "inicio/_atalhos.html" import atalho %}
+
+{% block subtitulo_pagina %}Bem-vindo(a) à sua área na NeuroClinic.{% endblock %}
+
+{% block conteudo %}
+<div class="row g-3 g-lg-4">
+    <div class="col-12 col-md-6 col-xl-4">
+        <section class="cartao cartao-especialidade {{ (especialidade or '') | classe_especialidade }}">
+            <h2 class="cartao-especialidade-rotulo mt-0">Sua especialidade</h2>
+            <p class="cartao-especialidade-valor mb-2">{{ especialidade or "Não informada" }}</p>
+            <p class="text-muted small mb-0">Cadastrada pela administração da clínica.</p>
+        </section>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
+        {{ atalho("/conta/alterar-senha", "bi-person", "Meu perfil", "Altere a sua senha de acesso.") }}
+    </div>
+</div>
+{% endblock %}
