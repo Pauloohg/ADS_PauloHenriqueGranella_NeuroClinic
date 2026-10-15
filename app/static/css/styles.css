@@ -543,6 +543,7 @@
     padding: 0.9rem 1.5rem;
 }
 
+.tabela tbody tr:last-child th,
 .tabela tbody tr:last-child td {
     border-bottom: 0;
 }
@@ -585,9 +586,10 @@
     background-color: var(--esp-cor, var(--bs-primary));
 }
 
+/* Branco sobre o verde primário: contraste ~9,9:1 (WCAG AAA) */
 .status-ativo {
-    background-color: var(--bs-primary-bg-subtle);
-    color: var(--cor-primaria-hover);
+    background-color: var(--bs-primary);
+    color: #fff;
 }
 
 .status-inativo {
@@ -1028,4 +1030,264 @@
     border-radius: 8px;
     background-color: #FBEFD5;
     color: #6B4A10;
+}
+
+/* --- Admin: clientes (RF14) e painel (RF15) --------------------------------------------------- */
+
+.busca-clientes {
+    max-width: 560px;
+}
+
+.link-cliente {
+    color: var(--cor-texto-escuro);
+}
+
+.paginacao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.lista-planos-admin {
+    display: grid;
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lista-planos-admin li {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--bs-border-color);
+    border-left: 4px solid var(--esp-cor, var(--bs-primary));
+    border-radius: 0.75rem;
+}
+
+.navegacao-mes {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navegacao-mes-atual {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.indicador {
+    height: 100%;
+    padding: 1.25rem 1.5rem;
+}
+
+.indicador-rotulo {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin-bottom: 0.25rem;
+}
+
+.indicador-valor {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    margin-bottom: 0.25rem;
+}
+
+.indicador-detalhe {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+    margin: 0;
+}
+
+.variacao {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.variacao-alta {
+    color: #2E6B3A;
+}
+
+.variacao-baixa {
+    color: #A23B2A;
+}
+
+.visao-geral {
+    padding: 1.25rem 1.5rem;
+}
+
+.visao-geral-lista {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 0;
+}
+
+.visao-geral-lista dt {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.visao-geral-lista dd {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.ranking {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ranking li {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.ranking li:last-child {
+    border-bottom: 0;
+}
+
+.ranking-posicao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--esp-cor, var(--bs-primary));
+    border-radius: 50%;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.ranking-nome {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.ranking-numeros {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tabela-especialidades th[scope="row"] {
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--cor-texto-escuro);
+    border-left: 4px solid transparent;
+}
+
+.tabela-especialidades .linha-destaque th[scope="row"] {
+    border-left-color: var(--esp-cor, var(--bs-primary));
+}
+
+.linha-destaque {
+    --bs-table-bg: var(--cor-fundo-creme);
+}
+
+.selo-destaque {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.barra-valor {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.barra {
+    display: block;
+    min-width: 4rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background-color: var(--bs-primary-bg-subtle);
+    overflow: hidden;
+}
+
+.barra-preenchida {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background-color: var(--esp-cor, var(--bs-primary));
+}
+
+@media (max-width: 767.98px) {
+    .navegacao-mes {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .visao-geral-lista {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .visao-geral-lista > div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+
+    .tabela-empilhavel thead {
+        display: none;
+    }
+
+    .tabela-empilhavel tr,
+    .tabela-empilhavel th,
+    .tabela-empilhavel td {
+        display: block;
+    }
+
+    .tabela-empilhavel tbody tr {
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .tabela-empilhavel tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .tabela-empilhavel th,
+    .tabela-empilhavel td {
+        padding: 0.5rem 1.5rem;
+        border-bottom: 0;
+    }
+
+    .tabela-empilhavel td::before {
+        content: attr(data-rotulo);
+        display: block;
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .tabela-clientes tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 0.4rem 0;
+    }
+
+    .tabela-clientes td:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .tabela-clientes td {
+        padding: 0.35rem 1.5rem;
+        text-align: left !important;
+    }
 }

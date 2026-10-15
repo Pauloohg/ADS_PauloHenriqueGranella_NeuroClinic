@@ -10,10 +10,7 @@
         {% set sessao = proxima_sessao %}
         <section class="cartao cartao-proxima-sessao {{ sessao.especialidade | classe_especialidade }}" aria-labelledby="titulo-proxima-sessao">
             <h2 id="titulo-proxima-sessao" class="cartao-especialidade-rotulo mt-0">Próxima sessão</h2>
-            <p class="proxima-sessao-quando">
-                {% if rotulo_proxima_sessao %}{{ rotulo_proxima_sessao | capitalize }}{% else %}{{ sessao.data_hora.weekday() | nome_dia }}, {{ sessao.data_hora | data_br }}{% endif %},
-                às {{ sessao.data_hora.strftime("%H:%M") }}
-            </p>
+            <p class="proxima-sessao-quando">{{ quando_proxima_sessao }}</p>
             <dl class="lista-dados">
                 <dt>Paciente</dt>
                 <dd>{{ sessao.paciente }}</dd>

@@ -49,6 +49,30 @@ ROTULOS_DURACAO = {
 }
 
 
+NOMES_MESES = (
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+)
+
+
+def nome_mes(mes) -> str:
+    return f"{NOMES_MESES[mes.month - 1]} de {mes.year}"
+
+
+def mes_iso(mes) -> str:
+    return mes.strftime("%Y-%m")
+
+
+def percentual(valor: Decimal) -> str:
+    return f"{valor:.1f}".replace(".", ",") + "%"
+
+
+def idade(anos: int) -> str:
+    if anos < 1:
+        return "menos de 1 ano"
+    return "1 ano" if anos == 1 else f"{anos} anos"
+
+
 def nome_dia(dia: int) -> str:
     return NOMES_DIAS[dia]
 
@@ -87,4 +111,8 @@ templates.env.filters["primeiro_nome"] = primeiro_nome
 templates.env.filters["tempo_curto"] = tempo_curto
 templates.env.filters["nome_dia"] = nome_dia
 templates.env.filters["data_br"] = data_br
+templates.env.filters["nome_mes"] = nome_mes
+templates.env.filters["mes_iso"] = mes_iso
+templates.env.filters["percentual"] = percentual
+templates.env.filters["idade"] = idade
 templates.env.globals["rotulos_duracao"] = ROTULOS_DURACAO

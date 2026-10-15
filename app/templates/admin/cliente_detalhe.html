@@ -1,0 +1,73 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import voltar %}
+
+{% block title %}{{ cliente.nome }} — Clientes — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/admin/clientes", "Clientes") }}{% endblock %}
+{% block titulo_pagina %}{{ cliente.nome }}{% endblock %}
+{% block subtitulo_pagina %}Cliente desde {{ cliente.cadastrado_em | data_br }}. Consulta somente leitura.{% endblock %}
+
+{% block conteudo %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <section class="cartao">
+            <h2 class="cartao-titulo">Contato</h2>
+            <dl class="lista-dados">
+                <dt>E-mail</dt>
+                <dd class="text-break">{{ cliente.email }}</dd>
+                <dt>Telefone</dt>
+                <dd>{{ cliente.telefone or "não informado" }}</dd>
+                <dt>CPF</dt>
+                <dd class="font-monospace-num">{{ cliente.cpf_mascarado or "não informado" }}</dd>
+            </dl>
+        </section>
+    </div>
+    <div class="col-lg-8">
+        <section aria-labelledby="titulo-pacientes">
+            <h2 id="titulo-pacientes" class="titulo-serifa h4 mb-3">Pacientes</h2>
+            {% for paciente in cliente.pacientes %}
+            <article class="cartao mb-3">
+                <header class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+                    <h3 class="titulo-serifa h5 mb-0">{{ paciente.nome }}</h3>
+                    <span class="small text-muted">{{ paciente.idade | idade }}</span>
+                </header>
+                {% if paciente.planos %}
+                <ul class="lista-planos-admin">
+                    {% for resumo in paciente.planos %}
+                    {% set plano = resumo.plano %}
+                    <li class="{{ resumo.especialidade | classe_especialidade }}">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                            <span class="chip-especialidade">{{ resumo.especialidade }}</span>
+                            {% if resumo.situacao == "aguardando_pagamento" %}
+                            <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+                            {% elif resumo.situacao == "encerrado" %}
+                            <span class="badge rounded-pill status-inativo">Encerrado</span>
+                            {% else %}
+                            <span class="badge rounded-pill status-ativo">Ativo</span>
+                            {% endif %}
+                        </div>
+                        <dl class="lista-dados">
+                            <dt>Profissional</dt>
+                            <dd>{{ resumo.profissional }}</dd>
+                            <dt>Período</dt>
+                            <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
+                            <dt>Valor total</dt>
+                            <dd class="font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+                        </dl>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">Nenhum plano contratado para este paciente.</p>
+                {% endif %}
+            </article>
+            {% else %}
+            <div class="cartao estado-vazio">
+                <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
+                <p class="titulo-serifa h5">Nenhum paciente cadastrado</p>
+                <p class="text-muted mb-0">Este cliente ainda não cadastrou pacientes.</p>
+            </div>
+            {% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}

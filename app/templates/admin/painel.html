@@ -1,0 +1,149 @@
+{% extends "_interno.html" %}
+
+{% macro sinal(valor) %}{% if valor > 0 %}+{% elif valor < 0 %}−{% endif %}{% endmacro %}
+{% macro so_mes(mes) %}{{ (mes | nome_mes).split(" de ")[0] }}{% endmacro %}
+
+{% block title %}Painel gerencial — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Painel gerencial{% endblock %}
+{% block subtitulo_pagina %}Indicadores de {{ painel.mes | nome_mes }}.{% endblock %}
+{% block acoes_pagina %}
+<nav class="navegacao-mes" aria-label="Navegar entre meses">
+    <a href="/admin/painel?mes={{ painel.mes_anterior | mes_iso }}" class="btn btn-outline-primary btn-sm" rel="prev">
+        <i class="bi bi-chevron-left me-1"></i>{{ so_mes(painel.mes_anterior) | capitalize }}
+    </a>
+    <span class="navegacao-mes-atual">{{ painel.mes | nome_mes | capitalize }}</span>
+    {% if painel.mes_seguinte %}
+    <a href="/admin/painel?mes={{ painel.mes_seguinte | mes_iso }}" class="btn btn-outline-primary btn-sm" rel="next">
+        {{ so_mes(painel.mes_seguinte) | capitalize }}<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% else %}
+    <span class="btn btn-outline-primary btn-sm disabled" aria-disabled="true">Próximo<i class="bi bi-chevron-right ms-1"></i></span>
+    {% endif %}
+</nav>
+{% endblock %}
+
+{% block conteudo %}
+{% set p = painel %}
+{% if p.mes_ajustado %}
+<div class="alert alert-info d-flex gap-2" role="status">
+    <i class="bi bi-info-circle"></i><span>O mês informado é inválido ou ainda não chegou. Exibindo {{ p.mes | nome_mes }}.</span>
+</div>
+{% endif %}
+
+<section aria-labelledby="titulo-mes" class="mb-4 mb-lg-5">
+    <h2 id="titulo-mes" class="visually-hidden">Indicadores do mês</h2>
+    <div class="row g-3 g-lg-4">
+        <div class="col-12 col-md-4">
+            <div class="cartao indicador">
+                <p class="indicador-rotulo">Receita do mês</p>
+                <p class="indicador-valor font-monospace-num">{{ p.receita | moeda }}</p>
+                {% set v = p.variacao %}
+                <p class="indicador-detalhe">
+                    <span class="variacao {% if v.valor > 0 %}variacao-alta{% elif v.valor < 0 %}variacao-baixa{% endif %}">{{ sinal(v.valor) }}{{ v.valor | abs | moeda }} ({% if v.percentual is none %}—{% else %}{{ sinal(v.percentual) }}{{ v.percentual | abs | percentual }}{% endif %})</span>
+                    em relação a {{ so_mes(p.mes_anterior) }} ({{ p.receita_anterior | moeda }})
+                </p>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="cartao indicador">
+                <p class="indicador-rotulo">Planos contratados</p>
+                <p class="indicador-valor font-monospace-num">{{ p.planos_contratados }}</p>
+                <p class="indicador-detalhe">com pagamento confirmado no mês</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="cartao indicador">
+                <p class="indicador-rotulo">Novos clientes</p>
+                <p class="indicador-valor font-monospace-num">{{ p.novos_clientes }}</p>
+                <p class="indicador-detalhe">contas criadas no mês</p>
+            </div>
+        </div>
+    </div>
+    {% if p.vazio %}
+    <div class="cartao estado-vazio mt-3 py-4">
+        <div class="icone-destaque mb-3"><i class="bi bi-cash-coin"></i></div>
+        <p class="titulo-serifa h5 mb-0">Ainda não há pagamentos confirmados neste mês</p>
+    </div>
+    {% endif %}
+</section>
+
+<section aria-labelledby="titulo-visao-geral" class="mb-4 mb-lg-5">
+    <h2 id="titulo-visao-geral" class="titulo-serifa h4 mb-3">Visão geral hoje</h2>
+    <div class="cartao visao-geral">
+        <dl class="visao-geral-lista">
+            <div><dt>Clientes cadastrados</dt><dd class="font-monospace-num">{{ p.total_clientes }}</dd></div>
+            <div><dt>Planos ativos</dt><dd class="font-monospace-num">{{ p.planos_ativos }}</dd></div>
+            <div><dt>Funcionários ativos</dt><dd class="font-monospace-num">{{ p.funcionarios_ativos }}</dd></div>
+        </dl>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-5">
+        <section class="cartao h-100" aria-labelledby="titulo-ranking">
+            <h2 id="titulo-ranking" class="cartao-titulo">Profissionais com mais planos no mês</h2>
+            {% if p.ranking %}
+            <ol class="ranking">
+                {% for linha in p.ranking %}
+                <li class="{{ linha.especialidade | classe_especialidade }}">
+                    <span class="ranking-posicao font-monospace-num">{{ loop.index }}</span>
+                    <span class="ranking-nome">
+                        <span class="fw-medium">{{ linha.nome }}</span>
+                        {% if not linha.ativo %}<span class="badge rounded-pill status-inativo ms-1">Desativado</span>{% endif %}
+                        <span class="d-block mt-1"><span class="chip-especialidade">{{ linha.especialidade }}</span></span>
+                    </span>
+                    <span class="ranking-numeros font-monospace-num">
+                        <span class="d-block fw-medium">{{ linha.planos }} {{ "plano" if linha.planos == 1 else "planos" }}</span>
+                        <span class="small text-muted">{{ linha.receita | moeda }}</span>
+                    </span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="text-muted mb-0">Nenhum plano contratado neste mês.</p>
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-12 col-xl-7">
+        <section class="cartao cartao-tabela h-100" aria-labelledby="titulo-especialidades">
+            <h2 id="titulo-especialidades" class="cartao-titulo px-4 pt-3">Por especialidade</h2>
+            {% if p.especialidades %}
+            <table class="table tabela tabela-empilhavel tabela-especialidades align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Especialidade</th>
+                        <th scope="col">Clientes com plano ativo</th>
+                        <th scope="col">Planos no mês</th>
+                        <th scope="col">Receita no mês</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linha in p.especialidades %}
+                    <tr class="{{ linha.nome | classe_especialidade }}{% if linha.destaque %} linha-destaque{% endif %}">
+                        <th scope="row">
+                            <span class="chip-especialidade">{{ linha.nome }}</span>
+                            {% if linha.destaque %}<span class="selo-destaque"><i class="bi bi-star-fill me-1" aria-hidden="true"></i>Mais clientes</span>{% endif %}
+                        </th>
+                        <td data-rotulo="Clientes com plano ativo">
+                            <span class="barra-valor font-monospace-num">{{ linha.clientes_ativos }}</span>
+                            <span class="barra" aria-hidden="true"><span class="barra-preenchida" style="width: {{ linha.largura_clientes }}%"></span></span>
+                        </td>
+                        <td data-rotulo="Planos no mês">
+                            <span class="barra-valor font-monospace-num">{{ linha.planos }}</span>
+                            <span class="barra" aria-hidden="true"><span class="barra-preenchida" style="width: {{ linha.largura_planos }}%"></span></span>
+                        </td>
+                        <td data-rotulo="Receita no mês">
+                            <span class="barra-valor font-monospace-num">{{ linha.receita | moeda }}</span>
+                            <span class="barra" aria-hidden="true"><span class="barra-preenchida" style="width: {{ linha.largura_receita }}%"></span></span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted px-4 pb-3 mb-0">Nenhuma especialidade cadastrada.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

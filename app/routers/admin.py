@@ -11,7 +11,7 @@ from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
 from app.schemas.especialidade import EspecialidadeCadastro, EspecialidadeValor
 from app.schemas.funcionario import FuncionarioCadastro, FuncionarioEdicao
-from app.services import auth_service, especialidade_service, funcionario_service
+from app.services import admin_clientes_service, auth_service, especialidade_service, funcionario_service, painel_service
 
 somente_admin = get_usuario_por_tipo(TipoUsuario.ADMIN)
 
@@ -22,6 +22,9 @@ TEMPLATE_FUNCIONARIOS = "admin/funcionarios.html"
 TEMPLATE_FUNCIONARIO_FORM = "admin/funcionario_form.html"
 TEMPLATE_ESPECIALIDADES = "admin/especialidades.html"
 TEMPLATE_ESPECIALIDADE_FORM = "admin/especialidade_form.html"
+TEMPLATE_CLIENTES = "admin/clientes.html"
+TEMPLATE_CLIENTE_DETALHE = "admin/cliente_detalhe.html"
+TEMPLATE_PAINEL = "admin/painel.html"
 
 MSG_ESPECIALIDADE_INVALIDA = "Selecione uma especialidade da lista."
 MSG_FUNCIONARIO_COM_SESSOES = (
@@ -243,3 +246,34 @@ def editar_especialidade(
     return _form_especialidade(
         request, usuario, {"valor_sessao": valor_sessao}, erros, especialidade, status.HTTP_400_BAD_REQUEST
     )
+
+
+# --- RF14: consultar clientes (somente leitura) --------------------------------------------------
+
+@router.get("/clientes")
+def listar_clientes(
+    request: Request, q: str = "", pagina: str = "", usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
+):
+    resultado = admin_clientes_service.listar(db, q, admin_clientes_service.interpretar_pagina(pagina))
+    return templates.TemplateResponse(request, TEMPLATE_CLIENTES, {"usuario": usuario, "resultado": resultado})
+
+
+@router.get("/clientes/{cliente_id}")
+def detalhar_cliente(
+    request: Request, cliente_id: int, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
+):
+    try:
+        cliente = admin_clientes_service.detalhar(db, cliente_id, agora_local())
+    except admin_clientes_service.ClienteNaoEncontrado:
+        raise _nao_encontrado("Cliente não encontrado.") from None
+    return templates.TemplateResponse(request, TEMPLATE_CLIENTE_DETALHE, {"usuario": usuario, "cliente": cliente})
+
+
+# --- RF15: painel gerencial (somente leitura) ----------------------------------------------------
+
+@router.get("/painel")
+def painel(request: Request, mes: str | None = None, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)):
+    agora = agora_local()
+    mes_escolhido, ajustado = painel_service.resolver_mes(mes, agora)
+    dados = painel_service.montar_painel(db, mes_escolhido, agora, ajustado)
+    return templates.TemplateResponse(request, TEMPLATE_PAINEL, {"usuario": usuario, "painel": dados})

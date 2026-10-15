@@ -9,8 +9,11 @@ from tests.fabricas import criar_admin, criar_cliente, criar_especialidade, cria
 
 LINKS_POR_PERFIL = {
     "cliente": {"/": "Início", "/pacientes": "Pacientes", "/especialidades": "Contratar plano", "/perfil": "Meu perfil"},
-    "admin": {"/admin/funcionarios": "Funcionários", "/admin/especialidades": "Especialidades", "/conta/alterar-senha": "Alterar Senha"},
-    "funcionario": {"/": "Início", "/conta/alterar-senha": "Meu perfil"},
+    "admin": {
+        "/": "Início", "/admin/painel": "Painel", "/admin/clientes": "Clientes", "/admin/funcionarios": "Funcionários",
+        "/admin/especialidades": "Especialidades", "/conta/alterar-senha": "Alterar senha",
+    },
+    "funcionario": {"/": "Início", "/conta/alterar-senha": "Alterar senha"},
 }
 TODOS_OS_LINKS = {href for links in LINKS_POR_PERFIL.values() for href in links}
 
@@ -59,6 +62,18 @@ def test_navbar_marca_inicio_so_na_raiz(client, db):
     menu = _menu(client.get("/").text)
     assert re.search(r'class="nav-link active" href="/" aria-current="page"', menu)
     assert menu.count("nav-link active") == 1
+
+
+def test_navbar_do_admin_na_ordem_pedida(client, db):
+    _logar_perfil(client, db, "admin")
+    rotulos = re.findall(r'</i>([^<]+)</a>', _menu(client.get("/").text))
+    assert [r.strip() for r in rotulos] == ["Início", "Painel", "Clientes", "Funcionários", "Especialidades", "Alterar senha"]
+
+
+def test_cards_de_alterar_senha_do_funcionario_e_do_admin(client, db):
+    _logar_perfil(client, db, "admin")
+    html = client.get("/").text
+    assert "Alterar senha" in html and "Meu perfil" not in html and "Alterar Senha" not in html
 
 
 def test_visitante_nao_ve_menu_de_perfil(client):

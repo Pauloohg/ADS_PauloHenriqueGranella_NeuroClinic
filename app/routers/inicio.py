@@ -20,7 +20,7 @@ def _contexto_cliente(db: Session, usuario: Usuario, agora) -> dict:
     proxima = inicio_service.proxima_sessao(db, usuario.id, agora)
     return {
         "proxima_sessao": proxima,
-        "rotulo_proxima_sessao": inicio_service.rotulo_dia(proxima.data_hora.date(), agora.date()) if proxima else None,
+        "quando_proxima_sessao": inicio_service.quando_sessao(proxima.data_hora, agora) if proxima else None,
         "planos": inicio_service.planos_do_cliente(db, usuario.id, agora),
     }
 

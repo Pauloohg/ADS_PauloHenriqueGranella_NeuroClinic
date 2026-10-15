@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timezone
 from decimal import Decimal
 
 from app.models.especialidade import Especialidade
+from app.models.pagamento import FormaPagamento, Pagamento, StatusPagamento
 from app.models.paciente import Paciente
 from app.models.plano import Plano, StatusPlano
 from app.models.sessao import Sessao
@@ -93,6 +94,14 @@ def criar_plano(
     db.add_all(Sessao(plano_id=plano.id, data_hora=data_hora, status=status) for data_hora, status in sessoes)
     db.commit()
     return plano
+
+
+# confirmado_em em UTC sem fuso, como será gravado pelo webhook do RF06
+def criar_pagamento(db, plano, confirmado_em=None, status=StatusPagamento.CONFIRMADO):
+    pagamento = Pagamento(plano_id=plano.id, forma_pagamento=FormaPagamento.PIX, status=status, confirmado_em=confirmado_em)
+    db.add(pagamento)
+    db.commit()
+    return pagamento
 
 
 def logar(client, email, senha=SENHA):

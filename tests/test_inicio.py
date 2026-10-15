@@ -76,6 +76,16 @@ def test_rotulo_dia():
     assert inicio_service.rotulo_dia(date(2026, 3, 9), hoje) is None
 
 
+@pytest.mark.parametrize("data_hora, esperado", [
+    (datetime(2026, 3, 10, 15, 0), "Hoje, terça 10/03, às 15:00"),
+    (datetime(2026, 3, 11, 9, 0), "Amanhã, quarta 11/03, às 09:00"),
+    (datetime(2026, 3, 13, 9, 0), "Sexta 13/03, às 09:00"),
+    (datetime(2027, 1, 4, 8, 0), "Segunda 04/01/2027, às 08:00"),
+])
+def test_quando_sessao_mostra_dia_da_semana_e_data(data_hora, esperado):
+    assert inicio_service.quando_sessao(data_hora, AGORA) == esperado
+
+
 @pytest.mark.parametrize("intervalo, esperado", [
     (timedelta(hours=3, minutes=5), "3h 05min"),
     (timedelta(hours=4), "4h"),
@@ -214,7 +224,7 @@ def test_inicio_do_cliente_com_dados(client, db, fono, cliente, paciente):
 
     html = _html(client.get("/"))
 
-    assert "Amanhã, às 14:00" in html
+    assert "Amanhã, quarta 11/03, às 14:00" in html
     assert "1 de 3 sessões realizadas" in html
     assert "R$ 450,00" in html
     assert "Terça, Quarta, às 14:00" in html
@@ -229,7 +239,7 @@ def test_inicio_do_cliente_com_dados(client, db, fono, cliente, paciente):
 def test_inicio_do_cliente_mostra_data_quando_nao_e_hoje_nem_amanha(client, db, fono, cliente, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 13, 15, 0), AGENDADA)])
     logar(client, cliente.email)
-    assert "Sexta, 13/03/2026, às 15:00" in _html(client.get("/"))
+    assert "Sexta 13/03, às 15:00" in _html(client.get("/"))
 
 
 def test_inicio_do_cliente_nao_mostra_dados_de_outro_cliente(client, db, fono, cliente):

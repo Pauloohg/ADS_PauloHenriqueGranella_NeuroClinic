@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.fuso import utc_para_local
+from app.core.templating import NOMES_DIAS
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
 from app.models.paciente import Paciente
@@ -54,6 +55,14 @@ def rotulo_dia(dia: date, hoje: date) -> str | None:
     if dia == hoje + timedelta(days=1):
         return "amanhã"
     return None
+
+
+def quando_sessao(data_hora: datetime, agora: datetime) -> str:
+    dia = NOMES_DIAS[data_hora.weekday()]
+    data = data_hora.strftime("%d/%m") if data_hora.year == agora.year else data_hora.strftime("%d/%m/%Y")
+    rotulo = rotulo_dia(data_hora.date(), agora.date())
+    quando = f"{rotulo.capitalize()}, {dia.lower()} {data}" if rotulo else f"{dia} {data}"
+    return f"{quando}, às {data_hora.strftime('%H:%M')}"
 
 
 def _consulta_planos_do_cliente(*colunas):

@@ -1,0 +1,83 @@
+{% extends "_interno.html" %}
+
+{% block title %}Clientes — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Clientes{% endblock %}
+{% block subtitulo_pagina %}Responsáveis cadastrados na clínica. Consulta somente leitura.{% endblock %}
+
+{% block conteudo %}
+{% set r = resultado %}
+<form method="get" action="/admin/clientes" class="busca-clientes mb-4" role="search">
+    <label for="q" class="visually-hidden">Buscar por nome ou e-mail</label>
+    <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <input type="search" id="q" name="q" value="{{ r.busca }}" class="form-control" placeholder="Buscar por nome ou e-mail">
+        <button type="submit" class="btn btn-primary">Buscar</button>
+    </div>
+    {% if r.busca %}
+    <p class="small text-muted mt-2 mb-0">
+        {{ r.total }} {{ "resultado" if r.total == 1 else "resultados" }} para “{{ r.busca }}”.
+        <a href="/admin/clientes">Limpar busca</a>
+    </p>
+    {% endif %}
+</form>
+
+{% if r.clientes %}
+<section class="cartao cartao-tabela">
+    <div class="table-responsive">
+        <table class="table tabela tabela-empilhavel tabela-clientes align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">Telefone</th>
+                    <th scope="col">Cadastro</th>
+                    <th scope="col" class="text-end">Pacientes</th>
+                    <th scope="col" class="text-end">Planos ativos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in r.clientes %}
+                <tr>
+                    <td>
+                        <a href="/admin/clientes/{{ c.id }}" class="fw-medium d-block link-cliente">{{ c.nome }}</a>
+                        <span class="small text-muted">{{ c.email }}</span>
+                    </td>
+                    <td class="text-nowrap" data-rotulo="Telefone">{{ c.telefone or "—" }}</td>
+                    <td class="text-nowrap font-monospace-num" data-rotulo="Cadastro">{{ c.cadastrado_em | data_br }}</td>
+                    <td class="text-end font-monospace-num" data-rotulo="Pacientes">{{ c.pacientes }}</td>
+                    <td class="text-end font-monospace-num" data-rotulo="Planos ativos">{{ c.planos_ativos }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if r.total_paginas > 1 %}
+<nav class="paginacao mt-4" aria-label="Paginação da lista de clientes">
+    {% if r.pagina > 1 %}
+    <a class="btn btn-outline-primary btn-sm" href="/admin/clientes?{{ {'q': r.busca, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+        <i class="bi bi-chevron-left me-1"></i>Anterior
+    </a>
+    {% else %}<span></span>{% endif %}
+    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    {% if r.pagina < r.total_paginas %}
+    <a class="btn btn-outline-primary btn-sm" href="/admin/clientes?{{ {'q': r.busca, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+        Próxima<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-person-lines-fill"></i></div>
+    {% if r.busca %}
+    <h2 class="titulo-serifa h5">Nenhum cliente encontrado</h2>
+    <p class="text-muted">Confira a grafia do nome ou do e-mail e tente novamente.</p>
+    <a href="/admin/clientes" class="btn btn-outline-primary">Ver todos os clientes</a>
+    {% else %}
+    <h2 class="titulo-serifa h5">Nenhum cliente cadastrado</h2>
+    <p class="text-muted mb-0">Os clientes aparecem aqui assim que criam a conta pelo site.</p>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}
