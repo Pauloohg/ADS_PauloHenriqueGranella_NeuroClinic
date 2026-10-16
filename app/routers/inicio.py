@@ -5,7 +5,7 @@ from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_opcional
-from app.services import inicio_service
+from app.services import inicio_service, plano_service
 
 router = APIRouter(tags=["inicio"])
 
@@ -17,6 +17,7 @@ TEMPLATES_POR_TIPO = {
 
 
 def _contexto_cliente(db: Session, usuario: Usuario, agora) -> dict:
+    plano_service.remover_planos_vencidos(db, agora)
     proxima = inicio_service.proxima_sessao(db, usuario.id, agora)
     return {
         "proxima_sessao": proxima,

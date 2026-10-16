@@ -254,7 +254,7 @@ def editar_especialidade(
 def listar_clientes(
     request: Request, q: str = "", pagina: str = "", usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
 ):
-    resultado = admin_clientes_service.listar(db, q, admin_clientes_service.interpretar_pagina(pagina))
+    resultado = admin_clientes_service.listar(db, agora_local(), q, admin_clientes_service.interpretar_pagina(pagina))
     return templates.TemplateResponse(request, TEMPLATE_CLIENTES, {"usuario": usuario, "resultado": resultado})
 
 

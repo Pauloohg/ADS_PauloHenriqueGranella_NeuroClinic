@@ -82,6 +82,12 @@
                     <i class="bi bi-hourglass-split me-1"></i>Prazo para pagamento: restam {{ resumo.tempo_restante | tempo_curto }}.
                 </p>
                 {% endif %}
+                <footer class="rodape-plano">
+                    <a href="/planos/{{ plano.id }}" class="small">Ver plano<i class="bi bi-chevron-right ms-1"></i></a>
+                    {% if resumo.situacao == "encerrado" %}
+                    <a href="/planos/{{ plano.id }}/renovar" class="btn btn-primary btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Renovar</a>
+                    {% endif %}
+                </footer>
             </article>
         </div>
         {% endfor %}

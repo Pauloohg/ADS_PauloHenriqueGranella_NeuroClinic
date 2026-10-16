@@ -63,7 +63,13 @@
                 <i class="bi bi-clock me-1"></i><strong>Prazo de pagamento:</strong> depois da confirmação, você terá
                 {{ prazo_horas }} horas para pagar. Sem o pagamento nesse prazo, os horários voltam a ficar livres para outros pacientes.
             </div>
-            <a href="{{ url_editar }}" class="btn btn-outline-primary w-100 mt-4"><i class="bi bi-arrow-left me-1"></i>Voltar e editar</a>
+            <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-4">
+                {% for nome, valor in campos_confirmacao %}
+                <input type="hidden" name="{{ nome }}" value="{{ valor }}">
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Confirmar contratação</button>
+            </form>
+            <a href="{{ url_editar }}" class="btn btn-outline-primary w-100 mt-2"><i class="bi bi-arrow-left me-1"></i>Voltar e editar</a>
         </aside>
     </div>
 </div>

@@ -14,7 +14,7 @@ from app.models.pagamento import Pagamento, StatusPagamento
 from app.models.paciente import Paciente
 from app.models.plano import Plano
 from app.models.usuario import TipoUsuario, Usuario
-from app.services.admin_clientes_service import condicao_plano_ativo
+from app.services.plano_service import condicao_plano_ativo
 
 TAMANHO_RANKING = 5
 ZERO = Decimal("0.00")
@@ -152,12 +152,12 @@ def _largura(valor, maximo) -> int:
     return round(100 * valor / maximo) if maximo else 0
 
 
-def _por_especialidade(db: Session, mes: date) -> list[LinhaEspecialidade]:
+def _por_especialidade(db: Session, mes: date, agora: datetime) -> list[LinhaEspecialidade]:
     nomes = db.execute(select(Especialidade.id, Especialidade.nome).order_by(Especialidade.nome)).all()
     clientes = dict(db.execute(
         select(Plano.especialidade_id, func.count(func.distinct(Paciente.cliente_id)))
         .join(Paciente, Paciente.id == Plano.paciente_id)
-        .where(condicao_plano_ativo())
+        .where(condicao_plano_ativo(agora))
         .group_by(Plano.especialidade_id)
     ).all())
     contratos = {
@@ -203,8 +203,8 @@ def montar_painel(db: Session, mes: date, agora: datetime, mes_ajustado: bool = 
         planos_contratados=planos,
         novos_clientes=_novos_clientes(db, mes),
         total_clientes=db.scalar(select(func.count()).select_from(Usuario).where(Usuario.tipo == TipoUsuario.CLIENTE)),
-        planos_ativos=db.scalar(select(func.count()).select_from(Plano).where(condicao_plano_ativo())),
+        planos_ativos=db.scalar(select(func.count()).select_from(Plano).where(condicao_plano_ativo(agora))),
         funcionarios_ativos=db.scalar(select(func.count()).select_from(Funcionario).where(Funcionario.ativo.is_(True))),
         ranking=_ranking(db, mes),
-        especialidades=_por_especialidade(db, mes),
+        especialidades=_por_especialidade(db, mes, agora),
     )

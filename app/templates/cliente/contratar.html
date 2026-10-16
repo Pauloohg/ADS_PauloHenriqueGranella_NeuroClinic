@@ -1,25 +1,29 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import campo, alertas, voltar with context %}
 {% set tem_contexto = profissional is defined and profissional %}
+{% set em_renovacao = renovacao is defined and renovacao %}
 {% set lista_pacientes = pacientes if pacientes is defined else [] %}
 {% set lista_conflitos = conflitos if conflitos is defined else [] %}
 {% set selecionadas = (dados or {}).get("celulas") or [] %}
 {% set frequencia = (dados or {}).get("frequencia_semanal") or "1" %}
 
-{% block title %}Contratar plano — NeuroClinic{% endblock %}
+{% block title %}{{ "Renovar plano" if em_renovacao else "Contratar plano" }} — NeuroClinic{% endblock %}
 {% block head %}
 {% if tem_contexto %}<script src="{{ url_estatico('js/contratar.js') }}" defer></script>{% endif %}
 {% endblock %}
 {% block voltar %}
-{% if tem_contexto %}{{ voltar("/especialidades/" ~ profissional.especialidade.id ~ "/profissionais", profissional.especialidade.nome) }}{% else %}{{ voltar("/especialidades", "Especialidades") }}{% endif %}
+{% if em_renovacao %}{{ voltar("/", "Início") }}{% elif tem_contexto %}{{ voltar("/especialidades/" ~ profissional.especialidade.id ~ "/profissionais", profissional.especialidade.nome) }}{% else %}{{ voltar("/especialidades", "Especialidades") }}{% endif %}
 {% endblock %}
-{% block titulo_pagina %}Contratar plano{% endblock %}
-{% block subtitulo_pagina %}{% if tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
+{% block titulo_pagina %}{{ "Renovar plano" if em_renovacao else "Contratar plano" }}{% endblock %}
+{% block subtitulo_pagina %}{% if em_renovacao and not tem_contexto %}{{ renovacao.paciente.nome }} · {{ renovacao.especialidade.nome }}{% elif tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
 
 {% block conteudo %}
+{% if em_renovacao %}{% include "cliente/_renovacao.html" %}{% endif %}
 {% if not tem_contexto %}
+{% if not em_renovacao %}
 {{ alertas(erro=erro) }}
 <a href="/especialidades" class="btn btn-outline-primary">Ver especialidades</a>
+{% endif %}
 
 {% elif not lista_pacientes %}
 <section class="cartao estado-vazio">
@@ -38,7 +42,7 @@
 </div>
 {% endif %}
 
-<form id="form-contratacao" method="post" action="{{ request.url.path }}" novalidate
+<form id="form-contratacao" method="post" action="/contratar/{{ profissional.usuario.id }}" novalidate
       data-url-disponibilidade="/contratar/{{ profissional.usuario.id }}/disponibilidade"
       data-url-simulacao="/contratar/{{ profissional.usuario.id }}/simulacao">
     <div class="row g-4">

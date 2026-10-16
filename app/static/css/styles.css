@@ -1032,6 +1032,43 @@
     color: #6B4A10;
 }
 
+.rodape-plano {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+
+/* --- Plano contratado e renovação (RF05 / HU07) ----------------------------------------------- */
+
+.rotulo-secao {
+    margin-bottom: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+.cartao-renovacao {
+    border-left: 4px solid var(--bs-primary);
+}
+
+.prazo-pagamento {
+    margin-top: 1.25rem;
+    padding: 0.9rem 1rem;
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+.prazo-pagamento strong {
+    display: block;
+    font-size: 1.05rem;
+}
+
 /* --- Admin: clientes (RF14) e painel (RF15) --------------------------------------------------- */
 
 .busca-clientes {

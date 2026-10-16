@@ -224,7 +224,8 @@ def test_resumo_mostra_o_plano_sem_criar_nada(client, db, fono, carla, pedro, ma
     ):
         assert trecho in html, trecho
     assert "05/10/2026" in html and "07/09/2026</span>" not in html
-    assert "Confirmar" not in html
+    assert f'action="{_url(carla)}/confirmar"' in html and "Confirmar contratação" in html
+    assert "pagar agora" not in html.lower()
     _nada_foi_criado(db)
 
 

@@ -2,16 +2,16 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.fuso import utc_para_local
 from app.models.cliente import Cliente
 from app.models.paciente import Paciente
-from app.models.plano import Plano, StatusPlano
-from app.models.sessao import Sessao, StatusSessao
+from app.models.plano import Plano
 from app.models.usuario import TipoUsuario, Usuario
 from app.services.inicio_service import ResumoPlano, planos_do_cliente
+from app.services.plano_service import condicao_plano_ativo
 
 POR_PAGINA = 20
 
@@ -58,12 +58,6 @@ class ClienteDetalhe:
     pacientes: list[PacienteDetalhe]
 
 
-def condicao_plano_ativo():
-    # Mesma "situação Ativo" do início do Cliente: aguardando pagamento (ou vencido, RN09) não conta
-    pendente = exists().where(Sessao.plano_id == Plano.id, Sessao.status == StatusSessao.PENDENTE_PAGAMENTO)
-    return (Plano.status == StatusPlano.ATIVO) & ~pendente
-
-
 def mascarar_cpf(cpf: str | None) -> str | None:
     digitos = "".join(c for c in cpf or "" if c.isdigit())
     return f"***.***.***-{digitos[-2:]}" if len(digitos) == 11 else None
@@ -77,7 +71,7 @@ def interpretar_pagina(texto: str | None) -> int:
     return int(texto) if texto and texto.isdigit() and int(texto) > 0 else 1
 
 
-def listar(db: Session, busca: str = "", pagina: int = 1) -> PaginaClientes:
+def listar(db: Session, agora: datetime, busca: str = "", pagina: int = 1) -> PaginaClientes:
     busca = busca.strip()
     pacientes = (
         select(Paciente.cliente_id, func.count().label("total")).group_by(Paciente.cliente_id).subquery()
@@ -85,7 +79,7 @@ def listar(db: Session, busca: str = "", pagina: int = 1) -> PaginaClientes:
     ativos = (
         select(Paciente.cliente_id, func.count(Plano.id).label("total"))
         .join(Plano, Plano.paciente_id == Paciente.id)
-        .where(condicao_plano_ativo())
+        .where(condicao_plano_ativo(agora))
         .group_by(Paciente.cliente_id)
         .subquery()
     )

@@ -137,23 +137,25 @@ def test_proxima_sessao_ignora_pacientes_de_outro_cliente(db, fono, cliente, pac
 # --- Planos: situação e progresso ----------------------------------------------------------------
 
 def test_situacao_plano_por_status():
-    def situacao(status_plano, criado_em=CRIADO_NO_PRAZO, **sessoes):
-        return inicio_service.situacao_plano(status_plano, Counter(sessoes), criado_em, AGORA)
+    def situacao(data_fim, criado_em=CRIADO_NO_PRAZO, **sessoes):
+        return inicio_service.situacao_plano(data_fim, Counter(sessoes), criado_em, AGORA)
 
     pendente = {PENDENTE: 4}
-    assert situacao(StatusPlano.ATIVO, **{AGENDADA: 3, REALIZADA: 1}) == ATIVO
-    assert situacao(StatusPlano.ATIVO, **pendente) == AGUARDANDO_PAGAMENTO
-    assert situacao(StatusPlano.ATIVO, CRIADO_VENCIDO, **pendente) is None
-    assert situacao(StatusPlano.ENCERRADO, **{REALIZADA: 4}) == ENCERRADO
-    assert situacao(StatusPlano.ENCERRADO, CRIADO_VENCIDO, **pendente) == ENCERRADO
+    hoje, ontem = AGORA.date(), AGORA.date() - timedelta(days=1)
+    assert situacao(hoje, **{AGENDADA: 3, REALIZADA: 1}) == ATIVO
+    assert situacao(hoje, **pendente) == AGUARDANDO_PAGAMENTO
+    assert situacao(hoje, CRIADO_VENCIDO, **pendente) is None
+    assert situacao(ontem, **{REALIZADA: 4}) == ENCERRADO
+    assert situacao(ontem, CRIADO_VENCIDO, **pendente) is None  # pendente nunca é "encerrado"
 
 
 def test_prazo_de_pagamento_no_limite_ainda_aguarda():
     criado_em_utc = datetime(2026, 3, 10, 11, 0)  # 08:00 local + 4h = 12:00
     no_limite = datetime(2026, 3, 10, 12, 0)
     status = Counter({PENDENTE: 1})
-    assert inicio_service.situacao_plano(StatusPlano.ATIVO, status, criado_em_utc, no_limite) == AGUARDANDO_PAGAMENTO
-    assert inicio_service.situacao_plano(StatusPlano.ATIVO, status, criado_em_utc, no_limite + timedelta(seconds=1)) is None
+    fim = date(2026, 3, 31)
+    assert inicio_service.situacao_plano(fim, status, criado_em_utc, no_limite) == AGUARDANDO_PAGAMENTO
+    assert inicio_service.situacao_plano(fim, status, criado_em_utc, no_limite + timedelta(seconds=1)) is None
 
 
 def test_planos_do_cliente_progresso_e_situacao(db, fono, cliente, paciente):
@@ -164,7 +166,7 @@ def test_planos_do_cliente_progresso_e_situacao(db, fono, cliente, paciente):
         (datetime(2026, 3, 17, 14, 0), AGENDADA),
     ])
     aguardando = criar_plano(db, paciente, fono, [(datetime(2026, 3, 19, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
-    encerrado = criar_plano(db, paciente, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    encerrado = criar_plano(db, paciente, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)])
 
     resumos = {r.plano.id: r for r in inicio_service.planos_do_cliente(db, cliente.id, AGORA)}
 
@@ -176,12 +178,21 @@ def test_planos_do_cliente_progresso_e_situacao(db, fono, cliente, paciente):
 
 
 def test_planos_do_cliente_ordena_aguardando_ativo_encerrado(db, fono, cliente, paciente):
-    encerrado = criar_plano(db, paciente, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    encerrado = criar_plano(db, paciente, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)])
     ativo = criar_plano(db, paciente, fono, [(datetime(2026, 3, 12, 9, 0), AGENDADA)])
     aguardando = criar_plano(db, paciente, fono, [(datetime(2026, 3, 19, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
 
     ids = [r.plano.id for r in inicio_service.planos_do_cliente(db, cliente.id, AGORA)]
     assert ids == [aguardando.id, ativo.id, encerrado.id]
+
+
+def test_encerrado_e_derivado_da_data_fim_e_nao_da_coluna_status(db, fono, cliente, paciente):
+    ontem = criar_plano(db, paciente, fono, [(datetime(2026, 3, 9, 9, 0), REALIZADA)], status_plano=StatusPlano.ATIVO)
+    hoje = criar_plano(db, paciente, fono, [(datetime(2026, 3, 10, 9, 0), REALIZADA)])
+    marcado_encerrado = criar_plano(db, paciente, fono, [(datetime(2026, 3, 12, 9, 0), AGENDADA)], status_plano=StatusPlano.ENCERRADO)
+
+    resumos = {r.plano.id: r.situacao for r in inicio_service.planos_do_cliente(db, cliente.id, AGORA)}
+    assert resumos == {ontem.id: ENCERRADO, hoje.id: ATIVO, marcado_encerrado.id: ATIVO}
 
 
 def test_plano_com_pagamento_vencido_nao_aparece(db, fono, cliente, paciente):
@@ -218,7 +229,7 @@ def test_inicio_do_cliente_com_dados(client, db, fono, cliente, paciente):
         (datetime(2026, 3, 18, 14, 0), AGENDADA),
     ], valor_total="450.00")
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 20, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
-    criar_plano(db, paciente, fono, [(datetime(2026, 2, 6, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    criar_plano(db, paciente, fono, [(datetime(2026, 2, 6, 9, 0), REALIZADA)])
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 23, 8, 0), PENDENTE)], criado_em=CRIADO_VENCIDO)
     logar(client, cliente.email)
 
@@ -256,11 +267,11 @@ def test_inicio_do_cliente_nao_mostra_dados_de_outro_cliente(client, db, fono, c
 def test_inicio_do_cliente_nao_adianta_funcionalidades_futuras(client, db, fono, cliente, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 11, 14, 0), AGENDADA)])
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 20, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
-    criar_plano(db, paciente, fono, [(datetime(2026, 2, 6, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    criar_plano(db, paciente, fono, [(datetime(2026, 2, 6, 9, 0), REALIZADA)])
     logar(client, cliente.email)
 
     html = _html(client.get("/")).lower()
-    for texto in ["remarcar", "histórico", "pagar agora", "renovar", "minha agenda"]:
+    for texto in ["remarcar", "histórico", "pagar agora", "minha agenda"]:
         assert texto not in html, texto
 
 

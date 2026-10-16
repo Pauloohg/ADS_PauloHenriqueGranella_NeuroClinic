@@ -6,11 +6,12 @@ from functools import lru_cache
 
 import holidays
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session
 
 from app.core.config import (
     ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS,
+    CARENCIA_REMOCAO_MINUTOS,
     DIAS_UTEIS,
     DURACAO_SESSAO_MINUTOS,
     HORARIOS_ATENDIMENTO,
@@ -19,6 +20,7 @@ from app.core.config import (
 from app.core.fuso import utc_para_local
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
+from app.models.pagamento import Pagamento, StatusPagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.services.funcionario_service import STATUS_QUE_PRENDEM
@@ -26,6 +28,7 @@ from app.services.funcionario_service import STATUS_QUE_PRENDEM
 DURACAO_SESSAO = timedelta(minutes=DURACAO_SESSAO_MINUTOS)
 PRAZO_PAGAMENTO = timedelta(hours=PRAZO_PAGAMENTO_HORAS)
 ANTECEDENCIA_PRIMEIRA_SESSAO = timedelta(hours=ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS)
+CARENCIA_REMOCAO = timedelta(minutes=CARENCIA_REMOCAO_MINUTOS)
 FREQUENCIAS = (1, 2, 3)
 
 JANELA_POR_DURACAO = {
@@ -182,7 +185,7 @@ def calcular_valor_total(valor_sessao: Decimal, quantidade: int) -> Decimal:
 def ocupa_horario(status: StatusSessao, plano_criado_em_utc: datetime, agora: datetime) -> bool:
     if status != StatusSessao.PENDENTE_PAGAMENTO:
         return True
-    return utc_para_local(plano_criado_em_utc) + PRAZO_PAGAMENTO >= agora  # RN09
+    return prazo_pagamento(plano_criado_em_utc) >= agora  # RN09
 
 
 def buscar_horarios_ocupados(
@@ -265,3 +268,44 @@ def simular_plano(
         feriados_pulados=simulacao.feriados_pulados,
         conflitos=verificar_conflitos(db, funcionario_id, simulacao.sessoes, agora),
     )
+
+
+def prazo_pagamento(plano_criado_em_utc: datetime) -> datetime:
+    return utc_para_local(plano_criado_em_utc) + PRAZO_PAGAMENTO
+
+
+def plano_encerrado(data_fim: date, tem_sessao_pendente: bool, agora: datetime) -> bool:
+    return data_fim < agora.date() and not tem_sessao_pendente
+
+
+def tem_sessao_pendente():
+    return exists().where(Sessao.plano_id == Plano.id, Sessao.status == StatusSessao.PENDENTE_PAGAMENTO)
+
+
+def condicao_plano_ativo(agora: datetime):
+    return (Plano.data_fim >= agora.date()) & ~tem_sessao_pendente()
+
+
+def plano_esta_encerrado(db: Session, plano: Plano, agora: datetime) -> bool:
+    pendente = db.scalar(select(tem_sessao_pendente().where(Plano.id == plano.id)))
+    return plano_encerrado(plano.data_fim, bool(pendente), agora)
+
+
+def remover_planos_vencidos(db: Session, agora: datetime) -> int:
+    sessao_nao_pendente = exists().where(Sessao.plano_id == Plano.id, Sessao.status != StatusSessao.PENDENTE_PAGAMENTO)
+    pago = exists().where(Pagamento.plano_id == Plano.id, Pagamento.status == StatusPagamento.CONFIRMADO)
+    candidatos = db.execute(
+        select(Plano.id, Plano.criado_em).where(tem_sessao_pendente(), ~sessao_nao_pendente, ~pago)
+    ).all()
+    ids = [id_ for id_, criado_em in candidatos if prazo_pagamento(criado_em) + CARENCIA_REMOCAO < agora]
+    if not ids:
+        return 0
+    try:
+        db.execute(delete(Pagamento).where(Pagamento.plano_id.in_(ids)))
+        db.execute(delete(Sessao).where(Sessao.plano_id.in_(ids)))
+        db.execute(delete(Plano).where(Plano.id.in_(ids)))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return len(ids)

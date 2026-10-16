@@ -37,6 +37,7 @@ DIAS_UTEIS = (0, 1, 2, 3, 4)
 HORARIOS_ATENDIMENTO = [8, 9, 10, 11, 14, 15, 16, 17]  # hora cheia; 12h e 13h são almoço; a última sessão termina às 18h
 PRAZO_PAGAMENTO_HORAS = 4  # RN09
 ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS = PRAZO_PAGAMENTO_HORAS  # RN10: a primeira sessão não pode cair dentro do prazo de pagamento
+CARENCIA_REMOCAO_MINUTOS = 60  # RN09: só vale para apagar o plano vencido; o horário é liberado já no fim do prazo
 
 # Valores fictícios (placeholder) até definirmos os dados reais da clínica
 DADOS_CLINICA = {

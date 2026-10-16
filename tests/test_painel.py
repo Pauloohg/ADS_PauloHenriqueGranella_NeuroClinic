@@ -8,7 +8,7 @@ from app.models.pagamento import StatusPagamento
 from app.models.plano import StatusPlano
 from app.models.sessao import StatusSessao
 from app.routers import admin as admin_router
-from app.services import funcionario_service, painel_service as servico
+from app.services import admin_clientes_service, funcionario_service, painel_service as servico
 from tests.fabricas import (
     criar_admin,
     criar_cliente,
@@ -155,12 +155,38 @@ def test_novos_clientes_pelo_mes_local(db):
 def test_visao_geral_atual(db, fono, psico, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 10, 20, 9, 0), AGENDADA)])
     criar_plano(db, paciente, fono, [(datetime(2026, 10, 21, 9, 0), PENDENTE)], criado_em=datetime(2026, 10, 15, 12, 0))
-    criar_plano(db, paciente, fono, [(datetime(2026, 8, 3, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    criar_plano(db, paciente, fono, [(datetime(2026, 8, 3, 9, 0), REALIZADA)])  # data_fim no passado: encerrado
     criar_cliente(db, email="outro@exemplo.com")
     funcionario_service.desativar(db, psico.usuario.id, AGORA)
 
     painel = servico.montar_painel(db, OUTUBRO, AGORA)
     assert (painel.total_clientes, painel.planos_ativos, painel.funcionarios_ativos) == (2, 1, 1)
+
+
+def test_planos_ativos_seguem_a_regra_derivada_e_batem_com_a_lista_de_clientes(db, fono, psico, paciente):
+    outro = criar_paciente(db, criar_cliente(db, email="outro@exemplo.com", nome="Outro Cliente").id)
+    criar_plano(db, paciente, fono, [(datetime(2026, 10, 15, 9, 0), REALIZADA)])  # última sessão hoje: ativo
+    criar_plano(db, paciente, fono, [(datetime(2026, 10, 14, 9, 0), REALIZADA)], status_plano=StatusPlano.ATIVO)  # encerrado
+    criar_plano(db, outro, psico, [(datetime(2026, 10, 20, 9, 0), AGENDADA)], status_plano=StatusPlano.ENCERRADO)  # ativo
+    criar_plano(db, outro, fono, [(datetime(2026, 10, 21, 9, 0), PENDENTE)], criado_em=datetime(2026, 10, 15, 12, 0))
+
+    painel = servico.montar_painel(db, OUTUBRO, AGORA)
+    lista = admin_clientes_service.listar(db, AGORA)
+
+    assert painel.planos_ativos == 2
+    assert sum(c.planos_ativos for c in lista.clientes) == painel.planos_ativos
+    assert {e.nome: e.clientes_ativos for e in painel.especialidades} == {"Fonoaudiologia": 1, "Psicologia": 1}
+    assert sum(1 for c in lista.clientes if c.planos_ativos) == 2
+
+
+def test_tela_do_painel_e_lista_de_clientes_mostram_os_mesmos_ativos(admin_logado, db, fono, paciente):
+    criar_plano(db, paciente, fono, [(datetime(2026, 10, 14, 9, 0), REALIZADA)], status_plano=StatusPlano.ATIVO)
+    criar_plano(db, paciente, fono, [(datetime(2026, 10, 20, 9, 0), AGENDADA)], status_plano=StatusPlano.ENCERRADO)
+
+    painel = " ".join(admin_logado.get("/admin/painel").text.split())
+    lista = " ".join(admin_logado.get("/admin/clientes").text.split())
+    assert '<dt>Planos ativos</dt><dd class="font-monospace-num">1</dd>' in painel
+    assert 'data-rotulo="Planos ativos">1</td>' in lista
 
 
 # --- Ranking -------------------------------------------------------------------------------------

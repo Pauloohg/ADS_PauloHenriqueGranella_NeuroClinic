@@ -85,8 +85,8 @@ def test_lista_paginada_por_nome_com_20_por_pagina(db):
     for i in range(45):
         criar_cliente(db, email=f"c{i:02d}@exemplo.com", nome=f"Cliente {44 - i:02d}")
 
-    primeira = servico.listar(db, "", 1)
-    terceira = servico.listar(db, "", 3)
+    primeira = servico.listar(db, AGORA, "", 1)
+    terceira = servico.listar(db, AGORA, "", 3)
 
     assert (primeira.total, primeira.total_paginas) == (45, 3)
     assert [c.nome for c in primeira.clientes] == [f"Cliente {i:02d}" for i in range(20)]
@@ -96,31 +96,31 @@ def test_lista_paginada_por_nome_com_20_por_pagina(db):
 def test_pagina_alem_do_fim_vai_para_a_ultima(db):
     for i in range(21):
         criar_cliente(db, email=f"c{i}@exemplo.com", nome=f"Cliente {i:02d}")
-    resultado = servico.listar(db, "", 99)
+    resultado = servico.listar(db, AGORA, "", 99)
     assert resultado.pagina == 2 and len(resultado.clientes) == 1
 
 
 def test_busca_por_nome_sem_diferenciar_maiusculas(db):
     criar_cliente(db, email="maria@exemplo.com", nome="Maria Souza")
     criar_cliente(db, email="joao@exemplo.com", nome="João Lima")
-    assert [c.nome for c in servico.listar(db, "SOUZA").clientes] == ["Maria Souza"]
+    assert [c.nome for c in servico.listar(db, AGORA, "SOUZA").clientes] == ["Maria Souza"]
 
 
 def test_busca_por_email(db):
     criar_cliente(db, email="maria@exemplo.com", nome="Maria Souza")
     criar_cliente(db, email="joao@empresa.com.br", nome="João Lima")
-    assert [c.nome for c in servico.listar(db, "Empresa.COM").clientes] == ["João Lima"]
+    assert [c.nome for c in servico.listar(db, AGORA, "Empresa.COM").clientes] == ["João Lima"]
 
 
 def test_busca_trata_curinga_como_texto(db):
     criar_cliente(db, email="maria@exemplo.com", nome="Maria Souza")
-    assert servico.listar(db, "%").clientes == []
+    assert servico.listar(db, AGORA, "%").clientes == []
 
 
 def test_lista_so_tem_clientes(db, fono):
     criar_admin(db)
     criar_cliente(db)
-    assert [c.nome for c in servico.listar(db).clientes] == ["Maria Souza"]
+    assert [c.nome for c in servico.listar(db, AGORA).clientes] == ["Maria Souza"]
 
 
 def test_lista_conta_pacientes_e_planos_ativos(db, fono):
@@ -129,15 +129,26 @@ def test_lista_conta_pacientes_e_planos_ativos(db, fono):
     criar_paciente(db, cliente.id, nome="Ana")
     criar_plano(db, pedro, fono, [(datetime(2026, 3, 12, 9, 0), AGENDADA)])
     criar_plano(db, pedro, fono, [(datetime(2026, 3, 13, 9, 0), AGENDADA), (datetime(2026, 3, 3, 9, 0), REALIZADA)])
-    criar_plano(db, pedro, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)], status_plano=StatusPlano.ENCERRADO)
+    criar_plano(db, pedro, fono, [(datetime(2026, 2, 3, 9, 0), REALIZADA)])  # data_fim no passado: encerrado
     criar_plano(db, pedro, fono, [(datetime(2026, 3, 19, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
     criar_plano(db, pedro, fono, [(datetime(2026, 3, 20, 9, 0), PENDENTE)], criado_em=CRIADO_VENCIDO)
     criar_cliente(db, email="sem@exemplo.com", nome="Zé Sem Pacientes")
 
-    linhas = {c.nome: c for c in servico.listar(db).clientes}
+    linhas = {c.nome: c for c in servico.listar(db, AGORA).clientes}
 
     assert (linhas["Maria Souza"].pacientes, linhas["Maria Souza"].planos_ativos) == (2, 2)
     assert (linhas["Zé Sem Pacientes"].pacientes, linhas["Zé Sem Pacientes"].planos_ativos) == (0, 0)
+
+
+def test_lista_usa_a_regra_derivada_de_plano_ativo(db, fono):
+    cliente = criar_cliente(db)
+    pedro = criar_paciente(db, cliente.id, nome="Pedro")
+    criar_plano(db, pedro, fono, [(datetime(2026, 3, 10, 9, 0), REALIZADA)])  # última sessão hoje: ativo
+    criar_plano(db, pedro, fono, [(datetime(2026, 3, 9, 9, 0), REALIZADA)], status_plano=StatusPlano.ATIVO)  # ontem: encerrado
+    criar_plano(db, pedro, fono, [(datetime(2026, 3, 12, 9, 0), AGENDADA)], status_plano=StatusPlano.ENCERRADO)  # ativo
+
+    assert servico.listar(db, AGORA).clientes[0].planos_ativos == 2
+    assert servico.listar(db, datetime(2026, 3, 11, 0, 0)).clientes[0].planos_ativos == 1
 
 
 def test_lista_nao_consulta_o_banco_cliente_por_cliente(db, fono):
@@ -151,7 +162,7 @@ def test_lista_nao_consulta_o_banco_cliente_por_cliente(db, fono):
 
     event.listen(db.bind, "before_cursor_execute", registrar)
     try:
-        resultado = servico.listar(db)
+        resultado = servico.listar(db, AGORA)
     finally:
         event.remove(db.bind, "before_cursor_execute", registrar)
     assert len(resultado.clientes) == 5
@@ -162,7 +173,7 @@ def test_data_de_cadastro_em_horario_local(db):
     usuario = criar_cliente(db)
     usuario.criado_em = datetime(2026, 3, 1, 2, 30)  # UTC = 28/02 23:30 local
     db.commit()
-    assert servico.listar(db).clientes[0].cadastrado_em == datetime(2026, 2, 28, 23, 30)
+    assert servico.listar(db, AGORA).clientes[0].cadastrado_em == datetime(2026, 2, 28, 23, 30)
 
 
 # --- Service: detalhe ----------------------------------------------------------------------------
@@ -181,6 +192,16 @@ def test_detalhe_com_pacientes_planos_e_cpf_mascarado(db, fono):
     resumo = detalhe.pacientes[1].planos[0]
     assert (resumo.plano.id, resumo.especialidade, resumo.profissional, resumo.situacao) == (plano.id, "Fonoaudiologia", "Carlos Fono", "ativo")
     assert detalhe.pacientes[0].planos == []
+
+
+def test_detalhe_mostra_encerrado_pela_data_fim(db, fono):
+    cliente = criar_cliente(db)
+    pedro = criar_paciente(db, cliente.id)
+    encerrado = criar_plano(db, pedro, fono, [(datetime(2026, 3, 9, 9, 0), REALIZADA)])
+    ativo = criar_plano(db, pedro, fono, [(datetime(2026, 3, 12, 9, 0), AGENDADA)], status_plano=StatusPlano.ENCERRADO)
+
+    planos = {r.plano.id: r.situacao for r in servico.detalhar(db, cliente.id, AGORA).pacientes[0].planos}
+    assert planos == {encerrado.id: "encerrado", ativo.id: "ativo"}
 
 
 def test_detalhe_omite_plano_com_pagamento_vencido(db, fono):

@@ -1,0 +1,79 @@
+{% set anterior = renovacao.plano_anterior %}
+{% set sim = renovacao.simulacao %}
+<section class="cartao cartao-renovacao mb-4" aria-labelledby="titulo-renovacao">
+    <h2 class="cartao-titulo" id="titulo-renovacao">Renovação do plano de {{ renovacao.paciente.nome }}</h2>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <p class="rotulo-secao">Plano anterior <span class="badge rounded-pill status-inativo ms-1">Encerrado</span></p>
+            <dl class="lista-dados mb-0">
+                <dt>Profissional</dt>
+                <dd>{{ renovacao.profissional_anterior.nome }}</dd>
+                <dt>Dias e horário</dt>
+                <dd>{{ anterior.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ anterior.horario.strftime("%H:%M") }}</dd>
+                <dt>Frequência e duração</dt>
+                <dd>{{ anterior.frequencia_semanal }}x por semana · {{ rotulos_duracao.get(anterior.duracao, anterior.duracao) }}</dd>
+                <dt>Período</dt>
+                <dd>{{ anterior.data_inicio | data_br }} a {{ anterior.data_fim | data_br }}</dd>
+                <dt>Valor total</dt>
+                <dd class="font-monospace-num">{{ anterior.valor_total | moeda }}</dd>
+            </dl>
+        </div>
+        <div class="col-md-6" id="renovacao-nova">
+            {% if renovacao.mesma_configuracao_livre %}
+            <p class="rotulo-secao">Novo plano com a mesma configuração</p>
+            <dl class="lista-dados">
+                <dt>Profissional</dt>
+                <dd>{{ renovacao.profissional.usuario.nome }}</dd>
+                <dt>Sessões</dt>
+                <dd>{{ sim.quantidade }}</dd>
+                <dt>Período</dt>
+                <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }}</dd>
+                <dt>Valor da sessão</dt>
+                <dd class="font-monospace-num">{{ sim.valor_sessao | moeda }} <span class="text-muted small">(valor atual)</span></dd>
+                <dt>Valor total</dt>
+                <dd class="font-monospace-num fw-semibold">{{ sim.valor_total | moeda }}</dd>
+            </dl>
+            {% if sim.feriados_pulados %}
+            <p class="small text-muted"><i class="bi bi-calendar-event me-1"></i>{{ sim.feriados_pulados | length }} feriado(s) pulado(s); o plano se estende sem mudar o valor.</p>
+            {% endif %}
+            <form method="post" action="/contratar/{{ renovacao.profissional.usuario.id }}/confirmar" id="form-renovar-direto">
+                {% for nome, valor in renovacao.dados.items() if nome != "celulas" %}
+                <input type="hidden" name="{{ nome }}" value="{{ valor }}">
+                {% endfor %}
+                {% for celula in renovacao.dados.celulas %}
+                <input type="hidden" name="celula" value="{{ celula }}">
+                {% endfor %}
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-arrow-repeat me-1"></i>Renovar com a mesma configuração</button>
+            </form>
+            <p class="small text-muted mt-2 mb-0">As sessões ficam reservadas e você terá {{ prazo_horas }} horas para pagar. O plano anterior não muda.</p>
+            {% else %}
+            <div class="alert alert-warning d-flex gap-2 mb-0" role="alert" id="aviso-renovacao">
+                <i class="bi bi-exclamation-triangle"></i><span>{{ renovacao.aviso }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if renovacao.outros_profissionais %}
+    <div class="mt-4" id="renovacao-profissionais">
+        <p class="small fw-semibold mb-2">
+            {% if renovacao.profissional %}Prefere outro profissional de {{ renovacao.especialidade.nome }}?{% else %}Profissionais de {{ renovacao.especialidade.nome }} disponíveis:{% endif %}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for outro in renovacao.outros_profissionais %}
+            <a href="/planos/{{ anterior.id }}/renovar?profissional={{ outro.id }}" class="btn btn-outline-primary btn-sm">{{ outro.nome }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% elif not renovacao.profissional %}
+    <p class="small text-muted mt-4 mb-0" id="renovacao-profissionais">
+        No momento não há outro profissional de {{ renovacao.especialidade.nome }} disponível.
+        <a href="/especialidades">Ver outras especialidades</a>
+    </p>
+    {% endif %}
+</section>
+
+{% if renovacao.profissional %}
+<h2 class="titulo-serifa h5 mb-1">Ajustar antes de renovar</h2>
+<p class="text-muted small mb-3">Mude a frequência, a duração ou o horário. Na próxima tela você confere tudo antes de confirmar.</p>
+{% endif %}

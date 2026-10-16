@@ -42,6 +42,7 @@ FORMULARIOS_POR_ROTA = {
     "/pacientes/novo": "cliente/paciente_form.html",
     "/pacientes/{paciente_id}/editar": "cliente/paciente_form.html",
     "/contratar/{funcionario_id}": "cliente/contratar.html",
+    "/contratar/{funcionario_id}/confirmar": "cliente/contratar.html",
     "/admin/funcionarios/novo": "admin/funcionario_form.html",
     "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
     "/admin/especialidades/nova": "admin/especialidade_form.html",

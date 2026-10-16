@@ -11,7 +11,7 @@ from app.core.config import DIAS_UTEIS, HORARIOS_ATENDIMENTO, PRAZO_PAGAMENTO_HO
 from app.core.templating import moeda, templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
-from app.routers.auth import agora_local, erros_por_campo, get_usuario_por_tipo
+from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
 from app.schemas.cliente import PerfilClienteAtualizacao
 from app.schemas.paciente import PacienteDados
 from app.services import (
@@ -34,9 +34,14 @@ TEMPLATE_ESPECIALIDADES = "cliente/especialidades.html"
 TEMPLATE_PROFISSIONAIS = "cliente/profissionais.html"
 TEMPLATE_CONTRATAR = "cliente/contratar.html"
 TEMPLATE_RESUMO = "cliente/contratar_resumo.html"
+TEMPLATE_PLANO = "cliente/plano.html"
 
 DURACAO_PADRAO = "mensal"
 MSG_REVISE = "Revise os campos destacados antes de continuar."
+MSG_CONFLITO_CONFIRMACAO = (
+    "Enquanto você revisava, alguns horários foram reservados para outro paciente. "
+    "Nada foi contratado: escolha outro dia ou horário."
+)
 
 MSGS_DADO_EM_USO = {
     "email": "Este e-mail já está em uso por outra conta.",
@@ -213,9 +218,13 @@ def _duracao_ou_padrao(duracao: str | None) -> str:
     return duracao if duracao in plano_service.JANELA_POR_DURACAO else DURACAO_PADRAO
 
 
-def _tela_contratacao(request, usuario, db, profissional, dados, erros=None, conflitos=(), erro=None, status_code=200):
+def _tela_contratacao(
+    request, usuario, db, profissional, dados, erros=None, conflitos=(), erro=None, status_code=200, renovacao=None
+):
     duracao = _duracao_ou_padrao(dados.get("duracao"))
     contexto = {
+        "renovacao": renovacao,
+        "prazo_horas": PRAZO_PAGAMENTO_HORAS,
         "usuario": usuario,
         "profissional": profissional,
         "pacientes": paciente_service.listar_do_cliente(db, usuario.id),
@@ -309,6 +318,14 @@ def simulacao(
     }
 
 
+def _paciente_do_formulario(db: Session, paciente_id: str, usuario: Usuario):
+    if not paciente_id.strip():
+        return None
+    if not paciente_id.strip().isdigit():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado.")
+    return _buscar_paciente_ou_404(db, int(paciente_id), usuario)
+
+
 @router.post("/contratar/{funcionario_id}")
 def contratar_resumo(
     request: Request,
@@ -323,11 +340,7 @@ def contratar_resumo(
     db: Session = Depends(get_db),
 ):
     profissional = _profissional_ativo_ou_404(db, funcionario_id)
-    paciente = None
-    if paciente_id.strip():
-        if not paciente_id.strip().isdigit():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado.")
-        paciente = _buscar_paciente_ou_404(db, int(paciente_id), usuario)
+    paciente = _paciente_do_formulario(db, paciente_id, usuario)
 
     dados = {
         "paciente_id": paciente_id, "frequencia_semanal": frequencia_semanal, "duracao": duracao,
@@ -344,11 +357,92 @@ def contratar_resumo(
             request, usuario, db, profissional, dados, exc.erros, exc.conflitos, MSG_REVISE, status_code
         )
     parametros = [(campo, dados[campo]) for campo in ("paciente_id", "frequencia_semanal", "duracao", "observacao")]
+    parametros += [("celula", c) for c in celula]
     contexto = {
         "usuario": usuario,
         "resumo": resumo,
         "feriados": [(dia, plano_service.nome_do_feriado(dia)) for dia in resumo.simulacao.feriados_pulados],
-        "url_editar": f"/contratar/{funcionario_id}?" + urlencode(parametros + [("celula", c) for c in celula]),
+        "url_editar": f"/contratar/{funcionario_id}?" + urlencode(parametros),
+        "url_confirmar": f"/contratar/{funcionario_id}/confirmar",
+        "campos_confirmacao": parametros,
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
     }
     return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto)
+
+
+@router.post("/contratar/{funcionario_id}/confirmar")
+def contratar_confirmar(
+    request: Request,
+    funcionario_id: int,
+    paciente_id: Annotated[str, Form()] = "",
+    frequencia_semanal: Annotated[str, Form()] = "",
+    duracao: Annotated[str, Form()] = "",
+    celula: Annotated[list[str], Form()] = [],
+    observacao: Annotated[str, Form()] = "",
+    usuario: Usuario = Depends(somente_cliente),
+    db: Session = Depends(get_db),
+):
+    profissional = _profissional_ativo_ou_404(db, funcionario_id)
+    paciente = _paciente_do_formulario(db, paciente_id, usuario)
+    try:
+        plano, _ = contratacao_service.confirmar_plano(
+            db, cliente_service.obter_cliente(db, usuario), funcionario_id, paciente, celula,
+            frequencia_semanal, duracao, observacao, agora_local(), agora_utc().replace(tzinfo=None),
+        )
+    except contratacao_service.ContratacaoInvalida as exc:
+        dados = {
+            "paciente_id": paciente_id, "frequencia_semanal": frequencia_semanal, "duracao": duracao,
+            "celulas": celula, "observacao": observacao,
+        }
+        if exc.conflitos:
+            return _tela_contratacao(
+                request, usuario, db, profissional, dados, exc.erros, exc.conflitos, MSG_CONFLITO_CONFIRMACAO,
+                status.HTTP_409_CONFLICT,
+            )
+        return _tela_contratacao(
+            request, usuario, db, profissional, dados, exc.erros, (), MSG_REVISE, status.HTTP_400_BAD_REQUEST
+        )
+    return _redirecionar(f"/planos/{plano.id}")
+
+
+# --- Plano contratado e renovação (RF05 / HU07) --------------------------------------------------
+
+def _tela_plano(request, usuario, detalhe, erro=None, status_code=200):
+    contexto = {"usuario": usuario, "detalhe": detalhe, "erro": erro}
+    return templates.TemplateResponse(request, TEMPLATE_PLANO, contexto, status_code=status_code)
+
+
+def _detalhe_plano_ou_404(db: Session, usuario: Usuario, plano_id: int, agora):
+    try:
+        return contratacao_service.detalhar_plano(db, usuario.id, plano_id, agora)
+    except contratacao_service.PlanoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
+
+
+@router.get("/planos/{plano_id}")
+def ver_plano(request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
+    return _tela_plano(request, usuario, _detalhe_plano_ou_404(db, usuario, plano_id, agora_local()))
+
+
+@router.get("/planos/{plano_id}/renovar")
+def renovar_plano(
+    request: Request,
+    plano_id: int,
+    profissional: str = "",
+    usuario: Usuario = Depends(somente_cliente),
+    db: Session = Depends(get_db),
+):
+    agora = agora_local()
+    escolhido = int(profissional) if profissional.isdigit() else None
+    try:
+        renovacao = contratacao_service.preparar_renovacao(db, usuario.id, plano_id, agora, escolhido)
+    except contratacao_service.PlanoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
+    except contratacao_service.RenovacaoIndisponivel as exc:
+        detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT)
+
+    if renovacao.profissional is None:
+        contexto = {"usuario": usuario, "renovacao": renovacao, "dados": renovacao.dados, "erros": {}}
+        return templates.TemplateResponse(request, TEMPLATE_CONTRATAR, contexto)
+    return _tela_contratacao(request, usuario, db, renovacao.profissional, renovacao.dados, renovacao=renovacao)

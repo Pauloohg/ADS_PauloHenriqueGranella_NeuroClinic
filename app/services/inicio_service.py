@@ -5,15 +5,14 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.fuso import utc_para_local
 from app.core.templating import NOMES_DIAS
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
 from app.models.paciente import Paciente
-from app.models.plano import Plano, StatusPlano
+from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
-from app.services.plano_service import PRAZO_PAGAMENTO, ocupa_horario
+from app.services.plano_service import ocupa_horario, plano_encerrado, prazo_pagamento
 
 ATIVO = "ativo"
 AGUARDANDO_PAGAMENTO = "aguardando_pagamento"
@@ -91,19 +90,19 @@ def proxima_sessao(db: Session, cliente_id: int, agora: datetime) -> ProximaSess
 
 
 def situacao_plano(
-    status_plano: StatusPlano, status_sessoes: Counter, plano_criado_em_utc: datetime, agora: datetime
+    data_fim: date, status_sessoes: Counter, plano_criado_em_utc: datetime, agora: datetime
 ) -> str | None:
-    if status_plano == StatusPlano.ENCERRADO:
-        return ENCERRADO
     if status_sessoes[StatusSessao.PENDENTE_PAGAMENTO]:
         if not ocupa_horario(StatusSessao.PENDENTE_PAGAMENTO, plano_criado_em_utc, agora):
             return None  # RN09
         return AGUARDANDO_PAGAMENTO
+    if plano_encerrado(data_fim, False, agora):
+        return ENCERRADO
     return ATIVO
 
 
 def tempo_restante_pagamento(plano_criado_em_utc: datetime, agora: datetime) -> timedelta:
-    return max(utc_para_local(plano_criado_em_utc) + PRAZO_PAGAMENTO - agora, timedelta(0))
+    return max(prazo_pagamento(plano_criado_em_utc) - agora, timedelta(0))
 
 
 def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[ResumoPlano]:
@@ -123,7 +122,7 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
     resumos = []
     for plano, paciente, especialidade, profissional in linhas:
         status_sessoes = contagens[plano.id]
-        situacao = situacao_plano(plano.status, status_sessoes, plano.criado_em, agora)
+        situacao = situacao_plano(plano.data_fim, status_sessoes, plano.criado_em, agora)
         if situacao is None:
             continue
         restante = tempo_restante_pagamento(plano.criado_em, agora) if situacao == AGUARDANDO_PAGAMENTO else None
