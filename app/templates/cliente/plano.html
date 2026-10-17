@@ -5,7 +5,7 @@
 
 {% block title %}Plano de {{ detalhe.paciente }} — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/", "Início") }}{% endblock %}
-{% block titulo_pagina %}{{ "Plano contratado" if situacao == "aguardando_pagamento" else "Plano de atendimento" }}{% endblock %}
+{% block titulo_pagina %}{{ "Plano reservado" if situacao == "aguardando_pagamento" else "Plano de atendimento" }}{% endblock %}
 {% block subtitulo_pagina %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endblock %}
 
 {% block conteudo %}
@@ -62,6 +62,10 @@
             </h2>
             <dl class="resumo-valores">
                 <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
+                {% if confirmado_em %}
+                <dt>Pagamento</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
+                <dt>Confirmado em</dt><dd>{{ confirmado_em | data_br }} às {{ confirmado_em.strftime("%H:%M") }}</dd>
+                {% endif %}
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
 
@@ -69,8 +73,9 @@
             <div class="prazo-pagamento" role="note" id="prazo-pagamento">
                 <i class="bi bi-hourglass-split me-1"></i>Pague até
                 <strong>{{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}</strong>
-                <span class="small">(horário de Brasília). Os horários ficam reservados até lá; sem o pagamento, voltam a ficar livres e o plano é cancelado.</span>
+                <span class="small">(horário de Brasília). Os horários ficam reservados até lá; sem o pagamento, voltam a ficar livres e o plano expira.</span>
             </div>
+            <a href="/planos/{{ plano.id }}/pagamento" class="btn btn-primary w-100 mt-4"><i class="bi bi-credit-card me-1"></i>Pagar agora</a>
             {% elif situacao is none %}
             <p class="small text-muted mt-3 mb-0">O pagamento não foi feito até {{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}. Os horários foram liberados; contrate um novo plano quando quiser.</p>
             {% elif situacao == "encerrado" %}

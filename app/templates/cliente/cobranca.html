@@ -1,0 +1,91 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas, voltar %}
+{% set plano = detalhe.plano %}
+{% set pagamento = tela.pagamento %}
+{% set cobranca = tela.cobranca %}
+{% set aguardando = not tela.confirmado and tela.no_prazo %}
+
+{% block title %}Cobrança do plano — NeuroClinic{% endblock %}
+{% block head %}{% if aguardando %}<meta http-equiv="refresh" content="{{ intervalo_atualizacao }}">{% endif %}{% endblock %}
+{% block voltar %}{{ voltar("/planos/" ~ plano.id, "Plano") }}{% endblock %}
+{% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else "Pagamento via " ~ rotulos_forma[pagamento.forma_pagamento] }}{% endblock %}
+{% block subtitulo_pagina %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endblock %}
+
+{% block conteudo %}
+{{ alertas(erro=tela.erro) }}
+<div class="row g-4">
+    <div class="col-lg-8">
+        {% if tela.confirmado %}
+        <section class="cartao estado-vazio" role="status">
+            <div class="icone-destaque mb-3"><i class="bi bi-check-circle"></i></div>
+            <h2 class="titulo-serifa h5">Pagamento confirmado</h2>
+            <p class="text-muted">Recebemos o pagamento em {{ confirmado_em | data_br }} às {{ confirmado_em.strftime("%H:%M") }}. As {{ detalhe.sessoes | length }} sessões estão agendadas e enviamos os detalhes por e-mail.</p>
+            <a href="/planos/{{ plano.id }}" class="btn btn-primary">Ver plano</a>
+        </section>
+        {% elif not tela.no_prazo %}
+        <section class="cartao estado-vazio" role="status">
+            <div class="icone-destaque mb-3"><i class="bi bi-hourglass-bottom"></i></div>
+            <h2 class="titulo-serifa h5">Prazo de pagamento encerrado</h2>
+            <p class="text-muted">O prazo terminou em {{ tela.prazo | data_br }} às {{ tela.prazo.strftime("%H:%M") }} (horário de Brasília) sem a confirmação do pagamento. Os horários foram liberados; contrate um novo plano quando quiser.</p>
+            <a href="/especialidades" class="btn btn-primary">Contratar plano</a>
+        </section>
+        {% elif cobranca %}
+        <section class="cartao" aria-labelledby="titulo-cobranca">
+            {% if pagamento.forma_pagamento.value == "pix" %}
+            <h2 class="cartao-titulo" id="titulo-cobranca">Pague com Pix</h2>
+            <div class="cobranca-pix">
+                {% if cobranca.br_code_base64 %}
+                <img src="{{ cobranca.br_code_base64 }}" alt="QR Code do Pix de {{ plano.valor_total | moeda }}" class="cobranca-qrcode" width="220" height="220">
+                {% endif %}
+                <div class="flex-grow-1">
+                    <p class="small text-muted">Abra o app do seu banco, escolha Pix e leia o QR Code, ou use o código copia e cola:</p>
+                    <label for="pix-copia-cola" class="form-label">Pix copia e cola</label>
+                    <textarea id="pix-copia-cola" class="form-control font-monospace small cobranca-codigo" rows="4" readonly>{{ cobranca.br_code or "" }}</textarea>
+                    <p class="form-text">Selecione o texto e copie.</p>
+                </div>
+            </div>
+            {% else %}
+            <h2 class="cartao-titulo" id="titulo-cobranca">Pague com boleto</h2>
+            <label for="linha-digitavel" class="form-label">{{ "Linha digitável" if cobranca.linha_digitavel else "Código de barras" }}</label>
+            <input id="linha-digitavel" type="text" class="form-control font-monospace cobranca-codigo" value="{{ cobranca.linha_digitavel or cobranca.codigo_barras or '' }}" readonly>
+            <p class="form-text">Selecione o texto e copie, ou abra o boleto para imprimir.</p>
+            {% if cobranca.url_boleto %}
+            <a href="{{ cobranca.url_boleto }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir boleto</a>
+            {% endif %}
+            {% endif %}
+            {% if cobranca.dev_mode %}
+            <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Ambiente de testes (Dev mode): nenhum valor real é cobrado.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <aside class="cartao resumo-plano" aria-labelledby="titulo-situacao-cobranca">
+            <h2 class="cartao-titulo d-flex justify-content-between align-items-center gap-2" id="titulo-situacao-cobranca">
+                Situação
+                {% if tela.confirmado %}
+                <span class="badge rounded-pill status-ativo">Pagamento confirmado</span>
+                {% elif tela.no_prazo %}
+                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+                {% else %}
+                <span class="badge rounded-pill status-inativo">Prazo encerrado</span>
+                {% endif %}
+            </h2>
+            <dl class="resumo-valores">
+                <dt>Forma</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
+                <dt class="resumo-total-rotulo">Valor</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+            </dl>
+            {% if aguardando %}
+            <div class="prazo-pagamento" role="note">
+                <i class="bi bi-hourglass-split me-1"></i>Prazo limite:
+                <strong>{{ tela.prazo | data_br }} às {{ tela.prazo.strftime("%H:%M") }}</strong>
+                <span class="small">(horário de Brasília).</span>
+            </div>
+            <p class="small text-muted mt-3 mb-0"><i class="bi bi-arrow-clockwise me-1"></i>Esta página se atualiza sozinha a cada {{ intervalo_atualizacao }} segundos e mostra a confirmação assim que o pagamento for recebido.</p>
+            {% endif %}
+            <a href="/" class="btn btn-outline-primary w-100 mt-4">Voltar ao início</a>
+        </aside>
+    </div>
+</div>
+{% endblock %}

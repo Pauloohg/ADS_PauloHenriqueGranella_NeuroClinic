@@ -84,6 +84,9 @@
                 {% endif %}
                 <footer class="rodape-plano">
                     <a href="/planos/{{ plano.id }}" class="small">Ver plano<i class="bi bi-chevron-right ms-1"></i></a>
+                    {% if resumo.situacao == "aguardando_pagamento" %}
+                    <a href="/planos/{{ plano.id }}/pagamento" class="btn btn-primary btn-sm"><i class="bi bi-credit-card me-1"></i>Pagar agora</a>
+                    {% endif %}
                     {% if resumo.situacao == "encerrado" %}
                     <a href="/planos/{{ plano.id }}/renovar" class="btn btn-primary btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Renovar</a>
                     {% endif %}

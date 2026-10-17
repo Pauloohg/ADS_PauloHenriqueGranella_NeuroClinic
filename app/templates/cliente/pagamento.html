@@ -1,0 +1,54 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas, voltar %}
+
+{% block title %}Pagamento do plano — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/planos/" ~ detalhe.plano.id if detalhe is defined else "/", "Plano" if detalhe is defined else "Início") }}{% endblock %}
+{% block titulo_pagina %}Pagamento do plano{% endblock %}
+{% block subtitulo_pagina %}{% if detalhe is defined %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endif %}{% endblock %}
+
+{% block conteudo %}
+{{ alertas(erro=erro) }}
+{% if detalhe is defined %}
+{% set plano = detalhe.plano %}
+{% set forma = (dados or {}).get("forma", "") %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form method="post" action="/planos/{{ plano.id }}/pagamento" class="cartao">
+            <fieldset>
+                <legend class="cartao-titulo">Como você quer pagar?</legend>
+                <div class="opcoes-pagamento">
+                    <input type="radio" class="btn-check" name="forma" id="forma-pix" value="pix" autocomplete="off" required {% if forma != "boleto" %}checked{% endif %}>
+                    <label class="opcao-pagamento" for="forma-pix">
+                        <i class="bi bi-qr-code" aria-hidden="true"></i>
+                        <span><strong>Pix</strong><span class="d-block small text-muted">QR Code ou copia e cola. A confirmação costuma chegar em segundos.</span></span>
+                    </label>
+                    <input type="radio" class="btn-check" name="forma" id="forma-boleto" value="boleto" autocomplete="off" {% if forma == "boleto" %}checked{% endif %}>
+                    <label class="opcao-pagamento" for="forma-boleto">
+                        <i class="bi bi-upc" aria-hidden="true"></i>
+                        <span><strong>Boleto</strong><span class="d-block small text-muted">Vence hoje. A compensação pode levar até 3 dias úteis, e o pagamento só vale se for confirmado dentro do prazo.</span></span>
+                    </label>
+                </div>
+            </fieldset>
+            <button type="submit" class="btn btn-primary mt-4"><i class="bi bi-lock me-1"></i>Gerar cobrança</button>
+        </form>
+    </div>
+    <div class="col-lg-4">
+        <aside class="cartao resumo-plano" aria-labelledby="titulo-resumo-pagamento">
+            <h2 class="cartao-titulo" id="titulo-resumo-pagamento">Resumo</h2>
+            <dl class="resumo-valores">
+                <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
+                <dt>Período</dt><dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
+                <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+            </dl>
+            <div class="prazo-pagamento" role="note">
+                <i class="bi bi-hourglass-split me-1"></i>Pague até
+                <strong>{{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}</strong>
+                <span class="small">(horário de Brasília).</span>
+            </div>
+        </aside>
+    </div>
+</div>
+{% else %}
+<a href="/" class="btn btn-outline-primary">Voltar ao início</a>
+{% endif %}
+{% endblock %}

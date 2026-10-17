@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.templating import templates
-from app.routers import admin, auth, cliente, conta, inicio
+from app.routers import admin, auth, cliente, conta, inicio, webhooks
 from app.routers.auth import NaoAutenticado, erros_por_campo
 
 if settings.DEBUG:
@@ -24,6 +24,7 @@ app.include_router(auth.router)
 app.include_router(conta.router)
 app.include_router(cliente.router)
 app.include_router(admin.router)
+app.include_router(webhooks.router)
 
 
 @app.exception_handler(NaoAutenticado)
@@ -43,6 +44,7 @@ FORMULARIOS_POR_ROTA = {
     "/pacientes/{paciente_id}/editar": "cliente/paciente_form.html",
     "/contratar/{funcionario_id}": "cliente/contratar.html",
     "/contratar/{funcionario_id}/confirmar": "cliente/contratar.html",
+    "/planos/{plano_id}/pagamento": "cliente/pagamento.html",
     "/admin/funcionarios/novo": "admin/funcionario_form.html",
     "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
     "/admin/especialidades/nova": "admin/especialidade_form.html",

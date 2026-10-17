@@ -1069,6 +1069,67 @@
     font-size: 1.05rem;
 }
 
+/* --- Pagamento do plano (RF06) ---------------------------------------------------------------- */
+
+.opcoes-pagamento {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.opcao-pagamento {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--cor-fundo-creme-escuro);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.opcao-pagamento > .bi {
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--bs-primary);
+}
+
+.opcao-pagamento:hover {
+    border-color: var(--bs-primary);
+}
+
+.btn-check:checked + .opcao-pagamento {
+    border-color: var(--bs-primary);
+    background-color: var(--cor-fundo-creme);
+    box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+
+.btn-check:focus-visible + .opcao-pagamento {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+.cobranca-pix {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.cobranca-qrcode {
+    width: 220px;
+    height: 220px;
+    max-width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--cor-fundo-creme-escuro);
+    border-radius: 10px;
+    background-color: #fff;
+}
+
+.cobranca-codigo {
+    word-break: break-all;
+    background-color: var(--cor-fundo-creme);
+}
+
 /* --- Admin: clientes (RF14) e painel (RF15) --------------------------------------------------- */
 
 .busca-clientes {

@@ -271,8 +271,9 @@ def test_inicio_do_cliente_nao_adianta_funcionalidades_futuras(client, db, fono,
     logar(client, cliente.email)
 
     html = _html(client.get("/")).lower()
-    for texto in ["remarcar", "histórico", "pagar agora", "minha agenda"]:
+    for texto in ["remarcar", "histórico", "minha agenda"]:
         assert texto not in html, texto
+    assert html.count("pagar agora") == 1  # RF06 (Semana 4B): só no card do plano aguardando pagamento
 
 
 def test_inicio_do_funcionario(client, db, fono):

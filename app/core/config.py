@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # AbacatePay (RF06)
     ABACATEPAY_API_KEY: str = ""
     ABACATEPAY_BASE_URL: str = "https://api.abacatepay.com/v2"
+    ABACATEPAY_WEBHOOK_SECRET: str = ""
 
     # E-mail (fastapi-mail)
     MAIL_USERNAME: str = ""
@@ -38,6 +39,18 @@ HORARIOS_ATENDIMENTO = [8, 9, 10, 11, 14, 15, 16, 17]  # hora cheia; 12h e 13h s
 PRAZO_PAGAMENTO_HORAS = 4  # RN09
 ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS = PRAZO_PAGAMENTO_HORAS  # RN10: a primeira sessão não pode cair dentro do prazo de pagamento
 CARENCIA_REMOCAO_MINUTOS = 60  # RN09: só vale para apagar o plano vencido; o horário é liberado já no fim do prazo
+
+# Pagamento (RF06)
+ABACATEPAY_TIMEOUT_SEGUNDOS = 15
+MARGEM_EXPIRACAO_PIX_SEGUNDOS = 60
+MINIMO_RESTANTE_PIX_SEGUNDOS = 120
+INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS = 15
+# Chave pública fixa da AbacatePay para o HMAC do X-Webhook-Signature (docs.abacatepay.com/pages/webhooks/security); não é segredo
+ABACATEPAY_CHAVE_PUBLICA_HMAC = (
+    "t9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7Rm"
+    "Bfybe1E5XJcfC4IW3alNqym0tXoAKkzvfEjZxV6bE0oG2zJrNNYmUCKZyV0KZ3JS8Votf9EAWWYdiDkMkpbMdPggfh1EqHlVkMiTady6jOR3hyzGEHr"
+    "Iz2Ret0xHKMbiqkr9HS1JhNHDX9"
+)
 
 # Valores fictícios (placeholder) até definirmos os dados reais da clínica
 DADOS_CLINICA = {

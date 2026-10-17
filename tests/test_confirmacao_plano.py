@@ -184,6 +184,19 @@ def test_conflito_surgido_depois_do_resumo_nao_grava_nada(client, db, fono, carl
     assert db.query(Sessao).count() == 1
 
 
+def test_tela_de_conflito_nao_repete_o_alerta_dentro_da_grade(client, db, fono, carla, pedro, maria_logada):
+    form = _form(pedro)
+    _ocupar_por_outro_cliente(db, carla, fono, datetime(2026, 8, 17, 14, 30))
+
+    html = _html(_confirmar(client, carla, form))
+
+    assert html.count("Nada foi contratado") == 1
+    assert 'id="alerta-conflitos"' in html and "17/08/2026 às 14:00" in html
+    assert contratacao_service.MSG_CONFLITO not in html
+    assert 'alert alert-danger py-2 small' not in html  # o alerta que repetia a mensagem dentro da grade
+
+
+
 def test_pendente_de_outro_cliente_dentro_do_prazo_tambem_conflita(client, db, fono, carla, pedro, maria_logada):
     _ocupar_por_outro_cliente(db, carla, fono, datetime(2026, 8, 10, 14, 0), StatusSessao.PENDENTE_PAGAMENTO)
     assert _confirmar(client, carla, _form(pedro)).status_code == 409
@@ -274,11 +287,12 @@ def test_pagina_do_plano_mostra_aguardando_pagamento_e_prazo(client, db, carla, 
     assert resposta.status_code == 200
     html = _html(resposta)
     for trecho in (
-        "Plano contratado", "Aguardando pagamento", "Pague até <strong>01/08/2026 às 14:00</strong>", "horário de Brasília",
+        "Plano reservado", "Aguardando pagamento", "Pague até <strong>01/08/2026 às 14:00</strong>", "horário de Brasília",
         "R$ 750,00", "5 sessões", "03/08/2026 a 31/08/2026", "Carla Fono", "Pedro Souza", "Prefere tarde",
     ):
         assert trecho in html, trecho
-    assert "pagar agora" not in html.lower()
+    assert "o plano expira" in html and "cancelado" not in html
+    assert f'href="/planos/{db.query(Plano).one().id}/pagamento"' in html  # "Pagar agora" (RF06, Semana 4B)
     assert "Renovar" not in html
 
 

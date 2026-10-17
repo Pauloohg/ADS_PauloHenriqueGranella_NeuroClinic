@@ -3,10 +3,41 @@
 Plataforma web para gestão de atendimentos de uma clínica de psicopedagogia, organizada em
 planos recorrentes de sessões. Projeto acadêmico (UPF — ADS/CCC/ECP).
 
-**Perfis:** Cliente (responsável pelo paciente), Funcionário (profissional) e Admin.
+O acompanhamento psicopedagógico é recorrente: a mesma criança é atendida pelo mesmo profissional,
+em dia e horário fixos, durante semanas ou meses. Por isso o sistema não trabalha com reservas
+avulsas: o responsável contrata um **plano** uma única vez e o sistema o desdobra em várias
+**sessões**.
+
+**Perfis:** Cliente (responsável pelo paciente), Funcionário (profissional) e Admin (administração
+da clínica).
 
 **Stack:** Python 3.12, FastAPI, Jinja2 + Bootstrap 5.3, PostgreSQL 16, SQLAlchemy 2.0, Alembic,
-PyJWT, Passlib (bcrypt), fastapi-mail, Pytest.
+PyJWT, Passlib (bcrypt), fastapi-mail, AbacatePay API v2 (pagamentos), `holidays` (feriados
+nacionais), Pytest.
+
+## Funcionalidades
+
+**Cliente**
+- Cadastro, login e redefinição de senha por e-mail (link válido por 30 minutos, uso único).
+- Perfil (nome, e-mail, telefone, CPF opcional) e alteração de senha.
+- Cadastro de um ou mais pacientes.
+- Consulta de especialidades e dos profissionais ativos de cada uma.
+- Contratação e renovação de plano: escolha de especialidade, profissional, paciente, dia(s) e
+  horário, frequência semanal e duração. O sistema simula as sessões, valida a disponibilidade, pula
+  feriados nacionais e calcula o valor pela quantidade real de sessões.
+- Pagamento do plano por Pix ou boleto (AbacatePay), com confirmação automática por webhook e
+  e-mail de confirmação.
+- Página inicial com a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
+
+**Funcionário**
+- Login, página inicial e alteração de senha.
+
+**Admin**
+- Gestão de funcionários (cadastro, edição, desativação e reativação) e de especialidades e valores
+  de sessão.
+- Consulta dos clientes cadastrados, com seus pacientes e planos.
+- Painel gerencial: receita do mês, planos contratados, novos clientes, ranking de funcionários e
+  desempenho por especialidade.
 
 ## Status
 
@@ -14,7 +45,14 @@ PyJWT, Passlib (bcrypt), fastapi-mail, Pytest.
 |---|---|---|
 | 1 | Setup, banco e RF01 (cadastro, login, redefinição de senha) | Concluída |
 | 2 | RF02 (perfil), RF03 (pacientes), RF11 (funcionários), RF12 (especialidades) | Concluída |
-| 3 em diante | Planos, pagamento, remarcação, laudos e histórico | Pendente |
+| 3 | RF04 (especialidades e profissionais) e RF05 (simulação e disponibilidade, feriados) | Concluída |
+| 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
+| 5 | RF08 (agenda do funcionário) e RF07 (remarcação) | Pendente |
+| 6 | RF09 (laudos) e RF10 (histórico) | Pendente |
+| 7 e 8 | Testes, usabilidade, segurança e apresentação | Pendente |
+
+Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel
+gerencial). O RF13 (lembrete por WhatsApp) é opcional e só será feito se sobrar tempo.
 
 ## Passo a passo
 
@@ -59,17 +97,16 @@ cp .env.example .env
 
 Abra o `.env` e ajuste:
 
-- `DATABASE_URL`: usuário e senha do seu PostgreSQL local.
-- `SECRET_KEY`: gere uma de verdade:
+| Variável | O que é |
+|---|---|
+| `DATABASE_URL` | Usuário e senha do seu PostgreSQL local. |
+| `SECRET_KEY` | Chave dos tokens JWT. Gere uma de verdade: `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `MAIL_*` | Servidor SMTP dos e-mails (redefinição de senha e confirmação de pagamento). Em desenvolvimento, use o Email Sandbox do Mailtrap (gratuito), que intercepta os e-mails sem entregá-los a ninguém. Sem essas variáveis a aplicação funciona, mas nenhum e-mail é enviado (a falha de SMTP é apenas registrada no log). |
+| `ABACATEPAY_API_KEY` | Chave de API da AbacatePay em Dev mode (ver a seção de pagamento abaixo). |
+| `ABACATEPAY_BASE_URL` | `https://api.abacatepay.com/v2` |
+| `ABACATEPAY_WEBHOOK_SECRET` | Segredo do webhook, o mesmo valor cadastrado no painel da AbacatePay. |
 
-```bash
-  python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-- `MAIL_*`: servidor SMTP usado para o e-mail de redefinição de senha. Em desenvolvimento,
-  use o Email Sandbox do Mailtrap (gratuito), que intercepta os e-mails sem entregá-los a
-  ninguém. Sem essas variáveis, a aplicação funciona, mas nenhum e-mail é enviado (a falha de
-  SMTP é apenas registrada no log).
+Não deixe espaço depois do `=` e reinicie o servidor sempre que alterar o `.env`.
 
 ### 5. Criar o banco a partir das migrations
 
@@ -119,9 +156,80 @@ Acesse http://localhost:8000. Deve aparecer a página inicial da NeuroClinic.
 pytest
 ```
 
-Os testes usam um banco temporário (SQLite em memória), então não tocam no PostgreSQL, e o envio
-de e-mail é bloqueado. As regras de negócio recebem a data e a hora por parâmetro, o que permite
-testá-las com horários fixos, sem depender do relógio real.
+Os testes usam um banco temporário (SQLite em memória), então não tocam no PostgreSQL. O envio de
+e-mail e qualquer chamada de rede são bloqueados, e a AbacatePay é substituída por uma versão
+falsa. As regras de negócio recebem a data e a hora por parâmetro, o que permite testá-las com
+horários fixos, sem depender do relógio real.
+
+## Pagamento em desenvolvimento (AbacatePay, Dev mode)
+
+O sistema cobra por Pix ou boleto pela API v2 da AbacatePay (`/v2/transparents/create`). A
+confirmação não é consultada pelo sistema: a AbacatePay avisa por **webhook** (evento
+`transparent.completed`), e só então as sessões do plano passam de `pendente_pagamento` para
+`agendada`. Como o servidor roda em `localhost`, o webhook precisa de um túnel público.
+
+### 1. Conta e chave de API
+
+1. Crie uma conta na AbacatePay e ative o **Modo Teste (Sandbox)**.
+2. Em API Keys, crie uma chave **API v2** com escopo **Personalizado** e as permissões
+   `TRANSPARENT:CREATE` e `TRANSPARENT:READ`. As permissões não podem ser editadas depois.
+3. Coloque a chave em `ABACATEPAY_API_KEY` no `.env`. Chaves de Dev mode começam com `abc_dev_`.
+
+### 2. Túnel e webhook
+
+1. Crie uma conta gratuita no [ngrok](https://ngrok.com), configure o token (`ngrok config
+   add-authtoken ...`) e suba o túnel com o seu domínio fixo gratuito:
+
+   ```bash
+   ngrok http --url=SEU-DOMINIO.ngrok-free.dev 8000
+   ```
+
+2. No painel da AbacatePay (Dev mode), em **Integração → Webhooks → Criar webhook** (versão v2):
+   - URL: `https://SEU-DOMINIO.ngrok-free.dev/webhooks/abacatepay`, **sem** `?webhookSecret`
+     (o painel acrescenta o segredo sozinho).
+   - Secret: o mesmo valor de `ABACATEPAY_WEBHOOK_SECRET` do `.env`.
+   - Evento: "Pagamento transparente concluído".
+
+O servidor recusa com 401 qualquer chamada cujo segredo não confira. Para acompanhar as chamadas
+recebidas, abra `http://127.0.0.1:4040` (painel local do ngrok).
+
+### 3. Simular o pagamento
+
+No Dev mode ninguém paga de verdade. Contrate um plano com Pix e simule o pagamento:
+
+```bash
+python -m scripts.simular_pagamento <id do plano>
+```
+
+A página do plano deve virar "Pagamento confirmado" em até 15 segundos, o plano passa a "Ativo" e
+o e-mail de confirmação chega ao Mailtrap. O script se recusa a rodar fora do Dev mode.
+
+### Limitações conhecidas
+
+- A simulação do Dev mode só existe para **Pix**. O boleto é criado e exibido normalmente, mas não
+  há como pagá-lo em teste.
+- O plano reservado vence em 4 horas (RN09). Um boleto dificilmente é compensado nesse prazo; se o
+  pagamento chegar depois, ele só é aceito se a reserva ainda existir e o horário continuar livre.
+  Para confirmação imediata, o Pix é o caminho indicado.
+- Pagamentos que chegam para um plano já removido ou com horário ocupado não são confirmados: o
+  caso é registrado no log para estorno manual.
+- A URL do webhook depende de o ngrok e o servidor estarem rodando. Antes de uma demonstração,
+  suba os dois e faça um pagamento de teste.
+
+## Regras de negócio
+
+| Regra | Resumo |
+|---|---|
+| RN01 | Um funcionário não pode ter duas sessões com períodos sobrepostos. |
+| RN02 | A remarcação exige no mínimo 4 horas de antecedência. |
+| RN03 | O laudo só é acessível ao cliente responsável, ao Admin e a funcionário com sessão vinculada ao paciente. |
+| RN04 | O laudo só pode ser liberado depois de a sessão estar realizada. |
+| RN05 | Funcionário só pode ser desativado sem sessões futuras agendadas ou aguardando pagamento. |
+| RN06 | Feriados nacionais não têm atendimento: a sessão é deslocada para a semana seguinte, sem mudar a quantidade de sessões nem o valor. |
+| RN07 | A especialidade de um funcionário só pode mudar nas mesmas condições da RN05. |
+| RN08 | Sessões de 60 minutos, em hora cheia, de segunda a sexta, das 8h às 11h e das 14h às 17h. |
+| RN09 | O plano reservado deve ser pago em até 4 horas. Depois disso as sessões pendentes deixam de bloquear o horário e o plano é removido após 60 minutos de carência. |
+| RN10 | A primeira sessão de um plano precisa estar a pelo menos 4 horas de distância. |
 
 ## Estrutura de pastas (Arquitetura em Camadas)
 
@@ -136,6 +244,6 @@ app/
   templates/  → páginas Jinja2 (View)
   static/     → CSS/JS customizados (Bootstrap vem via CDN)
 alembic/      → migrations do banco de dados
-scripts/      → scripts de linha de comando (ex.: criar_admin.py)
+scripts/      → scripts de linha de comando (criar_admin, simular_pagamento)
 tests/        → testes automatizados (Pytest)
 ```

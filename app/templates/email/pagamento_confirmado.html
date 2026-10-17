@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagamento confirmado</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F6F2EA; font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color:#1F2A22;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F2EA;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border:1px solid #EDE7D9; border-radius:8px;">
+        <tr>
+          <td style="background-color:#3F4A3D; border-radius:8px 8px 0 0; padding:20px 32px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#ffffff;">
+            {{ clinica.nome }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px; font-size:16px; line-height:1.5;">
+            <h1 style="margin:0 0 16px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#1F2A22;">Pagamento confirmado</h1>
+            <p style="margin:0 0 16px;">Olá, {{ nome }}.</p>
+            <p style="margin:0 0 24px;">Recebemos o pagamento do plano de atendimento de <strong>{{ paciente }}</strong> em {{ confirmado_em | data_br }} às {{ confirmado_em.strftime("%H:%M") }}. As sessões estão agendadas:</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px; font-size:15px; border-collapse:collapse;">
+              <tr><td style="padding:6px 0; color:#4A544B; width:40%;">Paciente</td><td style="padding:6px 0;">{{ paciente }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Especialidade</td><td style="padding:6px 0;">{{ especialidade }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Profissional</td><td style="padding:6px 0;">{{ profissional }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Dias e horário</td><td style="padding:6px 0;">{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Período</td><td style="padding:6px 0;">{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Valor</td><td style="padding:6px 0;">{{ plano.valor_total | moeda }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Forma de pagamento</td><td style="padding:6px 0;">{{ forma }}</td></tr>
+            </table>
+            <h2 style="margin:0 0 8px; font-family:Lora, Georgia, serif; font-size:18px; font-weight:600; color:#1F2A22;">{{ sessoes | length }} sessões</h2>
+            <ol style="margin:0 0 24px; padding-left:20px; font-size:15px;">
+              {% for sessao in sessoes %}
+              <li style="padding:2px 0;">{{ sessao | data_br }} ({{ (sessao.weekday() | nome_dia) | lower }}), às {{ sessao.strftime("%H:%M") }}</li>
+              {% endfor %}
+            </ol>
+            <p style="margin:0; font-size:14px; color:#4A544B;">Cada sessão dura 60 minutos. Você também pode acompanhar o plano pelo site, na página inicial.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top:1px solid #EDE7D9; padding:16px 32px; font-size:12px; color:#6B746C;">
+            {{ clinica.nome }} · {{ clinica.endereco }} · {{ clinica.telefone }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

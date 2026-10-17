@@ -88,7 +88,7 @@
                     Escolha {{ frequencia }} horário(s) livre(s), todos na mesma hora e em dias diferentes. As sessões
                     duram 60 minutos e se repetem toda semana.
                 </p>
-                {% if erros.celulas %}<div class="alert alert-danger py-2 small" role="alert">{{ erros.celulas }}</div>{% endif %}
+                {% if erros.celulas and not lista_conflitos %}<div class="alert alert-danger py-2 small" role="alert">{{ erros.celulas }}</div>{% endif %}
                 <div class="grade-wrapper" id="grade" aria-busy="false">
                     <table class="grade-horarios">
                         <caption class="visually-hidden">Horários semanais livres de {{ profissional.usuario.nome }}</caption>
@@ -103,7 +103,7 @@
                         <tbody>
                             {% for hora in horarios %}
                             {% if loop.previtem is defined and hora - loop.previtem > 1 %}
-                            <tr class="linha-almoco"><th scope="row">{{ loop.previtem + 1 }}h–{{ hora }}h</th><td colspan="{{ dias_uteis | length }}">Intervalo de almoço — sem atendimento</td></tr>
+                            <tr class="linha-almoco"><th scope="row">{{ loop.previtem + 1 }}h–{{ hora }}h</th><td colspan="{{ dias_uteis | length }}">Intervalo comercial — sem atendimento</td></tr>
                             {% endif %}
                             <tr>
                                 <th scope="row">{{ "%02d"|format(hora) }}:00</th>

@@ -7,7 +7,12 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.core.config import DIAS_UTEIS, HORARIOS_ATENDIMENTO, PRAZO_PAGAMENTO_HORAS
+from app.core.config import (
+    DIAS_UTEIS,
+    HORARIOS_ATENDIMENTO,
+    INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
+    PRAZO_PAGAMENTO_HORAS,
+)
 from app.core.templating import moeda, templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -20,6 +25,7 @@ from app.services import (
     especialidade_service,
     funcionario_service,
     paciente_service,
+    pagamento_service,
     plano_service,
 )
 
@@ -35,6 +41,8 @@ TEMPLATE_PROFISSIONAIS = "cliente/profissionais.html"
 TEMPLATE_CONTRATAR = "cliente/contratar.html"
 TEMPLATE_RESUMO = "cliente/contratar_resumo.html"
 TEMPLATE_PLANO = "cliente/plano.html"
+TEMPLATE_PAGAMENTO = "cliente/pagamento.html"
+TEMPLATE_COBRANCA = "cliente/cobranca.html"
 
 DURACAO_PADRAO = "mensal"
 MSG_REVISE = "Revise os campos destacados antes de continuar."
@@ -407,8 +415,13 @@ def contratar_confirmar(
 
 # --- Plano contratado e renovação (RF05 / HU07) --------------------------------------------------
 
-def _tela_plano(request, usuario, detalhe, erro=None, status_code=200):
-    contexto = {"usuario": usuario, "detalhe": detalhe, "erro": erro}
+def _tela_plano(request, usuario, detalhe, erro=None, status_code=200, db=None):
+    pagamento = pagamento_service.buscar_pagamento(db, detalhe.plano.id) if db is not None else None
+    contexto = {
+        "usuario": usuario, "detalhe": detalhe, "erro": erro, "pagamento": pagamento,
+        "rotulos_forma": pagamento_service.ROTULOS_FORMA,
+        "confirmado_em": pagamento_service.data_confirmacao_local(pagamento),
+    }
     return templates.TemplateResponse(request, TEMPLATE_PLANO, contexto, status_code=status_code)
 
 
@@ -421,7 +434,7 @@ def _detalhe_plano_ou_404(db: Session, usuario: Usuario, plano_id: int, agora):
 
 @router.get("/planos/{plano_id}")
 def ver_plano(request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
-    return _tela_plano(request, usuario, _detalhe_plano_ou_404(db, usuario, plano_id, agora_local()))
+    return _tela_plano(request, usuario, _detalhe_plano_ou_404(db, usuario, plano_id, agora_local()), db=db)
 
 
 @router.get("/planos/{plano_id}/renovar")
@@ -440,9 +453,77 @@ def renovar_plano(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
     except contratacao_service.RenovacaoIndisponivel as exc:
         detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
-        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT)
+        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT, db)
 
     if renovacao.profissional is None:
         contexto = {"usuario": usuario, "renovacao": renovacao, "dados": renovacao.dados, "erros": {}}
         return templates.TemplateResponse(request, TEMPLATE_CONTRATAR, contexto)
     return _tela_contratacao(request, usuario, db, renovacao.profissional, renovacao.dados, renovacao=renovacao)
+
+
+# --- RF06: pagamento do plano --------------------------------------------------------------------
+
+def _tela_escolha_pagamento(request, usuario, detalhe, erro=None, forma="", status_code=200):
+    contexto = {"usuario": usuario, "detalhe": detalhe, "erro": erro, "dados": {"forma": forma}, "erros": {}}
+    return templates.TemplateResponse(request, TEMPLATE_PAGAMENTO, contexto, status_code=status_code)
+
+
+def _plano_nao_pagavel(request, usuario, db, plano_id, agora, mensagem):
+    detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+    return _tela_plano(request, usuario, detalhe, mensagem, status.HTTP_409_CONFLICT, db)
+
+
+@router.get("/planos/{plano_id}/pagamento")
+def escolher_pagamento(
+    request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
+):
+    agora = agora_local()
+    detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+    if pagamento_service.buscar_pagamento(db, plano_id) is not None:
+        return _redirecionar(f"/planos/{plano_id}/cobranca")
+    try:
+        pagamento_service.verificar_pagavel(db, detalhe.plano, agora)
+    except pagamento_service.PagamentoIndisponivel as exc:
+        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT, db)
+    return _tela_escolha_pagamento(request, usuario, detalhe)
+
+
+@router.post("/planos/{plano_id}/pagamento")
+def gerar_cobranca(
+    request: Request,
+    plano_id: int,
+    forma: Annotated[str, Form()] = "",
+    usuario: Usuario = Depends(somente_cliente),
+    db: Session = Depends(get_db),
+):
+    agora = agora_local()
+    try:
+        pagamento_service.iniciar_pagamento(db, usuario, plano_id, forma, agora)
+    except contratacao_service.PlanoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
+    except pagamento_service.PagamentoIndisponivel as exc:
+        return _plano_nao_pagavel(request, usuario, db, plano_id, agora, str(exc))
+    except pagamento_service.FormaPagamentoInvalida as exc:
+        detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+        return _tela_escolha_pagamento(request, usuario, detalhe, str(exc), forma, status.HTTP_400_BAD_REQUEST)
+    except pagamento_service.CobrancaNaoGerada as exc:
+        detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+        return _tela_escolha_pagamento(request, usuario, detalhe, str(exc), forma, status.HTTP_503_SERVICE_UNAVAILABLE)
+    return _redirecionar(f"/planos/{plano_id}/cobranca")
+
+
+@router.get("/planos/{plano_id}/cobranca")
+def ver_cobranca(
+    request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
+):
+    agora = agora_local()
+    detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+    tela = pagamento_service.montar_tela_cobranca(db, usuario.id, plano_id, agora)
+    if tela is None:
+        return _redirecionar(f"/planos/{plano_id}/pagamento")
+    contexto = {
+        "usuario": usuario, "detalhe": detalhe, "tela": tela, "rotulos_forma": pagamento_service.ROTULOS_FORMA,
+        "confirmado_em": pagamento_service.data_confirmacao_local(tela.pagamento),
+        "intervalo_atualizacao": INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
+    }
+    return templates.TemplateResponse(request, TEMPLATE_COBRANCA, contexto)
