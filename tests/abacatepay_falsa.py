@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime, time, timedelta
 
 import httpx
 
@@ -21,6 +22,12 @@ def cobranca_pix(valor=75000, id_="pix_char_teste123", status="PENDING", dev_mod
         "createdAt": "2026-08-01T13:00:00.000Z", "updatedAt": "2026-08-01T13:00:00.000Z",
         "expiresAt": "2026-08-01T15:59:00.000Z", "metadata": {"plano_id": 1},
     }
+
+
+# A API devolve o fim do dia do dueDate no horário de Brasília (UTC-3), em UTC: 31/07 -> 2026-08-01T02:59:59.999Z
+def expires_at_do_boleto(due_date: str) -> str:
+    fim_utc = datetime.combine(date.fromisoformat(due_date) + timedelta(days=1), time(2, 59, 59, 999000))
+    return fim_utc.isoformat(timespec="milliseconds") + "Z"
 
 
 def cobranca_boleto(valor=75000, id_="bole_teste123", status="PENDING", dev_mode=True):
@@ -69,14 +76,32 @@ class ApiFalsa:
             return erro_caractere("customer.name", caractere)
         return None
 
+    def _validar_vencimento(self, requisicao: httpx.Request) -> httpx.Response | None:
+        corpo = json.loads(requisicao.content)
+        if corpo.get("method") != "BOLETO":
+            return None
+        try:
+            date.fromisoformat(corpo.get("data", {}).get("dueDate") or "")
+        except (TypeError, ValueError):
+            return httpx.Response(400, json={"data": None, "error": "Invalid dueDate", "success": False})
+        return None
+
+    def _com_vencimento(self, requisicao: httpx.Request, resposta: dict) -> dict:
+        corpo = json.loads(requisicao.content)
+        if corpo.get("method") != "BOLETO":
+            return resposta
+        return {**resposta, "expiresAt": expires_at_do_boleto(corpo["data"]["dueDate"])}
+
     def __call__(self, requisicao: httpx.Request) -> httpx.Response:
         self.requisicoes.append(requisicao)
         caminho = requisicao.url.path.removeprefix("/v2")
         if caminho == "/transparents/create":
-            recusa = self._validar_textos(requisicao)
+            recusa = self._validar_textos(requisicao) or self._validar_vencimento(requisicao)
             if recusa is not None:
                 return recusa
         resposta = self.respostas.get(caminho)
+        if caminho == "/transparents/create" and isinstance(resposta, dict):
+            resposta = self._com_vencimento(requisicao, resposta)
         if resposta is None:
             return httpx.Response(404, json={"error": "rota não configurada no teste"})
         if isinstance(resposta, Exception):

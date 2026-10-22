@@ -61,7 +61,7 @@
             </dl>
             <div class="alert alert-warning small mt-3 mb-0" role="note">
                 <i class="bi bi-clock me-1"></i><strong>Prazo de pagamento:</strong> depois da confirmação, você terá
-                {{ prazo_horas }} horas para pagar. Sem o pagamento nesse prazo, os horários voltam a ficar livres para outros pacientes.
+                {{ prazo_horas }} horas para pagar com Pix ou gerar o boleto (que tem vencimento próprio, antes da primeira sessão). Sem o pagamento no prazo, os horários voltam a ficar livres para outros pacientes.
             </div>
             <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-4">
                 {% for nome, valor in campos_confirmacao %}

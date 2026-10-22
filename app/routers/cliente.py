@@ -463,8 +463,12 @@ def renovar_plano(
 
 # --- RF06: pagamento do plano --------------------------------------------------------------------
 
-def _tela_escolha_pagamento(request, usuario, detalhe, erro=None, forma="", status_code=200):
-    contexto = {"usuario": usuario, "detalhe": detalhe, "erro": erro, "dados": {"forma": forma}, "erros": {}}
+def _tela_escolha_pagamento(request, usuario, detalhe, agora, erro=None, forma="", status_code=200):
+    contexto = {
+        "usuario": usuario, "detalhe": detalhe, "erro": erro, "dados": {"forma": forma}, "erros": {},
+        "prazo_horas": PRAZO_PAGAMENTO_HORAS,
+        "vencimento_boleto": pagamento_service.boleto_oferecido(detalhe.plano, agora),
+    }
     return templates.TemplateResponse(request, TEMPLATE_PAGAMENTO, contexto, status_code=status_code)
 
 
@@ -485,7 +489,7 @@ def escolher_pagamento(
         pagamento_service.verificar_pagavel(db, detalhe.plano, agora)
     except pagamento_service.PagamentoIndisponivel as exc:
         return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT, db)
-    return _tela_escolha_pagamento(request, usuario, detalhe)
+    return _tela_escolha_pagamento(request, usuario, detalhe, agora)
 
 
 @router.post("/planos/{plano_id}/pagamento")
@@ -505,10 +509,12 @@ def gerar_cobranca(
         return _plano_nao_pagavel(request, usuario, db, plano_id, agora, str(exc))
     except pagamento_service.FormaPagamentoInvalida as exc:
         detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
-        return _tela_escolha_pagamento(request, usuario, detalhe, str(exc), forma, status.HTTP_400_BAD_REQUEST)
+        return _tela_escolha_pagamento(request, usuario, detalhe, agora, str(exc), forma, status.HTTP_400_BAD_REQUEST)
     except pagamento_service.CobrancaNaoGerada as exc:
         detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
-        return _tela_escolha_pagamento(request, usuario, detalhe, str(exc), forma, status.HTTP_503_SERVICE_UNAVAILABLE)
+        return _tela_escolha_pagamento(
+            request, usuario, detalhe, agora, str(exc), forma, status.HTTP_503_SERVICE_UNAVAILABLE
+        )
     return _redirecionar(f"/planos/{plano_id}/cobranca")
 
 

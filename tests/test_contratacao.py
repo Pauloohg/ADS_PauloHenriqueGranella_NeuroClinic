@@ -133,7 +133,7 @@ def test_tela_mostra_profissional_grade_e_so_pacientes_do_cliente(client, db, fo
     assert re.search(r'value="2-14"[^>]*data-livre="0"[^>]*disabled', html)
     assert re.search(r'value="0-14"[^>]*data-livre="1"', html)
     assert 'value="0-12"' not in html and 'value="0-13"' not in html
-    assert "Intervalo de almoço" in html
+    assert "Intervalo comercial — sem atendimento" in html
     assert "joana@exemplo.com" not in html
 
 

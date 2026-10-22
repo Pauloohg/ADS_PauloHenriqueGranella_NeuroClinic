@@ -76,6 +76,16 @@ def plano(db, carla, maria):
     )
 
 
+# Primeira sessão em 10/08: o boleto vence em 05/08 (3 dias úteis após o sábado 01/08) e é oferecido (RN09)
+@pytest.fixture
+def plano_boleto(db, carla, maria):
+    pedro = criar_paciente(db, maria.id, nome="Pedro Souza")
+    return criar_plano(
+        db, pedro, carla, [(data, PENDENTE) for data in SEGUNDAS_DE_AGOSTO[1:]], criado_em=CRIADO_EM_UTC,
+        valor_total="600.00",
+    )
+
+
 @pytest.fixture
 def maria_logada(client, maria):
     logar(client, maria.email)
@@ -145,11 +155,11 @@ def test_plano_pago_nao_mostra_pagar_agora(client, db, carla, maria_logada):
 
 # --- Escolha da forma de pagamento -------------------------------------------------------------
 
-def test_escolha_mostra_pix_boleto_valor_e_prazo(client, plano, maria_logada, api_falsa):
-    resposta = client.get(f"/planos/{plano.id}/pagamento")
+def test_escolha_mostra_pix_boleto_valor_e_prazo(client, plano_boleto, maria_logada, api_falsa):
+    resposta = client.get(f"/planos/{plano_boleto.id}/pagamento")
     html = _html(resposta)
     assert resposta.status_code == 200
-    for trecho in ('value="pix"', 'value="boleto"', "R$ 750,00", "01/08/2026 às 13:00", "horário de Brasília"):
+    for trecho in ('value="pix"', 'value="boleto"', "R$ 600,00", "01/08/2026 às 13:00", "horário de Brasília"):
         assert trecho in html, trecho
     assert "<script" not in resposta.text.split("<main", 1)[1].split("</main>", 1)[0]
     assert api_falsa.requisicoes == []
@@ -181,10 +191,10 @@ def test_plano_fora_do_prazo_nao_pode_ser_pago(client, db, monkeypatch, plano, m
     assert db.query(Pagamento).count() == 0 and api_falsa.requisicoes == []
 
 
-def test_prazo_exato_ainda_aceita_o_pagamento(client, db, monkeypatch, plano, maria_logada, api_falsa):
+def test_prazo_exato_ainda_aceita_o_pagamento(client, db, monkeypatch, plano_boleto, maria_logada, api_falsa):
     _fixar_relogio(monkeypatch, datetime(2026, 8, 1, 13, 0))
     api_falsa.responder("/transparents/create", cobranca_boleto())
-    assert _pagar(client, plano, "boleto").status_code == 303
+    assert _pagar(client, plano_boleto, "boleto").status_code == 303
 
 
 def test_plano_que_nao_aguarda_pagamento_mostra_mensagem(client, db, carla, maria_logada, api_falsa):
@@ -239,18 +249,21 @@ def test_pix_envia_a_requisicao_no_formato_da_documentacao(client, db, plano, ma
     assert pagamento.abacatepay_payment_id == "pix_char_teste123" and pagamento.confirmado_em is None
 
 
-def test_boleto_vence_hoje_no_horario_local(client, db, monkeypatch, plano, maria_logada, api_falsa):
-    # 23:30 local de 31/07 já é 01/08 em UTC: o vencimento segue o dia local
-    _fixar_relogio(monkeypatch, datetime(2026, 7, 31, 23, 30), datetime(2026, 8, 1, 2, 30, tzinfo=timezone.utc))
-    plano.criado_em = datetime(2026, 8, 1, 2, 0)
-    db.commit()
+def test_vencimento_do_boleto_conta_da_data_local_de_criacao(client, db, monkeypatch, maria, carla, maria_logada, api_falsa):
+    # 23:30 local de quarta 05/08 já é quinta 06/08 em UTC: contando do dia local, 3 dias úteis dão 10/08 (e não 11/08)
+    _fixar_relogio(monkeypatch, datetime(2026, 8, 5, 23, 30), datetime(2026, 8, 6, 2, 30, tzinfo=timezone.utc))
+    pedro = criar_paciente(db, maria.id, nome="Pedro Souza")
+    plano = criar_plano(
+        db, pedro, carla, [(data, PENDENTE) for data in SEGUNDAS_DE_AGOSTO[2:]], criado_em=datetime(2026, 8, 6, 2, 0),
+        valor_total="750.00",
+    )
     api_falsa.responder("/transparents/create", cobranca_boleto())
 
     assert _pagar(client, plano, "boleto").status_code == 303
 
     [corpo] = api_falsa.corpos("/transparents/create")
     assert corpo["method"] == "BOLETO"
-    assert corpo["data"]["dueDate"] == "2026-07-31"
+    assert corpo["data"]["dueDate"] == "2026-08-10"
     assert "expiresIn" not in corpo["data"]
     assert corpo["data"]["amount"] == 75000 and corpo["data"]["customer"]["taxId"] == "52998224725"
     assert db.query(Pagamento).one().forma_pagamento == FormaPagamento.BOLETO
@@ -359,13 +372,13 @@ def test_tela_do_pix_tem_qr_code_copia_e_cola_e_atualizacao(client, plano, maria
     assert "Copiar" not in html and "<script" not in resposta.text.split("<main", 1)[1].split("</main>", 1)[0]
 
 
-def test_tela_do_boleto_tem_linha_digitavel_e_link(client, plano, maria_logada, api_falsa):
+def test_tela_do_boleto_tem_linha_digitavel_e_link(client, plano_boleto, maria_logada, api_falsa):
     api_falsa.responder("/transparents/create", cobranca_boleto())
-    html = _html(client.post(f"/planos/{plano.id}/pagamento", data={"forma": "boleto"}))
+    html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
     assert f'value="{LINHA_DIGITAVEL}" readonly' in html
     assert f'href="{URL_BOLETO}" target="_blank" rel="noopener noreferrer"' in html
-    assert "Pagamento via Boleto" in html and "R$ 750,00" in html
+    assert "Pagamento via Boleto" in html and "R$ 600,00" in html
     assert '<meta http-equiv="refresh" content="15">' in html
 
 
@@ -490,9 +503,9 @@ def test_formatar_linha_digitavel_de_47_digitos():
     assert abacatepay_client.formatar_linha_digitavel(None) is None
 
 
-def test_boleto_mostra_linha_digitavel_de_identification_number(client, plano, maria_logada, api_falsa):
+def test_boleto_mostra_linha_digitavel_de_identification_number(client, plano_boleto, maria_logada, api_falsa):
     api_falsa.responder("/transparents/create", cobranca_boleto())
-    html = _html(client.post(f"/planos/{plano.id}/pagamento", data={"forma": "boleto"}))
+    html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
     assert "Linha digitável" in html and f'value="{LINHA_DIGITAVEL}" readonly' in html
     assert CODIGO_BARRAS not in html and IDENTIFICATION_NUMBER not in html
@@ -500,23 +513,23 @@ def test_boleto_mostra_linha_digitavel_de_identification_number(client, plano, m
     assert f'href="{URL_BOLETO}"' in html
 
 
-def test_boleto_sem_identification_number_mostra_codigo_de_barras(client, plano, maria_logada, api_falsa):
+def test_boleto_sem_identification_number_mostra_codigo_de_barras(client, plano_boleto, maria_logada, api_falsa):
     resposta_boleto = cobranca_boleto()
     del resposta_boleto["identificationNumber"]
     api_falsa.responder("/transparents/create", resposta_boleto)
-    html = _html(client.post(f"/planos/{plano.id}/pagamento", data={"forma": "boleto"}))
+    html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
     assert "Código de barras" in html and "Linha digitável" not in html
     assert f'value="{CODIGO_BARRAS}" readonly' in html
 
 
-def test_boleto_reexibido_pela_consulta_usa_os_mesmos_campos(client, db, plano, maria_logada, api_falsa):
-    pagamento = criar_pagamento(db, plano, status=StatusPagamento.PENDENTE)
+def test_boleto_reexibido_pela_consulta_usa_os_mesmos_campos(client, db, plano_boleto, maria_logada, api_falsa):
+    pagamento = criar_pagamento(db, plano_boleto, status=StatusPagamento.PENDENTE)
     pagamento.forma_pagamento, pagamento.abacatepay_payment_id = FormaPagamento.BOLETO, "bole_teste123"
     db.commit()
     api_falsa.responder("/transparents/list", [cobranca_boleto()])
 
-    html = _html(client.get(f"/planos/{plano.id}/cobranca"))
+    html = _html(client.get(f"/planos/{plano_boleto.id}/cobranca"))
     assert f'value="{LINHA_DIGITAVEL}" readonly' in html and BR_CODE_ALTERNATIVO not in html
 
 

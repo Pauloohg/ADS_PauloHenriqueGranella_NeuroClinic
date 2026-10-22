@@ -36,9 +36,12 @@ settings = Settings()
 DURACAO_SESSAO_MINUTOS = 60
 DIAS_UTEIS = (0, 1, 2, 3, 4)
 HORARIOS_ATENDIMENTO = [8, 9, 10, 11, 14, 15, 16, 17]  # hora cheia; 12h e 13h são almoço; a última sessão termina às 18h
-PRAZO_PAGAMENTO_HORAS = 4  # RN09
+PRAZO_PAGAMENTO_HORAS = 4  # RN09: prazo do Pix e janela para escolher a forma; para comparar datas use plano_service.prazo_pagamento
 ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS = PRAZO_PAGAMENTO_HORAS  # RN10: a primeira sessão não pode cair dentro do prazo de pagamento
 CARENCIA_REMOCAO_MINUTOS = 60  # RN09: só vale para apagar o plano vencido; o horário é liberado já no fim do prazo
+DIAS_UTEIS_VENCIMENTO_BOLETO = 3  # RN09
+FOLGA_BOLETO_DIAS_UTEIS = 2  # RN09: o boleto vence no máximo no 2º dia útil antes da primeira sessão, para compensar a tempo
+CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS = 1  # RN09: premissa de compensação bancária em até 1 dia útil (a AbacatePay não documenta)
 
 # Pagamento (RF06)
 ABACATEPAY_TIMEOUT_SEGUNDOS = 15

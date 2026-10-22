@@ -79,7 +79,11 @@
                 </div>
                 {% elif resumo.situacao == "aguardando_pagamento" %}
                 <p class="aviso-pagamento small mb-0">
-                    <i class="bi bi-hourglass-split me-1"></i>Prazo para pagamento: restam {{ resumo.tempo_restante | tempo_curto }}.
+                    {% if resumo.boleto %}
+                    <i class="bi bi-hourglass-split me-1"></i>Pague até {{ resumo.prazo_pagamento | data_br }} (vencimento do boleto).
+                    {% else %}
+                    <i class="bi bi-hourglass-split me-1"></i>Pague até {{ resumo.prazo_pagamento | data_br }} às {{ resumo.prazo_pagamento.strftime("%H:%M") }} · restam {{ resumo.tempo_restante | tempo_curto }}.
+                    {% endif %}
                 </p>
                 {% endif %}
                 <footer class="rodape-plano">

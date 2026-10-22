@@ -49,6 +49,7 @@
             <label for="linha-digitavel" class="form-label">{{ "Linha digitável" if cobranca.linha_digitavel else "Código de barras" }}</label>
             <input id="linha-digitavel" type="text" class="form-control font-monospace cobranca-codigo" value="{{ cobranca.linha_digitavel or cobranca.codigo_barras or '' }}" readonly>
             <p class="form-text">Selecione o texto e copie, ou abra o boleto para imprimir.</p>
+            <p class="small mb-0" id="vencimento-boleto"><i class="bi bi-calendar-event me-1"></i>Vence em {{ tela.prazo | data_br }}. O horário fica reservado até o vencimento.</p>
             {% if cobranca.url_boleto %}
             <a href="{{ cobranca.url_boleto }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir boleto</a>
             {% endif %}

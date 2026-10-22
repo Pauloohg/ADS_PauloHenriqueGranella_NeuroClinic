@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import BackgroundTasks
@@ -49,6 +49,7 @@ MSG_PIX_SEM_TEMPO = (
     "Faltam menos de 2 minutos para o fim do prazo de pagamento: não há tempo para gerar o Pix. "
     "Contrate um novo plano quando quiser."
 )
+MSG_BOLETO_INDISPONIVEL = "O boleto não está disponível para este plano porque a primeira sessão é muito próxima."
 MSG_CPF = "Cadastre o seu CPF em Meu perfil para gerar a cobrança."
 MSG_CELULAR = "Cadastre um telefone celular com DDD em Meu perfil para gerar a cobrança."
 MSG_COBRANCA_INDISPONIVEL = (
@@ -120,16 +121,26 @@ def verificar_pagavel(db: Session, plano: Plano, agora: datetime) -> None:
         raise PagamentoIndisponivel(MSG_PLANO_PAGO)
     if not _tem_sessao_pendente(db, plano.id):
         raise PagamentoIndisponivel(MSG_NAO_AGUARDANDO)
-    prazo = plano_service.prazo_pagamento(plano.criado_em)
+    # Sem forma escolhida o prazo é o de 4 h: é a janela para gerar a cobrança, inclusive a do boleto
+    prazo = plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, None)
     if prazo < agora:  # RN09
         raise PagamentoIndisponivel(MSG_PRAZO_ENCERRADO.format(prazo=_formatar_prazo(prazo)))
 
 
 def segundos_expiracao_pix(plano_criado_em_utc: datetime, agora: datetime) -> int:
-    restante = int((plano_service.prazo_pagamento(plano_criado_em_utc) - agora).total_seconds())
+    restante = int((plano_service.prazo_pagamento(plano_criado_em_utc, forma=FormaPagamento.PIX) - agora).total_seconds())
     if restante < MINIMO_RESTANTE_PIX_SEGUNDOS:
         raise CobrancaNaoGerada(MSG_PIX_SEM_TEMPO)
     return restante - MARGEM_EXPIRACAO_PIX_SEGUNDOS
+
+
+def vencimento_boleto_do_plano(plano: Plano) -> date:
+    return plano_service.vencimento_boleto(utc_para_local(plano.criado_em).date(), plano.data_inicio)
+
+
+def boleto_oferecido(plano: Plano, agora: datetime) -> date | None:
+    vencimento = vencimento_boleto_do_plano(plano)
+    return vencimento if plano_service.boleto_disponivel(vencimento, agora) else None
 
 
 def formatar_celular(telefone: str | None) -> str:
@@ -173,6 +184,11 @@ def iniciar_pagamento(
         return existente
     verificar_pagavel(db, plano, agora)
     forma = ler_forma(forma_texto)
+    vencimento = None
+    if forma == FormaPagamento.BOLETO:
+        vencimento = boleto_oferecido(plano, agora)
+        if vencimento is None:  # RN09: a tela não oferece, mas o servidor não confia nela
+            raise FormaPagamentoInvalida(MSG_BOLETO_INDISPONIVEL)
 
     pagador = dados_pagador(usuario, db.get(Cliente, usuario.id))
     expira_em = segundos_expiracao_pix(plano.criado_em, agora) if forma == FormaPagamento.PIX else None
@@ -184,7 +200,7 @@ def iniciar_pagamento(
             plano.id,
             _descricao(db, plano),
             expira_em_segundos=expira_em,
-            vencimento=agora.date() if forma == FormaPagamento.BOLETO else None,
+            vencimento=vencimento,
         )
     except ErroAbacatePay as exc:
         raise CobrancaNaoGerada(exc.mensagem) from None
@@ -209,7 +225,7 @@ def montar_tela_cobranca(db: Session, cliente_id: int, plano_id: int, agora: dat
     pagamento = buscar_pagamento(db, plano.id)
     if pagamento is None:
         return None
-    prazo = plano_service.prazo_pagamento(plano.criado_em)
+    prazo = plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento)
     no_prazo = prazo >= agora
     cobranca = erro = None
     if pagamento.status == StatusPagamento.PENDENTE and no_prazo:
@@ -285,7 +301,7 @@ def processar_evento(
         return ResultadoWebhook("ja_confirmado", pagamento.id)
 
     try:
-        if plano_service.prazo_pagamento(plano.criado_em) < agora:  # RN09
+        if plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento) < agora:  # RN09
             _travar_agenda(db, plano.funcionario_id)
             datas = list(db.scalars(
                 select(Sessao.data_hora)

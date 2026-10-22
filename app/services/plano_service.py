@@ -11,16 +11,19 @@ from sqlalchemy.orm import Session
 
 from app.core.config import (
     ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS,
+    CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS,
     CARENCIA_REMOCAO_MINUTOS,
     DIAS_UTEIS,
+    DIAS_UTEIS_VENCIMENTO_BOLETO,
     DURACAO_SESSAO_MINUTOS,
+    FOLGA_BOLETO_DIAS_UTEIS,
     HORARIOS_ATENDIMENTO,
     PRAZO_PAGAMENTO_HORAS,
 )
 from app.core.fuso import utc_para_local
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
-from app.models.pagamento import Pagamento, StatusPagamento
+from app.models.pagamento import FormaPagamento, Pagamento, StatusPagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.services.funcionario_service import STATUS_QUE_PRENDEM
@@ -29,6 +32,7 @@ DURACAO_SESSAO = timedelta(minutes=DURACAO_SESSAO_MINUTOS)
 PRAZO_PAGAMENTO = timedelta(hours=PRAZO_PAGAMENTO_HORAS)
 ANTECEDENCIA_PRIMEIRA_SESSAO = timedelta(hours=ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS)
 CARENCIA_REMOCAO = timedelta(minutes=CARENCIA_REMOCAO_MINUTOS)
+FIM_DO_DIA = time(23, 59, 59)
 FREQUENCIAS = (1, 2, 3)
 
 JANELA_POR_DURACAO = {
@@ -136,6 +140,26 @@ def eh_feriado(dia: date) -> bool:
     return dia in feriados_do_ano(dia.year)
 
 
+def eh_dia_util(dia: date) -> bool:
+    return dia.weekday() in DIAS_UTEIS and not eh_feriado(dia)
+
+
+def somar_dias_uteis(dia: date, quantidade: int) -> date:
+    while quantidade > 0:
+        dia += timedelta(days=1)
+        if eh_dia_util(dia):
+            quantidade -= 1
+    return dia
+
+
+def subtrair_dias_uteis(dia: date, quantidade: int) -> date:
+    while quantidade > 0:
+        dia -= timedelta(days=1)
+        if eh_dia_util(dia):
+            quantidade -= 1
+    return dia
+
+
 def _datas_dos_dias(inicio: date, dias: list[int]):
     dia = inicio
     while True:
@@ -182,24 +206,34 @@ def calcular_valor_total(valor_sessao: Decimal, quantidade: int) -> Decimal:
     return (valor_sessao * quantidade).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def ocupa_horario(status: StatusSessao, plano_criado_em_utc: datetime, agora: datetime) -> bool:
+def ocupa_horario(
+    status: StatusSessao,
+    plano_criado_em_utc: datetime,
+    agora: datetime,
+    data_primeira_sessao: date | None = None,
+    forma: FormaPagamento | None = None,
+) -> bool:
     if status != StatusSessao.PENDENTE_PAGAMENTO:
         return True
-    return prazo_pagamento(plano_criado_em_utc) >= agora  # RN09
+    return prazo_pagamento(plano_criado_em_utc, data_primeira_sessao, forma) >= agora  # RN09
 
 
 def buscar_horarios_ocupados(
     db: Session, funcionario_id: int, inicio: datetime, fim: datetime, agora: datetime
 ) -> list[datetime]:
     linhas = db.execute(
-        select(Sessao.data_hora, Sessao.status, Plano.criado_em)
+        select(Sessao.data_hora, Sessao.status, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento)
         .join(Plano, Plano.id == Sessao.plano_id)
+        .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
         .where(Plano.funcionario_id == funcionario_id)
         .where(Sessao.status.in_(STATUS_QUE_PRENDEM))
         .where(Sessao.data_hora > inicio - DURACAO_SESSAO)
         .where(Sessao.data_hora < fim + DURACAO_SESSAO)
     )
-    return sorted(data_hora for data_hora, status, criado_em in linhas if ocupa_horario(status, criado_em, agora))
+    return sorted(
+        data_hora for data_hora, status, criado_em, data_inicio, forma in linhas
+        if ocupa_horario(status, criado_em, agora, data_inicio, forma)
+    )
 
 
 def comparar_conflitos(propostas: list[datetime], ocupados_ordenados: list[datetime]) -> list[datetime]:
@@ -270,8 +304,41 @@ def simular_plano(
     )
 
 
-def prazo_pagamento(plano_criado_em_utc: datetime) -> datetime:
-    return utc_para_local(plano_criado_em_utc) + PRAZO_PAGAMENTO
+def vencimento_boleto(data_criacao: date, data_primeira_sessao: date) -> date:
+    return min(
+        somar_dias_uteis(data_criacao, DIAS_UTEIS_VENCIMENTO_BOLETO),
+        subtrair_dias_uteis(data_primeira_sessao, FOLGA_BOLETO_DIAS_UTEIS),
+    )
+
+
+def boleto_disponivel(vencimento: date, agora: datetime) -> bool:
+    return vencimento > agora.date()
+
+
+def prazo_pagamento(
+    plano_criado_em_utc: datetime, data_primeira_sessao: date | None = None, forma: FormaPagamento | None = None
+) -> datetime:
+    criado_local = utc_para_local(plano_criado_em_utc)
+    if forma == FormaPagamento.BOLETO:
+        return datetime.combine(vencimento_boleto(criado_local.date(), data_primeira_sessao), FIM_DO_DIA)
+    return criado_local + PRAZO_PAGAMENTO
+
+
+def limite_remocao(
+    plano_criado_em_utc: datetime, data_primeira_sessao: date | None = None, forma: FormaPagamento | None = None
+) -> datetime:
+    prazo = prazo_pagamento(plano_criado_em_utc, data_primeira_sessao, forma)
+    if forma == FormaPagamento.BOLETO:
+        return datetime.combine(somar_dias_uteis(prazo.date(), CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS), FIM_DO_DIA)
+    return prazo + CARENCIA_REMOCAO
+
+
+def forma_pagamento_do_plano(db: Session, plano_id: int) -> FormaPagamento | None:
+    return db.scalar(select(Pagamento.forma_pagamento).where(Pagamento.plano_id == plano_id))
+
+
+def prazo_do_plano(db: Session, plano: Plano) -> datetime:
+    return prazo_pagamento(plano.criado_em, plano.data_inicio, forma_pagamento_do_plano(db, plano.id))
 
 
 def plano_encerrado(data_fim: date, tem_sessao_pendente: bool, agora: datetime) -> bool:
@@ -293,11 +360,16 @@ def plano_esta_encerrado(db: Session, plano: Plano, agora: datetime) -> bool:
 
 def remover_planos_vencidos(db: Session, agora: datetime) -> int:
     sessao_nao_pendente = exists().where(Sessao.plano_id == Plano.id, Sessao.status != StatusSessao.PENDENTE_PAGAMENTO)
-    pago = exists().where(Pagamento.plano_id == Plano.id, Pagamento.status == StatusPagamento.CONFIRMADO)
+    nao_pago = Pagamento.status.is_(None) | (Pagamento.status != StatusPagamento.CONFIRMADO)
     candidatos = db.execute(
-        select(Plano.id, Plano.criado_em).where(tem_sessao_pendente(), ~sessao_nao_pendente, ~pago)
+        select(Plano.id, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento)
+        .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
+        .where(tem_sessao_pendente(), ~sessao_nao_pendente, nao_pago)
     ).all()
-    ids = [id_ for id_, criado_em in candidatos if prazo_pagamento(criado_em) + CARENCIA_REMOCAO < agora]
+    ids = [
+        id_ for id_, criado_em, data_inicio, forma in candidatos
+        if limite_remocao(criado_em, data_inicio, forma) < agora
+    ]
     if not ids:
         return 0
     try:

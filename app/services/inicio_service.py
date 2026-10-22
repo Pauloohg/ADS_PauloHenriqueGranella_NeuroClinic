@@ -9,6 +9,7 @@ from app.core.templating import NOMES_DIAS
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
 from app.models.paciente import Paciente
+from app.models.pagamento import FormaPagamento, Pagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
@@ -38,6 +39,8 @@ class ResumoPlano:
     total_sessoes: int
     realizadas: int
     tempo_restante: timedelta | None
+    prazo_pagamento: datetime | None = None
+    boleto: bool = False
 
 
 def saudacao(agora: datetime) -> str:
@@ -90,10 +93,15 @@ def proxima_sessao(db: Session, cliente_id: int, agora: datetime) -> ProximaSess
 
 
 def situacao_plano(
-    data_fim: date, status_sessoes: Counter, plano_criado_em_utc: datetime, agora: datetime
+    data_fim: date,
+    status_sessoes: Counter,
+    plano_criado_em_utc: datetime,
+    agora: datetime,
+    data_primeira_sessao: date | None = None,
+    forma: FormaPagamento | None = None,
 ) -> str | None:
     if status_sessoes[StatusSessao.PENDENTE_PAGAMENTO]:
-        if not ocupa_horario(StatusSessao.PENDENTE_PAGAMENTO, plano_criado_em_utc, agora):
+        if not ocupa_horario(StatusSessao.PENDENTE_PAGAMENTO, plano_criado_em_utc, agora, data_primeira_sessao, forma):
             return None  # RN09
         return AGUARDANDO_PAGAMENTO
     if plano_encerrado(data_fim, False, agora):
@@ -101,8 +109,13 @@ def situacao_plano(
     return ATIVO
 
 
-def tempo_restante_pagamento(plano_criado_em_utc: datetime, agora: datetime) -> timedelta:
-    return max(prazo_pagamento(plano_criado_em_utc) - agora, timedelta(0))
+def tempo_restante_pagamento(
+    plano_criado_em_utc: datetime,
+    agora: datetime,
+    data_primeira_sessao: date | None = None,
+    forma: FormaPagamento | None = None,
+) -> timedelta:
+    return max(prazo_pagamento(plano_criado_em_utc, data_primeira_sessao, forma) - agora, timedelta(0))
 
 
 def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[ResumoPlano]:
@@ -118,19 +131,27 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
     )
     for plano_id, status, quantidade in db.execute(consulta_sessoes):
         contagens[plano_id][status] = quantidade
+    formas = dict(db.execute(
+        select(Pagamento.plano_id, Pagamento.forma_pagamento).where(Pagamento.plano_id.in_(contagens))
+    ).all())
 
     resumos = []
     for plano, paciente, especialidade, profissional in linhas:
         status_sessoes = contagens[plano.id]
-        situacao = situacao_plano(plano.data_fim, status_sessoes, plano.criado_em, agora)
+        forma = formas.get(plano.id)
+        situacao = situacao_plano(plano.data_fim, status_sessoes, plano.criado_em, agora, plano.data_inicio, forma)
         if situacao is None:
             continue
-        restante = tempo_restante_pagamento(plano.criado_em, agora) if situacao == AGUARDANDO_PAGAMENTO else None
+        aguardando = situacao == AGUARDANDO_PAGAMENTO
+        restante = tempo_restante_pagamento(plano.criado_em, agora, plano.data_inicio, forma) if aguardando else None
+        prazo = prazo_pagamento(plano.criado_em, plano.data_inicio, forma) if aguardando else None
         resumos.append(ResumoPlano(
             plano, paciente, especialidade, profissional, situacao,
             total_sessoes=status_sessoes.total(),
             realizadas=status_sessoes[StatusSessao.REALIZADA],
             tempo_restante=restante,
+            prazo_pagamento=prazo,
+            boleto=forma == FormaPagamento.BOLETO,
         ))
     return sorted(resumos, key=lambda r: (ORDEM_SITUACAO[r.situacao], r.plano.data_inicio, r.plano.id))
 

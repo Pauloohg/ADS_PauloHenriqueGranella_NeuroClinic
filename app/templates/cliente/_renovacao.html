@@ -45,7 +45,7 @@
                 {% endfor %}
                 <button type="submit" class="btn btn-primary w-100"><i class="bi bi-arrow-repeat me-1"></i>Renovar com a mesma configuração</button>
             </form>
-            <p class="small text-muted mt-2 mb-0">As sessões ficam reservadas e você terá {{ prazo_horas }} horas para pagar. O plano anterior não muda.</p>
+            <p class="small text-muted mt-2 mb-0">As sessões ficam reservadas e você terá {{ prazo_horas }} horas para pagar com Pix ou gerar o boleto. O plano anterior não muda.</p>
             {% else %}
             <div class="alert alert-warning d-flex gap-2 mb-0" role="alert" id="aviso-renovacao">
                 <i class="bi bi-exclamation-triangle"></i><span>{{ renovacao.aviso }}</span>

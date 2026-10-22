@@ -206,9 +206,7 @@ def _plano_reenviado(
         )
     )
     for plano in candidatos:
-        if sorted(plano.dias_semana) == sorted(dias) and plano_service.ocupa_horario(
-            StatusSessao.PENDENTE_PAGAMENTO, plano.criado_em, agora
-        ):
+        if sorted(plano.dias_semana) == sorted(dias) and plano_service.prazo_do_plano(db, plano) >= agora:  # RN09
             return plano
     return None
 
@@ -299,6 +297,7 @@ def detalhar_plano(db: Session, cliente_id: int, plano_id: int, agora: datetime)
     sessoes = db.execute(
         select(Sessao.data_hora, Sessao.status).where(Sessao.plano_id == plano.id).order_by(Sessao.data_hora)
     ).all()
+    forma = plano_service.forma_pagamento_do_plano(db, plano.id)
     return DetalhePlano(
         plano=plano,
         paciente=db.get(Paciente, plano.paciente_id).nome,
@@ -306,9 +305,9 @@ def detalhar_plano(db: Session, cliente_id: int, plano_id: int, agora: datetime)
         profissional=db.get(Usuario, plano.funcionario_id).nome,
         sessoes=[data_hora for data_hora, _ in sessoes],
         situacao=inicio_service.situacao_plano(
-            plano.data_fim, Counter(status for _, status in sessoes), plano.criado_em, agora
+            plano.data_fim, Counter(status for _, status in sessoes), plano.criado_em, agora, plano.data_inicio, forma
         ),
-        prazo_pagamento=plano_service.prazo_pagamento(plano.criado_em),
+        prazo_pagamento=plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, forma),
     )
 
 
