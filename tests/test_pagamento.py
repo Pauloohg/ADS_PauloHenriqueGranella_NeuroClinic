@@ -400,7 +400,9 @@ def test_tela_apos_o_prazo_nao_mostra_os_dados_de_pagamento(client, db, monkeypa
 
     html = _html(client.get(f"/planos/{plano.id}/cobranca"))
     assert "Prazo de pagamento encerrado" in html and BR_CODE not in html
-    assert 'http-equiv="refresh"' not in html and api_falsa.requisicoes == []
+    # Depois do prazo, só a conferência (rede de segurança do webhook) consulta a API, e nada é confirmado
+    assert 'http-equiv="refresh"' not in html and [r.url.path for r in api_falsa.requisicoes] == ["/v2/transparents/list"]
+    assert db.query(Pagamento).one().status == StatusPagamento.PENDENTE
 
 
 def test_rede_real_fica_bloqueada_nos_testes(monkeypatch):

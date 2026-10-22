@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import BackgroundTasks
@@ -13,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.core.config import (
     ABACATEPAY_CHAVE_PUBLICA_HMAC,
+    INTERVALO_CONFERENCIA_SEGUNDOS,
     MARGEM_EXPIRACAO_PIX_SEGUNDOS,
     MINIMO_RESTANTE_PIX_SEGUNDOS,
+    TIMEOUT_CONFERENCIA,
     settings,
 )
 from app.core.email import enviar_email
@@ -34,6 +36,9 @@ from app.services.contratacao_service import _travar_agenda, buscar_plano_do_cli
 logger = logging.getLogger(__name__)
 
 EVENTO_PAGAMENTO_CONFIRMADO = "transparent.completed"
+STATUS_COBRANCA_PAGA = "PAID"
+INTERVALO_CONFERENCIA = timedelta(seconds=INTERVALO_CONFERENCIA_SEGUNDOS)
+PROFUNDIDADE_CHAVES = 4  # chega a data.payerInformation.<MÉTODO>.<campo>
 ASSUNTO_CONFIRMACAO = "Pagamento confirmado — plano de atendimento"
 METODO_POR_FORMA = {FormaPagamento.PIX: abacatepay_client.PIX, FormaPagamento.BOLETO: abacatepay_client.BOLETO}
 ROTULOS_FORMA = {FormaPagamento.PIX: "Pix", FormaPagamento.BOLETO: "Boleto"}
@@ -58,6 +63,7 @@ MSG_COBRANCA_INDISPONIVEL = (
 
 # Cobranças pendentes já lidas da API; a tela de cobrança se atualiza a cada 15 s e não precisa consultar a API toda vez
 _COBRANCAS: dict[str, Cobranca] = {}
+_CONFERENCIAS: dict[str, datetime] = {}
 LIMITE_CACHE = 500
 
 
@@ -173,6 +179,17 @@ def _guardar(cobranca: Cobranca) -> None:
     _COBRANCAS[cobranca.id] = cobranca
 
 
+def _registrar_conferencia(cobranca_id: str, agora: datetime) -> None:
+    if len(_CONFERENCIAS) >= LIMITE_CACHE:
+        _CONFERENCIAS.clear()
+    _CONFERENCIAS[cobranca_id] = agora
+
+
+def conferencia_liberada(cobranca_id: str, agora: datetime) -> bool:
+    ultima = _CONFERENCIAS.get(cobranca_id)
+    return ultima is None or agora - ultima >= INTERVALO_CONFERENCIA
+
+
 # --- Cobrança (Cliente) ---------------------------------------------------------------------------
 
 def iniciar_pagamento(
@@ -217,10 +234,42 @@ def iniciar_pagamento(
         logger.warning("Cobrança %s descartada: o plano %s já tinha pagamento", cobranca.id, plano.id)
         return buscar_pagamento(db, plano.id)
     _guardar(cobranca)
+    _registrar_conferencia(cobranca.id, agora)
     return pagamento
 
 
-def montar_tela_cobranca(db: Session, cliente_id: int, plano_id: int, agora: datetime) -> TelaCobranca | None:
+def conferir_pagamento(
+    db: Session, plano: Plano, pagamento: Pagamento, agora: datetime, agora_utc: datetime,
+    tarefas: BackgroundTasks | None = None,
+) -> Cobranca | None:
+    cobranca_id = pagamento.abacatepay_payment_id
+    if pagamento.status != StatusPagamento.PENDENTE or not cobranca_id or not conferencia_liberada(cobranca_id, agora):
+        return None
+    _registrar_conferencia(cobranca_id, agora)
+    try:
+        cobranca = abacatepay_client.consultar_cobranca(cobranca_id, timeout=TIMEOUT_CONFERENCIA)
+    except ErroAbacatePay:
+        logger.warning("Conferência do pagamento %s não concluída: AbacatePay indisponível", pagamento.id)
+        return None
+    _guardar(cobranca)
+    if cobranca.status != STATUS_COBRANCA_PAGA:
+        return cobranca
+    try:
+        resultado = confirmar_pagamento(db, plano, pagamento, agora, agora_utc, tarefas, cobranca.valor_centavos)
+    except Exception as exc:
+        logger.warning("Conferência do pagamento %s falhou ao confirmar (%s)", pagamento.id, type(exc).__name__)
+        return cobranca
+    if resultado.situacao == "confirmado":
+        logger.warning(
+            "Pagamento %s confirmado por conferência, webhook não chegou (cobrança %s)", pagamento.id, cobranca_id
+        )
+    return cobranca
+
+
+def montar_tela_cobranca(
+    db: Session, cliente_id: int, plano_id: int, agora: datetime, agora_utc: datetime | None = None,
+    tarefas: BackgroundTasks | None = None,
+) -> TelaCobranca | None:
     plano = buscar_plano_do_cliente(db, cliente_id, plano_id)
     pagamento = buscar_pagamento(db, plano.id)
     if pagamento is None:
@@ -228,14 +277,12 @@ def montar_tela_cobranca(db: Session, cliente_id: int, plano_id: int, agora: dat
     prazo = plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento)
     no_prazo = prazo >= agora
     cobranca = erro = None
+    if agora_utc is not None:
+        cobranca = conferir_pagamento(db, plano, pagamento, agora, agora_utc, tarefas)
     if pagamento.status == StatusPagamento.PENDENTE and no_prazo:
-        cobranca = _COBRANCAS.get(pagamento.abacatepay_payment_id)
+        cobranca = cobranca or _COBRANCAS.get(pagamento.abacatepay_payment_id)
         if cobranca is None:
-            try:
-                cobranca = abacatepay_client.consultar_cobranca(pagamento.abacatepay_payment_id)
-                _guardar(cobranca)
-            except ErroAbacatePay:
-                erro = MSG_COBRANCA_INDISPONIVEL
+            erro = MSG_COBRANCA_INDISPONIVEL
     return TelaCobranca(plano, pagamento, cobranca, prazo, no_prazo, erro)
 
 
@@ -272,34 +319,48 @@ def _valor_reais(valor_centavos) -> str:
         return "valor desconhecido"
 
 
-def _confirmar(db: Session, pagamento: Pagamento, agora_utc: datetime) -> None:
-    pagamento.status = StatusPagamento.CONFIRMADO
-    pagamento.confirmado_em = agora_utc
+def _confirmar(db: Session, pagamento: Pagamento, agora_utc: datetime) -> bool:
+    # UPDATE condicional: com webhook e conferência ao mesmo tempo, só um deles muda a linha (e manda o e-mail)
+    alterado = db.execute(
+        update(Pagamento)
+        .where(Pagamento.id == pagamento.id, Pagamento.status == StatusPagamento.PENDENTE)
+        .values(status=StatusPagamento.CONFIRMADO, confirmado_em=agora_utc)
+        .execution_options(synchronize_session=False)
+    ).rowcount
+    if not alterado:
+        db.rollback()
+        db.refresh(pagamento)
+        return False
     db.execute(
         update(Sessao)
         .where(Sessao.plano_id == pagamento.plano_id, Sessao.status == StatusSessao.PENDENTE_PAGAMENTO)
         .values(status=StatusSessao.AGENDADA)
     )
     db.commit()
+    db.refresh(pagamento)
+    return True
 
 
-def processar_evento(
-    db: Session, evento: dict, agora: datetime, agora_utc: datetime, tarefas: BackgroundTasks | None = None
+def _descrever_chaves(valor, profundidade: int = PROFUNDIDADE_CHAVES) -> str:
+    if isinstance(valor, list):
+        dicionarios = [item for item in valor if isinstance(item, dict)]
+        return "[" + (_descrever_chaves(dicionarios[0], profundidade) if dicionarios else "") + "]"
+    if not isinstance(valor, dict) or profundidade == 0:
+        return ""
+    partes = []
+    for chave in sorted(valor, key=str):
+        nome = "".join(c for c in str(chave)[:40] if c.isprintable())
+        partes.append(nome + _descrever_chaves(valor[chave], profundidade - 1))
+    return "{" + ", ".join(partes) + "}"
+
+
+def confirmar_pagamento(
+    db: Session, plano: Plano, pagamento: Pagamento, agora: datetime, agora_utc: datetime,
+    tarefas: BackgroundTasks | None = None, valor_centavos=None,
 ) -> ResultadoWebhook:
-    if evento.get("event") != EVENTO_PAGAMENTO_CONFIRMADO:
-        return ResultadoWebhook("ignorado")
-    cobranca_id, valor = _dados_cobranca(evento)
-
-    pagamento = db.scalar(select(Pagamento).where(Pagamento.abacatepay_payment_id == cobranca_id)) if cobranca_id else None
-    plano = db.get(Plano, pagamento.plano_id) if pagamento is not None else None
-    if plano is None:
-        logger.error(
-            "Pagamento sem plano correspondente: estorno manual (cobrança %s, %s)", cobranca_id, _valor_reais(valor)
-        )
-        return ResultadoWebhook("desconhecido")
+    cobranca_id = pagamento.abacatepay_payment_id
     if pagamento.status == StatusPagamento.CONFIRMADO:
         return ResultadoWebhook("ja_confirmado", pagamento.id)
-
     try:
         if plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento) < agora:  # RN09
             _travar_agenda(db, plano.funcionario_id)
@@ -311,10 +372,11 @@ def processar_evento(
                 db.rollback()
                 logger.error(
                     "Pagamento fora do prazo com conflito: estorno manual (cobrança %s, %s, plano %s)",
-                    cobranca_id, _valor_reais(valor), plano.id,
+                    cobranca_id, _valor_reais(valor_centavos), plano.id,
                 )
                 return ResultadoWebhook("conflito", pagamento.id)
-        _confirmar(db, pagamento, agora_utc)
+        if not _confirmar(db, pagamento, agora_utc):
+            return ResultadoWebhook("ja_confirmado", pagamento.id)
     except Exception:
         db.rollback()
         raise
@@ -323,6 +385,29 @@ def processar_evento(
         destinatario, corpo = montar_email_confirmacao(db, pagamento)
         tarefas.add_task(enviar_email, destinatario, ASSUNTO_CONFIRMACAO, corpo)
     return ResultadoWebhook("confirmado", pagamento.id)
+
+
+def processar_evento(
+    db: Session, evento: dict, agora: datetime, agora_utc: datetime, tarefas: BackgroundTasks | None = None
+) -> ResultadoWebhook:
+    if evento.get("event") != EVENTO_PAGAMENTO_CONFIRMADO:
+        return ResultadoWebhook("ignorado")
+    cobranca_id, valor = _dados_cobranca(evento)
+    if not cobranca_id:
+        # Só os nomes das chaves: o corpo tem nome, e-mail e CPF do pagador
+        logger.warning(
+            "Webhook %s sem data.transparent.id; nada foi confirmado. Chaves recebidas: %s",
+            EVENTO_PAGAMENTO_CONFIRMADO, _descrever_chaves(evento),
+        )
+
+    pagamento = db.scalar(select(Pagamento).where(Pagamento.abacatepay_payment_id == cobranca_id)) if cobranca_id else None
+    plano = db.get(Plano, pagamento.plano_id) if pagamento is not None else None
+    if plano is None:
+        logger.error(
+            "Pagamento sem plano correspondente: estorno manual (cobrança %s, %s)", cobranca_id, _valor_reais(valor)
+        )
+        return ResultadoWebhook("desconhecido")
+    return confirmar_pagamento(db, plano, pagamento, agora, agora_utc, tarefas, valor)
 
 
 # --- E-mail de confirmação (RF06) -----------------------------------------------------------------

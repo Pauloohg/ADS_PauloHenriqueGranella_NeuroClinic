@@ -35,6 +35,7 @@ def sem_rede_real(monkeypatch):
     monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", bloquear)
     monkeypatch.setattr(abacatepay_client, "_TRANSPORTE", None)
     monkeypatch.setattr(pagamento_service, "_COBRANCAS", {})
+    monkeypatch.setattr(pagamento_service, "_CONFERENCIAS", {})
 
 
 @pytest.fixture

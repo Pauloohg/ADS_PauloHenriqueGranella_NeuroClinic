@@ -340,7 +340,9 @@ def test_pagina_do_boleto_vencido_mostra_prazo_encerrado(client, db, monkeypatch
     logar(client, maria.email)
     html = _html(client.get(f"/planos/{plano_boleto.id}/cobranca"))
     assert "Prazo de pagamento encerrado" in html and "06/08/2026 às 23:59" in html
-    assert api_falsa.requisicoes == []
+    # Depois do prazo, só a conferência (rede de segurança do webhook) consulta a API, e nada é confirmado
+    assert [r.url.path for r in api_falsa.requisicoes] == ["/v2/transparents/list"]
+    assert db.query(Pagamento).one().status == StatusPagamento.PENDENTE
 
 
 def test_selos_pague_ate_usam_o_vencimento_do_boleto(client, db, monkeypatch, carla, pedro, plano_boleto, maria):

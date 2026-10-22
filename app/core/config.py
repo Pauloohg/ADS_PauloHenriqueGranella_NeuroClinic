@@ -1,3 +1,4 @@
+import httpx
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +49,9 @@ ABACATEPAY_TIMEOUT_SEGUNDOS = 15
 MARGEM_EXPIRACAO_PIX_SEGUNDOS = 60
 MINIMO_RESTANTE_PIX_SEGUNDOS = 120
 INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS = 15
+INTERVALO_CONFERENCIA_SEGUNDOS = 10  # no máximo uma consulta de conferência por pagamento nesse intervalo
+# RNF02: o httpx mede cada fase separadamente; connect + read limita a espera típica a 3 s (pior caso teórico 5 s)
+TIMEOUT_CONFERENCIA = httpx.Timeout(connect=1.0, read=2.0, write=1.0, pool=1.0)
 # Chave pública fixa da AbacatePay para o HMAC do X-Webhook-Signature (docs.abacatepay.com/pages/webhooks/security); não é segredo
 ABACATEPAY_CHAVE_PUBLICA_HMAC = (
     "t9dXRhHHo3yDEj5pVDYz0frf7q6bMKyMRmxxCPIPp3RCplBfXRxqlC6ZpiWmOqj4L63qEaeUOtrCI8P0VMUgo6iIga2ri9ogaHFs0WIIywSMg0q7Rm"

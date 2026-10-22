@@ -2,7 +2,7 @@ from datetime import time
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
@@ -520,13 +520,22 @@ def gerar_cobranca(
 
 @router.get("/planos/{plano_id}/cobranca")
 def ver_cobranca(
-    request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
+    request: Request,
+    plano_id: int,
+    tarefas: BackgroundTasks,
+    usuario: Usuario = Depends(somente_cliente),
+    db: Session = Depends(get_db),
 ):
     agora = agora_local()
-    detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
-    tela = pagamento_service.montar_tela_cobranca(db, usuario.id, plano_id, agora)
+    try:
+        tela = pagamento_service.montar_tela_cobranca(
+            db, usuario.id, plano_id, agora, agora_utc().replace(tzinfo=None), tarefas
+        )
+    except contratacao_service.PlanoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
     if tela is None:
         return _redirecionar(f"/planos/{plano_id}/pagamento")
+    detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
     contexto = {
         "usuario": usuario, "detalhe": detalhe, "tela": tela, "rotulos_forma": pagamento_service.ROTULOS_FORMA,
         "confirmado_em": pagamento_service.data_confirmacao_local(tela.pagamento),

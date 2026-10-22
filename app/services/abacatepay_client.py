@@ -87,7 +87,10 @@ def _mascarar(texto: str) -> str:
     return _DOCUMENTO.sub("[documento]", _EMAIL.sub("[e-mail]", texto))
 
 
-def _requisicao(metodo: str, caminho: str, params: dict | None = None, corpo: dict | None = None) -> dict:
+def _requisicao(
+    metodo: str, caminho: str, params: dict | None = None, corpo: dict | None = None,
+    timeout: float | httpx.Timeout = ABACATEPAY_TIMEOUT_SEGUNDOS,
+) -> dict:
     if not settings.ABACATEPAY_API_KEY:
         logger.error("AbacatePay: ABACATEPAY_API_KEY não configurada")
         raise ErroAbacatePay(MSG_CONFIGURACAO)
@@ -95,7 +98,7 @@ def _requisicao(metodo: str, caminho: str, params: dict | None = None, corpo: di
         with httpx.Client(
             base_url=settings.ABACATEPAY_BASE_URL.rstrip("/"),
             headers={"Authorization": f"Bearer {settings.ABACATEPAY_API_KEY}"},
-            timeout=ABACATEPAY_TIMEOUT_SEGUNDOS,
+            timeout=timeout,
             transport=_TRANSPORTE,
         ) as cliente:
             resposta = cliente.request(metodo, caminho, params=params, json=corpo)
@@ -181,8 +184,8 @@ def criar_cobranca(
         raise ErroAbacatePay(MSG_RECUSADA) from None
 
 
-def consultar_cobranca(cobranca_id: str) -> Cobranca:
-    lista = _requisicao("GET", "/transparents/list", params={"id": cobranca_id})
+def consultar_cobranca(cobranca_id: str, timeout: float | httpx.Timeout = ABACATEPAY_TIMEOUT_SEGUNDOS) -> Cobranca:
+    lista = _requisicao("GET", "/transparents/list", params={"id": cobranca_id}, timeout=timeout)
     encontrada = next((item for item in lista or [] if isinstance(item, dict) and item.get("id") == cobranca_id), None)
     if encontrada is None:
         logger.error("AbacatePay: cobrança %s não encontrada na consulta", cobranca_id)
