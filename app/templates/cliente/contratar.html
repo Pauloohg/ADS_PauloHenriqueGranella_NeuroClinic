@@ -28,9 +28,9 @@
 {% elif not lista_pacientes %}
 <section class="cartao estado-vazio">
     <div class="icone-destaque mb-3"><i class="bi bi-person-plus"></i></div>
-    <h2 class="titulo-serifa h5">Cadastre um paciente para contratar</h2>
-    <p class="text-muted">O plano é contratado para a pessoa que será atendida. Você ainda não tem nenhum paciente cadastrado.</p>
-    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo paciente</a>
+    <h2 class="titulo-serifa h5">Cadastre um atendido para contratar</h2>
+    <p class="text-muted">O plano é contratado para a pessoa que será atendida. Você ainda não tem nenhum atendido cadastrado.</p>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo atendido</a>
 </section>
 
 {% else %}
@@ -48,9 +48,9 @@
     <div class="row g-4">
         <div class="col-lg-8">
             <section class="cartao mb-4">
-                <h2 class="cartao-titulo">Paciente e plano</h2>
+                <h2 class="cartao-titulo">Atendido e plano</h2>
                 <div class="mb-3">
-                    <label for="paciente_id" class="form-label">Paciente</label>
+                    <label for="paciente_id" class="form-label">Pessoa atendida</label>
                     <select id="paciente_id" name="paciente_id" required class="form-select {% if erros.paciente_id %}is-invalid{% endif %}">
                         <option value="">Selecione…</option>
                         {% for paciente in lista_pacientes %}

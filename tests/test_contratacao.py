@@ -117,7 +117,7 @@ def test_profissional_inexistente_ou_inativo_retorna_404(client, db, carla, pedr
 
 def test_sem_pacientes_mostra_aviso_no_lugar_do_formulario(client, carla, maria_logada):
     html = client.get(_url(carla)).text
-    assert "Cadastre um paciente para contratar" in html
+    assert "Cadastre um atendido para contratar" in html
     assert 'href="/pacientes/novo"' in html
     assert 'id="form-contratacao"' not in html
 
@@ -280,7 +280,7 @@ def test_celulas_adulteradas_sao_rejeitadas(client, db, carla, pedro, maria, mar
 @pytest.mark.parametrize("campo, valor, trecho", [
     ("frequencia_semanal", "4", "1, 2 ou 3"),
     ("duracao", "semestral", "quinzenal, mensal, bimestral ou anual"),
-    ("paciente_id", "", "Selecione o paciente"),
+    ("paciente_id", "", "Selecione a pessoa que será atendida"),
     ("observacao", "x" * 501, "no máximo 500"),
 ])
 def test_campos_invalidos_voltam_ao_formulario(client, db, carla, pedro, maria, maria_logada, campo, valor, trecho):

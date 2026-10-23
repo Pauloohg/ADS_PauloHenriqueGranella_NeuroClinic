@@ -303,7 +303,7 @@ def test_desativar_e_reativar_pela_tela(client, db, fono, admin_logado, relogio_
     resumo = criar_funcionario(db, fono)
     resposta = client.post(f"/admin/funcionarios/{resumo.usuario.id}/desativar", follow_redirects=False)
     assert resposta.status_code == 303
-    assert "Funcionário desativado." in client.get(resposta.headers["location"]).text
+    assert "Profissional desativado." in client.get(resposta.headers["location"]).text
 
     client.post(f"/admin/funcionarios/{resumo.usuario.id}/reativar")
     db.refresh(resumo.funcionario)

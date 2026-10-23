@@ -3,9 +3,9 @@
 {% set editando = funcionario is defined and funcionario %}
 {% set lista_especialidades = especialidades if especialidades is defined else [] %}
 
-{% block title %}{{ "Editar funcionário" if editando else "Novo funcionário" }} — NeuroClinic{% endblock %}
-{% block voltar %}{{ voltar("/admin/funcionarios", "Funcionários") }}{% endblock %}
-{% block titulo_pagina %}{{ "Editar funcionário" if editando else "Novo funcionário" }}{% endblock %}
+{% block title %}{{ "Editar profissional" if editando else "Novo profissional" }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/admin/funcionarios", "Profissionais") }}{% endblock %}
+{% block titulo_pagina %}{{ "Editar profissional" if editando else "Novo profissional" }}{% endblock %}
 {% block subtitulo_pagina %}{{ "Altere o nome ou a especialidade do profissional." if editando else "O profissional entra com o e-mail e a senha provisória definidos aqui." }}{% endblock %}
 
 {% block conteudo %}
@@ -14,7 +14,7 @@
     <div class="alert alert-warning d-flex gap-2 mb-0" role="alert">
         <i class="bi bi-exclamation-triangle"></i>
         <span>
-            Nenhuma especialidade cadastrada ainda. Todo funcionário precisa de uma especialidade —
+            Nenhuma especialidade cadastrada ainda. Todo profissional precisa de uma especialidade —
             <a href="/admin/especialidades/nova" class="alert-link">cadastre uma especialidade</a> primeiro.
         </span>
     </div>
@@ -46,11 +46,11 @@
 
         {% if not editando %}
         {{ campo("senha", "Senha provisória", tipo="password", autocomplete="new-password",
-                 ajuda="Mínimo de 8 caracteres. Repasse ao funcionário: ele pode trocá-la depois em “Alterar senha”.") }}
+                 ajuda="Mínimo de 8 caracteres. Repasse ao profissional, que pode trocá-la depois em “Alterar senha”.") }}
         {% endif %}
 
         <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar funcionário" }}</button>
+            <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar profissional" }}</button>
             <a href="/admin/funcionarios" class="btn btn-link text-decoration-none">Cancelar</a>
         </div>
     </form>

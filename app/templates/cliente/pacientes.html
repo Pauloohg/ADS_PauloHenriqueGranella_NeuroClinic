@@ -1,11 +1,11 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas %}
 
-{% block title %}Meus pacientes — NeuroClinic{% endblock %}
-{% block titulo_pagina %}Meus pacientes{% endblock %}
+{% block title %}Atendidos — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Atendidos{% endblock %}
 {% block subtitulo_pagina %}Pessoas atendidas pela clínica sob a sua responsabilidade.{% endblock %}
 {% block acoes_pagina %}
-<a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo paciente</a>
+<a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo atendido</a>
 {% endblock %}
 
 {% block conteudo %}
@@ -40,9 +40,9 @@
 {% else %}
 <section class="cartao estado-vazio">
     <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
-    <h2 class="titulo-serifa h5">Nenhum paciente cadastrado</h2>
+    <h2 class="titulo-serifa h5">Nenhum atendido cadastrado</h2>
     <p class="text-muted">Cadastre a pessoa que será atendida para poder contratar um plano para ela.</p>
-    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar paciente</a>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar atendido</a>
 </section>
 {% endif %}
 {% endblock %}

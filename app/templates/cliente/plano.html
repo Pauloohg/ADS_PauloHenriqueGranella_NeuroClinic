@@ -19,7 +19,7 @@
                 <dd><span class="chip-especialidade {{ detalhe.especialidade | classe_especialidade }}">{{ detalhe.especialidade }}</span></dd>
                 <dt>Profissional</dt>
                 <dd>{{ detalhe.profissional }}</dd>
-                <dt>Paciente</dt>
+                <dt>Pessoa atendida</dt>
                 <dd>{{ detalhe.paciente }}</dd>
                 <dt>Dias e horário</dt>
                 <dd>{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }} (60 minutos)</dd>

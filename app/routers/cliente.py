@@ -47,7 +47,7 @@ TEMPLATE_COBRANCA = "cliente/cobranca.html"
 DURACAO_PADRAO = "mensal"
 MSG_REVISE = "Revise os campos destacados antes de continuar."
 MSG_CONFLITO_CONFIRMACAO = (
-    "Enquanto você revisava, alguns horários foram reservados para outro paciente. "
+    "Enquanto você revisava, alguns horários foram reservados para outro atendido. "
     "Nada foi contratado: escolha outro dia ou horário."
 )
 
@@ -56,8 +56,8 @@ MSGS_DADO_EM_USO = {
     "cpf": "Este CPF já está cadastrado em outra conta.",
 }
 MENSAGENS_PACIENTES = {
-    "cadastrado": "Paciente cadastrado com sucesso.",
-    "atualizado": "Dados do paciente atualizados.",
+    "cadastrado": "Atendido cadastrado com sucesso.",
+    "atualizado": "Dados do atendido atualizados.",
 }
 
 
@@ -111,7 +111,7 @@ def _buscar_paciente_ou_404(db: Session, paciente_id: int, usuario: Usuario):
     try:
         return paciente_service.buscar_do_cliente(db, paciente_id, usuario.id)
     except paciente_service.PacienteNaoEncontrado:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado.") from None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.") from None
 
 
 def _form_paciente(request: Request, usuario: Usuario, dados: dict, erros: dict, paciente=None, status_code=200):
@@ -330,7 +330,7 @@ def _paciente_do_formulario(db: Session, paciente_id: str, usuario: Usuario):
     if not paciente_id.strip():
         return None
     if not paciente_id.strip().isdigit():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.")
     return _buscar_paciente_ou_404(db, int(paciente_id), usuario)
 
 

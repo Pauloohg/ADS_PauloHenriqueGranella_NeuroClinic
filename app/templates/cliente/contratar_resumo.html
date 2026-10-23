@@ -17,7 +17,7 @@
                 <dd><span class="chip-especialidade {{ resumo.especialidade.nome | classe_especialidade }}">{{ resumo.especialidade.nome }}</span></dd>
                 <dt>Profissional</dt>
                 <dd>{{ resumo.profissional.nome }}</dd>
-                <dt>Paciente</dt>
+                <dt>Pessoa atendida</dt>
                 <dd>{{ resumo.paciente.nome }}</dd>
                 <dt>Dias e horário</dt>
                 <dd>{% for dia in resumo.dias_semana %}{{ dia | nome_dia }}{% if not loop.last %}{{ " e " if loop.revindex == 2 else ", " }}{% endif %}{% endfor %}, às {{ resumo.horario.strftime("%H:%M") }} (60 minutos)</dd>
@@ -61,7 +61,7 @@
             </dl>
             <div class="alert alert-warning small mt-3 mb-0" role="note">
                 <i class="bi bi-clock me-1"></i><strong>Prazo de pagamento:</strong> depois da confirmação, você terá
-                {{ prazo_horas }} horas para pagar com Pix ou gerar o boleto (que tem vencimento próprio, antes da primeira sessão). Sem o pagamento no prazo, os horários voltam a ficar livres para outros pacientes.
+                {{ prazo_horas }} horas para pagar com Pix ou gerar o boleto (que tem vencimento próprio, antes da primeira sessão). Sem o pagamento no prazo, os horários voltam a ficar livres para outros atendidos.
             </div>
             <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-4">
                 {% for nome, valor in campos_confirmacao %}

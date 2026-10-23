@@ -26,7 +26,7 @@ from app.services.plano_service import (
 
 LIMITE_OBSERVACAO = 500
 
-MSG_PACIENTE_OBRIGATORIO = "Selecione o paciente que será atendido."
+MSG_PACIENTE_OBRIGATORIO = "Selecione a pessoa que será atendida."
 MSG_FREQUENCIA = "Escolha a frequência: 1, 2 ou 3 vezes por semana."
 MSG_CPF_OBRIGATORIO = "Informe o seu CPF: ele é necessário para gerar a cobrança do plano."
 MSG_CPF_EM_USO = "Este CPF já está cadastrado em outra conta."

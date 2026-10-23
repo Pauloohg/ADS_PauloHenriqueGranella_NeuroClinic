@@ -283,7 +283,7 @@ def test_inicio_do_funcionario(client, db, fono):
     assert "Fonoaudiologia" in html
     assert 'href="/conta/alterar-senha" class="cartao cartao-atalho"' in html
     assert "Próxima sessão" not in html and "Planos de atendimento" not in html
-    assert "Funcionários" not in html
+    assert "Profissionais" not in html
 
 
 def test_inicio_do_admin_com_contagens(client, db, fono):
@@ -296,7 +296,7 @@ def test_inicio_do_admin_com_contagens(client, db, fono):
 
     html = _html(client.get("/"))
     assert "Bom dia, Ana" in html
-    assert re.search(r"Funcionários</span> <span[^>]*>1</span> <span[^>]*>funcionário ativo<", html)
+    assert re.search(r"Profissionais</span> <span[^>]*>1</span> <span[^>]*>profissional ativo<", html)
     assert re.search(r"Especialidades</span> <span[^>]*>3</span> <span[^>]*>especialidades cadastradas<", html)
     assert "Próxima sessão" not in html and "Planos de atendimento" not in html
 
@@ -304,7 +304,7 @@ def test_inicio_do_admin_com_contagens(client, db, fono):
 def test_inicio_do_admin_sem_cadastros(client, db):
     logar(client, criar_admin(db).email)
     html = _html(client.get("/"))
-    assert re.search(r">0</span> <span[^>]*>funcionários ativos<", html)
+    assert re.search(r">0</span> <span[^>]*>profissionais ativos<", html)
     assert re.search(r">0</span> <span[^>]*>especialidades cadastradas<", html)
 
 

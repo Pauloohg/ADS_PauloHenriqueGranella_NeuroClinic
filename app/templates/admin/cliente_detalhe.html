@@ -23,7 +23,7 @@
     </div>
     <div class="col-lg-8">
         <section aria-labelledby="titulo-pacientes">
-            <h2 id="titulo-pacientes" class="titulo-serifa h4 mb-3">Pacientes</h2>
+            <h2 id="titulo-pacientes" class="titulo-serifa h4 mb-3">Atendidos</h2>
             {% for paciente in cliente.pacientes %}
             <article class="cartao mb-3">
                 <header class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
@@ -57,14 +57,14 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p class="text-muted small mb-0">Nenhum plano contratado para este paciente.</p>
+                <p class="text-muted small mb-0">Nenhum plano contratado até agora.</p>
                 {% endif %}
             </article>
             {% else %}
             <div class="cartao estado-vazio">
                 <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
-                <p class="titulo-serifa h5">Nenhum paciente cadastrado</p>
-                <p class="text-muted mb-0">Este cliente ainda não cadastrou pacientes.</p>
+                <p class="titulo-serifa h5">Nenhum atendido cadastrado</p>
+                <p class="text-muted mb-0">Este cliente ainda não cadastrou atendidos.</p>
             </div>
             {% endfor %}
         </section>

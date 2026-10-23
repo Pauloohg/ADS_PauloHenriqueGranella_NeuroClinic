@@ -283,7 +283,7 @@ def test_tela_de_detalhe(admin_logado, db, fono):
     assert "Pedro Souza" in html and "7 anos" in html and "03/05/2018" not in html
     assert "Carlos Fono" in html and "R$ 1.620,00" in html and ">Ativo</span>" in html
     assert "R$ 999,00" not in html  # pagamento vencido (RN09)
-    for texto in ["laudo", "remarcar", "excluir", "desativar"]:
+    for texto in ["avaliação", "laudo", "remarcar", "excluir", "desativar"]:
         assert texto not in html.lower()
 
 

@@ -64,12 +64,12 @@ def test_nascido_hoje_e_aceito(db, dono):
 
 def test_cadastrar_paciente_aparece_na_lista(client, db, dono):
     logar(client, dono.email)
-    assert "Nenhum paciente cadastrado" in client.get("/pacientes").text
+    assert "Nenhum atendido cadastrado" in client.get("/pacientes").text
 
     resposta = client.post("/pacientes/novo", data={"nome": "Pedro Souza", "data_nascimento": "2018-05-03"}, follow_redirects=False)
     assert resposta.status_code == 303
     html = client.get(resposta.headers["location"]).text
-    assert "Paciente cadastrado com sucesso." in html
+    assert "Atendido cadastrado com sucesso." in html
     assert "Pedro Souza" in html and "03/05/2018" in html
 
 

@@ -30,7 +30,7 @@
                     <th scope="col">Nome</th>
                     <th scope="col">Telefone</th>
                     <th scope="col">Cadastro</th>
-                    <th scope="col" class="text-end">Pacientes</th>
+                    <th scope="col" class="text-end">Atendidos</th>
                     <th scope="col" class="text-end">Planos ativos</th>
                 </tr>
             </thead>
@@ -43,7 +43,7 @@
                     </td>
                     <td class="text-nowrap" data-rotulo="Telefone">{{ c.telefone or "—" }}</td>
                     <td class="text-nowrap font-monospace-num" data-rotulo="Cadastro">{{ c.cadastrado_em | data_br }}</td>
-                    <td class="text-end font-monospace-num" data-rotulo="Pacientes">{{ c.pacientes }}</td>
+                    <td class="text-end font-monospace-num" data-rotulo="Atendidos">{{ c.pacientes }}</td>
                     <td class="text-end font-monospace-num" data-rotulo="Planos ativos">{{ c.planos_ativos }}</td>
                 </tr>
                 {% endfor %}

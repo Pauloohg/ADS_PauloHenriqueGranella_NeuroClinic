@@ -35,10 +35,10 @@ MSG_ESPECIALIDADE_COM_SESSOES = (
 )
 
 MENSAGENS_FUNCIONARIOS = {
-    "cadastrado": "Funcionário cadastrado. Informe a ele a senha provisória para o primeiro acesso.",
-    "atualizado": "Dados do funcionário atualizados.",
-    "desativado": "Funcionário desativado.",
-    "reativado": "Funcionário reativado.",
+    "cadastrado": "Profissional cadastrado. Repasse a ele a senha provisória para o primeiro acesso.",
+    "atualizado": "Dados do profissional atualizados.",
+    "desativado": "Profissional desativado.",
+    "reativado": "Profissional reativado.",
 }
 MENSAGENS_ESPECIALIDADES = {
     "cadastrada": "Especialidade cadastrada.",
@@ -78,7 +78,7 @@ def _buscar_funcionario_ou_404(db: Session, funcionario_id: int):
     try:
         return funcionario_service.buscar(db, funcionario_id)
     except funcionario_service.FuncionarioNaoEncontrado:
-        raise _nao_encontrado("Funcionário não encontrado.") from None
+        raise _nao_encontrado("Profissional não encontrado.") from None
 
 
 @router.get("/funcionarios")

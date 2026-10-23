@@ -8,7 +8,7 @@ em dia e horário fixos, durante semanas ou meses. Por isso o sistema não traba
 avulsas: o responsável contrata um **plano** uma única vez e o sistema o desdobra em várias
 **sessões**.
 
-**Perfis:** Cliente (responsável pelo paciente), Funcionário (profissional) e Admin (administração
+**Perfis:** Cliente (responsável pelo atendido), Profissional e Admin (administração
 da clínica).
 
 **Stack:** Python 3.12, FastAPI, Jinja2 + Bootstrap 5.3, PostgreSQL 16, SQLAlchemy 2.0, Alembic,
@@ -20,9 +20,9 @@ nacionais), Pytest.
 **Cliente**
 - Cadastro, login e redefinição de senha por e-mail (link válido por 30 minutos, uso único).
 - Perfil (nome, e-mail, telefone, CPF opcional) e alteração de senha.
-- Cadastro de um ou mais pacientes.
+- Cadastro de um ou mais atendidos.
 - Consulta de especialidades e dos profissionais ativos de cada uma.
-- Contratação e renovação de plano: escolha de especialidade, profissional, paciente, dia(s) e
+- Contratação e renovação de plano: escolha de especialidade, profissional, atendido, dia(s) e
   horário, frequência semanal e duração. O sistema simula as sessões, valida a disponibilidade, pula
   feriados nacionais e calcula o valor pela quantidade real de sessões.
 - Pagamento do plano por Pix (pagar em até 4 horas) ou boleto (vencimento próprio em dias úteis,
@@ -30,14 +30,14 @@ nacionais), Pytest.
   conferência de reserva na própria AbacatePay e e-mail de confirmação.
 - Página inicial com a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
 
-**Funcionário**
+**Profissional**
 - Login, página inicial e alteração de senha.
 
 **Admin**
-- Gestão de funcionários (cadastro, edição, desativação e reativação) e de especialidades e valores
+- Gestão de profissionais (cadastro, edição, desativação e reativação) e de especialidades e valores
   de sessão.
-- Consulta dos clientes cadastrados, com seus pacientes e planos.
-- Painel gerencial: receita do mês, planos contratados, novos clientes, ranking de funcionários e
+- Consulta dos clientes cadastrados, com seus atendidos e planos.
+- Painel gerencial: receita do mês, planos contratados, novos clientes, ranking de profissionais e
   desempenho por especialidade.
 
 ## Status
@@ -45,11 +45,11 @@ nacionais), Pytest.
 | Semana | Entrega | Situação |
 |---|---|---|
 | 1 | Setup, banco e RF01 (cadastro, login, redefinição de senha) | Concluída |
-| 2 | RF02 (perfil), RF03 (pacientes), RF11 (funcionários), RF12 (especialidades) | Concluída |
+| 2 | RF02 (perfil), RF03 (atendidos), RF11 (profissionais), RF12 (especialidades) | Concluída |
 | 3 | RF04 (especialidades e profissionais) e RF05 (simulação e disponibilidade, feriados) | Concluída |
 | 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
-| 5 | RF08 (agenda do funcionário) e RF07 (remarcação) | Pendente |
-| 6 | RF09 (laudos) e RF10 (histórico) | Pendente |
+| 5 | RF08 (agenda do profissional) e RF07 (remarcação) | Pendente |
+| 6 | RF09 (avaliações) e RF10 (histórico) | Pendente |
 | 7 e 8 | Testes, usabilidade, segurança e apresentação | Pendente |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel
@@ -140,7 +140,7 @@ python -m scripts.criar_admin
 O script pede nome, e-mail e senha no terminal (a senha não aparece ao digitar e é pedida duas
 vezes), valida com as mesmas regras do cadastro (e-mail válido e único, senha com pelo menos 8
 caracteres) e grava o usuário com `tipo=admin` e a senha em hash. Depois é só entrar pelo
-`/login`. Funcionários são cadastrados pelo próprio Admin, na tela **Funcionários**, e as
+`/login`. Profissionais são cadastrados pelo próprio Admin, na tela **Profissionais**, e as
 especialidades e os valores de sessão, na tela **Especialidades**.
 
 ### 7. Rodar a aplicação
@@ -246,13 +246,13 @@ do Dev mode (chave `abc_dev_`), e o `simular_webhook` só envia para `localhost`
 
 | Regra | Resumo |
 |---|---|
-| RN01 | Um funcionário não pode ter duas sessões com períodos sobrepostos. |
+| RN01 | Um profissional não pode ter duas sessões com períodos sobrepostos. |
 | RN02 | A remarcação exige no mínimo 4 horas de antecedência. |
-| RN03 | O laudo só é acessível ao cliente responsável, ao Admin e a funcionário com sessão vinculada ao paciente. |
-| RN04 | O laudo só pode ser liberado depois de a sessão estar realizada. |
-| RN05 | Funcionário só pode ser desativado sem sessões futuras agendadas ou aguardando pagamento. |
+| RN03 | A avaliação só é acessível ao cliente responsável, ao Admin e ao profissional com sessão vinculada ao atendido. |
+| RN04 | A avaliação só pode ser liberada depois de a sessão estar realizada. |
+| RN05 | O profissional só pode ser desativado sem sessões futuras agendadas ou aguardando pagamento. |
 | RN06 | Feriados nacionais não têm atendimento: a sessão é deslocada para a semana seguinte, sem mudar a quantidade de sessões nem o valor. |
-| RN07 | A especialidade de um funcionário só pode mudar nas mesmas condições da RN05. |
+| RN07 | A especialidade de um profissional só pode mudar nas mesmas condições da RN05. |
 | RN08 | Sessões de 60 minutos, em hora cheia, de segunda a sexta, das 8h às 11h e das 14h às 17h. |
 | RN09 | O plano reservado deve ser pago em até 4 horas (Pix) ou até o vencimento do boleto (menor entre 3 dias úteis e o 2º dia útil antes da primeira sessão). Depois do prazo, as sessões pendentes deixam de bloquear o horário e o plano é removido após a carência (60 minutos no Pix, 1 dia útil no boleto), nunca se houver sessão agendada, realizada ou pagamento confirmado. |
 | RN10 | A primeira sessão de um plano precisa estar a pelo menos 4 horas de distância. |

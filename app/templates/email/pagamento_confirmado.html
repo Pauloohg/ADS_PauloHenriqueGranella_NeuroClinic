@@ -21,7 +21,7 @@
             <p style="margin:0 0 16px;">Olá, {{ nome }}.</p>
             <p style="margin:0 0 24px;">Recebemos o pagamento do plano de atendimento de <strong>{{ paciente }}</strong> em {{ confirmado_em | data_br }} às {{ confirmado_em.strftime("%H:%M") }}. As sessões estão agendadas:</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px; font-size:15px; border-collapse:collapse;">
-              <tr><td style="padding:6px 0; color:#4A544B; width:40%;">Paciente</td><td style="padding:6px 0;">{{ paciente }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B; width:40%;">Pessoa atendida</td><td style="padding:6px 0;">{{ paciente }}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Especialidade</td><td style="padding:6px 0;">{{ especialidade }}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Profissional</td><td style="padding:6px 0;">{{ profissional }}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Dias e horário</td><td style="padding:6px 0;">{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }}</td></tr>
