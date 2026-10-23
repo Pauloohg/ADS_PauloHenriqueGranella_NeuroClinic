@@ -192,7 +192,11 @@ def editar_paciente(
 
 @router.get("/especialidades")
 def listar_especialidades(request: Request, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
-    contexto = {"usuario": usuario, "especialidades": especialidade_service.listar(db)}
+    contexto = {
+        "usuario": usuario,
+        "especialidades": especialidade_service.listar(db),
+        "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
+    }
     return templates.TemplateResponse(request, TEMPLATE_ESPECIALIDADES, contexto)
 
 
@@ -208,6 +212,7 @@ def listar_profissionais(
         "usuario": usuario,
         "especialidade": especialidade,
         "profissionais": funcionario_service.listar_ativos_da_especialidade(db, especialidade_id),
+        "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
     }
     return templates.TemplateResponse(request, TEMPLATE_PROFISSIONAIS, contexto)
 
@@ -354,10 +359,11 @@ def contratar_resumo(
         "paciente_id": paciente_id, "frequencia_semanal": frequencia_semanal, "duracao": duracao,
         "celulas": celula, "observacao": observacao, "cpf": cpf,
     }
+    agora = agora_local()
     try:
         resumo = contratacao_service.preparar_resumo(
             db, cliente_service.obter_cliente(db, usuario), funcionario_id, paciente, celula,
-            frequencia_semanal, duracao, observacao, cpf, agora_local(),
+            frequencia_semanal, duracao, observacao, cpf, agora,
         )
     except contratacao_service.ContratacaoInvalida as exc:
         status_code = status.HTTP_409_CONFLICT if exc.conflitos else status.HTTP_400_BAD_REQUEST
@@ -374,6 +380,9 @@ def contratar_resumo(
         "url_confirmar": f"/contratar/{funcionario_id}/confirmar",
         "campos_confirmacao": parametros,
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
+        "prazo": contratacao_service.prazo_previsto(
+            agora_utc().replace(tzinfo=None), resumo.simulacao.data_inicio, agora
+        ),
     }
     return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto)
 

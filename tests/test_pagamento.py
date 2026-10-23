@@ -269,6 +269,14 @@ def test_vencimento_do_boleto_conta_da_data_local_de_criacao(client, db, monkeyp
     assert db.query(Pagamento).one().forma_pagamento == FormaPagamento.BOLETO
 
 
+def test_cobranca_explica_o_que_acontece_depois_do_pagamento(client, plano, maria_logada, api_falsa):
+    api_falsa.responder("/transparents/create", cobranca_pix())
+    _pagar(client, plano)
+    html = _html(client.get(f"/planos/{plano.id}/cobranca"))
+    assert "Depois do pagamento" in html
+    assert "As sessões passam a ficar confirmadas e você recebe um e-mail com as datas." in html
+
+
 def test_pix_com_menos_de_2_minutos_nao_chama_a_api(client, db, monkeypatch, plano, maria_logada, api_falsa):
     _fixar_relogio(monkeypatch, datetime(2026, 8, 1, 12, 58, 30))
     resposta = _pagar(client, plano, "pix")

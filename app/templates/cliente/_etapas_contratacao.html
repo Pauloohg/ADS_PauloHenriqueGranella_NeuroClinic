@@ -1,0 +1,24 @@
+{% macro etapas(atual) %}
+<ol class="etapas-contratacao" aria-label="Etapas da contratação">
+    {% for rotulo in ["Especialidade e profissional", "Dias e horários", "Revisão e pagamento"] %}
+    <li class="etapa{% if loop.index < atual %} etapa-concluida{% elif loop.index == atual %} etapa-atual{% endif %}"{% if loop.index == atual %} aria-current="step"{% endif %}>
+        <span class="etapa-numero" aria-hidden="true">{% if loop.index < atual %}<i class="bi bi-check-lg"></i>{% else %}{{ loop.index }}{% endif %}</span>
+        <span class="etapa-rotulo">{{ rotulo }}{% if loop.index < atual %}<span class="visually-hidden"> (concluída)</span>{% endif %}</span>
+    </li>
+    {% endfor %}
+</ol>
+{% endmacro %}
+
+{% macro explicacao_plano() %}
+<aside class="alert alert-light border explicacao-plano" aria-label="O que é um plano">
+    <p class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>O que é um plano?</p>
+    <p class="mb-0 small">É um acompanhamento recorrente que você contrata uma vez. As sessões são criadas automaticamente nos dias e horários escolhidos, durante o período do plano.</p>
+</aside>
+{% endmacro %}
+
+{% macro aviso_sem_atendido() %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="note">
+    <span class="me-auto"><i class="bi bi-person-plus me-1"></i>Antes de contratar, cadastre a pessoa que será atendida.</span>
+    <a href="/pacientes/novo" class="btn btn-primary btn-sm">Cadastrar atendido</a>
+</div>
+{% endmacro %}

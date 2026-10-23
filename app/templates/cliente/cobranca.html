@@ -83,6 +83,10 @@
                 <strong>{{ tela.prazo | data_br }} às {{ tela.prazo.strftime("%H:%M") }}</strong>
                 <span class="small">(horário de Brasília).</span>
             </div>
+            <div class="mt-3" id="depois-do-pagamento">
+                <p class="fw-semibold small mb-1"><i class="bi bi-check2-circle me-1"></i>Depois do pagamento</p>
+                <p class="small mb-0">As sessões passam a ficar confirmadas e você recebe um e-mail com as datas. Tudo aparece também na sua página inicial.</p>
+            </div>
             <p class="small text-muted mt-3 mb-0"><i class="bi bi-arrow-clockwise me-1"></i>Esta página se atualiza sozinha a cada {{ intervalo_atualizacao }} segundos e mostra a confirmação assim que o pagamento for recebido.</p>
             {% endif %}
             <a href="/" class="btn btn-outline-primary w-100 mt-4">Voltar ao início</a>

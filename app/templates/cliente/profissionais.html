@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import voltar %}
+{% from "cliente/_etapas_contratacao.html" import etapas, aviso_sem_atendido %}
 
 {% block title %}{{ especialidade.nome }} — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/especialidades", "Especialidades") }}{% endblock %}
@@ -7,6 +8,8 @@
 {% block subtitulo_pagina %}Profissionais que atendem nesta especialidade. Valor da sessão: <span class="font-monospace-num">{{ especialidade.valor_sessao | moeda }}</span>.{% endblock %}
 
 {% block conteudo %}
+{{ etapas(1) }}
+{% if not tem_atendido %}{{ aviso_sem_atendido() }}{% endif %}
 {% if profissionais %}
 <section class="cartao cartao-tabela {{ especialidade.nome | classe_especialidade }}">
     <ul class="lista-profissionais mb-0">

@@ -43,6 +43,28 @@ class ResumoPlano:
     boleto: bool = False
 
 
+@dataclass(frozen=True)
+class PrimeirosPassos:
+    tem_atendido: bool
+    tem_plano: bool
+    plano_aguardando_id: int | None
+
+    @property
+    def concluidos(self) -> tuple[bool, bool, bool, bool]:
+        return (self.tem_atendido, self.tem_plano, False, False)
+
+    @property
+    def proximo(self) -> int:
+        return self.concluidos.index(False) + 1
+
+
+def primeiros_passos(tem_atendido: bool, planos: list[ResumoPlano]) -> PrimeirosPassos | None:
+    # Some com o primeiro plano pago (ativo ou encerrado): plano aguardando pagamento ainda é o passo 3
+    if any(resumo.situacao != AGUARDANDO_PAGAMENTO for resumo in planos):
+        return None
+    return PrimeirosPassos(tem_atendido, bool(planos), planos[0].plano.id if planos else None)
+
+
 def saudacao(agora: datetime) -> str:
     if 5 <= agora.hour < 12:
         return "Bom dia"

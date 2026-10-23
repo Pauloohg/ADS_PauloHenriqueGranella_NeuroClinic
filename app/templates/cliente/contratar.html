@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import campo, alertas, voltar with context %}
+{% from "cliente/_etapas_contratacao.html" import etapas, explicacao_plano %}
 {% set tem_contexto = profissional is defined and profissional %}
 {% set em_renovacao = renovacao is defined and renovacao %}
 {% set lista_pacientes = pacientes if pacientes is defined else [] %}
@@ -18,6 +19,7 @@
 {% block subtitulo_pagina %}{% if em_renovacao and not tem_contexto %}{{ renovacao.paciente.nome }} · {{ renovacao.especialidade.nome }}{% elif tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
 
 {% block conteudo %}
+{{ etapas(2 if tem_contexto else 1) }}
 {% if em_renovacao %}{% include "cliente/_renovacao.html" %}{% endif %}
 {% if not tem_contexto %}
 {% if not em_renovacao %}
@@ -41,6 +43,8 @@
     <ul class="mb-0">{% for data_hora in lista_conflitos %}<li>{{ data_hora | data_br }} às {{ data_hora.strftime("%H:%M") }} ({{ data_hora.weekday() | nome_dia }})</li>{% endfor %}</ul>
 </div>
 {% endif %}
+
+{{ explicacao_plano() }}
 
 <form id="form-contratacao" method="post" action="/contratar/{{ profissional.usuario.id }}" novalidate
       data-url-disponibilidade="/contratar/{{ profissional.usuario.id }}/disponibilidade"

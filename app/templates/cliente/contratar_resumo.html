@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas %}
+{% from "cliente/_etapas_contratacao.html" import etapas %}
 {% set sim = resumo.simulacao %}
 
 {% block title %}Resumo do plano — NeuroClinic{% endblock %}
@@ -7,6 +8,7 @@
 {% block subtitulo_pagina %}Confira os dados do plano. Os valores foram recalculados agora, com a agenda atual do profissional.{% endblock %}
 
 {% block conteudo %}
+{{ etapas(3) }}
 {% if resumo.cpf_registrado %}{{ alertas(sucesso="Seu CPF foi salvo no perfil.") }}{% endif %}
 <div class="row g-4">
     <div class="col-lg-8">
@@ -27,6 +29,12 @@
                 <dd>{{ rotulos_duracao[resumo.duracao] }}</dd>
                 <dt>Período</dt>
                 <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }}</dd>
+                <dt>Quantidade de sessões</dt>
+                <dd>{{ sim.quantidade }}</dd>
+                <dt>Primeira sessão</dt>
+                <dd>{{ sim.sessoes[0] | data_br }} às {{ sim.sessoes[0].strftime("%H:%M") }}</dd>
+                <dt>Última sessão</dt>
+                <dd>{{ sim.sessoes[-1] | data_br }} às {{ sim.sessoes[-1].strftime("%H:%M") }}</dd>
                 {% if resumo.observacao %}
                 <dt>Observação</dt>
                 <dd class="text-break">{{ resumo.observacao }}</dd>
@@ -59,9 +67,17 @@
                 <dt>Sessões</dt><dd>{{ sim.quantidade }}</dd>
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ sim.valor_total | moeda }}</dd>
             </dl>
-            <div class="alert alert-warning small mt-3 mb-0" role="note">
-                <i class="bi bi-clock me-1"></i><strong>Prazo de pagamento:</strong> depois da confirmação, você terá
-                {{ prazo_horas }} horas para pagar com Pix ou gerar o boleto (que tem vencimento próprio, antes da primeira sessão). Sem o pagamento no prazo, os horários voltam a ficar livres para outros atendidos.
+            <div class="alert alert-warning small mt-3 mb-0" role="note" id="aviso-prazo">
+                <p class="mb-1"><i class="bi bi-clock me-1"></i><strong>Depois de confirmar, é preciso pagar dentro do prazo.</strong> Confirmando agora:</p>
+                <ul class="mb-1 ps-3">
+                    <li>Pix: até {{ prazo.pix | data_br }} às {{ prazo.pix.strftime("%H:%M") }} ({{ prazo_horas }} horas).</li>
+                    {% if prazo.vencimento_boleto %}
+                    <li>Boleto: gere em até {{ prazo_horas }} horas; ele vence em {{ prazo.vencimento_boleto | data_br }}.</li>
+                    {% else %}
+                    <li>Boleto: indisponível para este plano, porque não haveria tempo de compensar antes da primeira sessão.</li>
+                    {% endif %}
+                </ul>
+                <p class="mb-0">Sem o pagamento no prazo, os horários voltam a ficar livres para outros atendidos.</p>
             </div>
             <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-4">
                 {% for nome, valor in campos_confirmacao %}

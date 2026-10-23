@@ -1,10 +1,14 @@
 {% extends "_interno.html" %}
+{% from "cliente/_etapas_contratacao.html" import etapas, explicacao_plano, aviso_sem_atendido %}
 
 {% block title %}Profissionais — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Especialidades e profissionais{% endblock %}
 {% block subtitulo_pagina %}Conheça as áreas atendidas pela clínica e o valor de cada sessão. Escolha uma especialidade para ver os profissionais.{% endblock %}
 
 {% block conteudo %}
+{{ etapas(1) }}
+{% if not tem_atendido %}{{ aviso_sem_atendido() }}{% endif %}
+{{ explicacao_plano() }}
 {% if especialidades %}
 <div class="row g-3 g-lg-4">
     {% for especialidade in especialidades %}

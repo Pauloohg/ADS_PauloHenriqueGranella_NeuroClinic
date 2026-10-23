@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from app.core.templating import NOMES_DIAS
 from app.models.cliente import Cliente
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
+from app.models.pagamento import FormaPagamento
 from app.models.paciente import Paciente
 from app.models.plano import Plano, StatusPlano
 from app.models.sessao import Sessao, StatusSessao
@@ -73,6 +74,18 @@ class ResumoContratacao:
     duracao: str
     observacao: str | None
     cpf_registrado: bool = field(default=False)
+
+
+@dataclass(frozen=True)
+class PrazoPrevisto:
+    pix: datetime
+    vencimento_boleto: date | None
+
+
+def prazo_previsto(criado_em_utc: datetime, data_primeira_sessao: date, agora: datetime) -> PrazoPrevisto:
+    pix = plano_service.prazo_pagamento(criado_em_utc, data_primeira_sessao, FormaPagamento.PIX)
+    boleto = plano_service.prazo_pagamento(criado_em_utc, data_primeira_sessao, FormaPagamento.BOLETO).date()
+    return PrazoPrevisto(pix, boleto if plano_service.boleto_disponivel(boleto, agora) else None)
 
 
 def ler_celulas(celulas: list[str]) -> tuple[list[int], time]:

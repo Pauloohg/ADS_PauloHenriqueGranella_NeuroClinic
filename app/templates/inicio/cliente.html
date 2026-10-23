@@ -4,6 +4,9 @@
 {% block subtitulo_pagina %}Acompanhe as sessões e os planos de atendimento dos seus atendidos.{% endblock %}
 
 {% block conteudo %}
+{% if primeiros_passos %}
+<div class="mb-4 mb-lg-5">{% include "inicio/_primeiros_passos.html" %}</div>
+{% endif %}
 <div class="row g-3 g-lg-4 mb-4 mb-lg-5">
     <div class="col-12 col-lg-8">
         {% if proxima_sessao %}

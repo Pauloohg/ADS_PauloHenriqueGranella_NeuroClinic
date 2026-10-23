@@ -1389,3 +1389,120 @@
         text-align: left !important;
     }
 }
+
+/* --- Primeiros passos (home do Cliente) e etapas da contratação --- */
+.lista-passos {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+@media (min-width: 992px) {
+    .lista-passos {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.passo {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    background-color: #fff;
+}
+
+.passo-atual {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.passo-marcador,
+.etapa-numero {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid var(--bs-primary-border-subtle);
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    background-color: #fff;
+}
+
+.passo-atual .passo-marcador,
+.etapa-atual .etapa-numero {
+    border-color: var(--bs-primary);
+    background-color: var(--bs-primary);
+    color: #fff;
+}
+
+.passo-concluido .passo-marcador,
+.etapa-concluida .etapa-numero {
+    border-color: var(--bs-primary-border-subtle);
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary);
+}
+
+.passo-titulo {
+    font-weight: 600;
+    margin: 0;
+    color: var(--cor-texto-escuro);
+}
+
+.passo-concluido .passo-titulo {
+    color: var(--bs-secondary-color);
+}
+
+.passo-descricao {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color);
+    margin: 0.15rem 0 0;
+}
+
+.etapas-contratacao {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+}
+
+.etapa {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+.etapa-atual {
+    color: var(--cor-texto-escuro);
+    font-weight: 600;
+}
+
+.etapa-numero {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.85rem;
+}
+
+@media (min-width: 768px) {
+    .etapa:not(:last-child)::after {
+        content: "";
+        width: 2rem;
+        height: 1px;
+        margin-left: 1rem;
+        background-color: var(--bs-primary-border-subtle);
+    }
+}
+
+.explicacao-plano {
+    background-color: #fff;
+}

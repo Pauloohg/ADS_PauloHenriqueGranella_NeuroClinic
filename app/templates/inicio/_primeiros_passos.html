@@ -1,0 +1,28 @@
+{% set passos = primeiros_passos %}
+{% set url_pagar = "/planos/" ~ passos.plano_aguardando_id ~ "/pagamento" if passos.plano_aguardando_id else None %}
+{% set itens = [
+    ("Cadastrar o atendido", "Informe o nome e a data de nascimento da pessoa que será atendida.", "/pacientes/novo", "Cadastrar atendido", "bi-person-plus"),
+    ("Contratar um plano", "Escolha a especialidade, o profissional, os dias e o horário das sessões.", "/especialidades", "Contratar plano", "bi-calendar-plus"),
+    ("Pagar", "Pague com Pix ou boleto dentro do prazo para confirmar as sessões.", url_pagar, "Pagar agora", "bi-credit-card"),
+    ("Acompanhar as sessões", "Com o pagamento confirmado, a próxima sessão e o andamento do plano aparecem aqui.", None, None, None),
+] %}
+<section class="cartao primeiros-passos" aria-labelledby="titulo-primeiros-passos">
+    <h2 id="titulo-primeiros-passos" class="titulo-serifa h5 mb-1">Primeiros passos</h2>
+    <p class="text-muted small mb-3">Do cadastro à primeira sessão, nesta ordem.</p>
+    <ol class="lista-passos">
+        {% for titulo, descricao, url, rotulo, icone in itens %}
+        {% set concluido = passos.concluidos[loop.index0] %}
+        {% set atual = passos.proximo == loop.index %}
+        <li class="passo{% if concluido %} passo-concluido{% elif atual %} passo-atual{% endif %}"{% if atual %} aria-current="step"{% endif %}>
+            <span class="passo-marcador" aria-hidden="true">{% if concluido %}<i class="bi bi-check-lg"></i>{% else %}{{ loop.index }}{% endif %}</span>
+            <div class="passo-texto">
+                <p class="passo-titulo">{{ titulo }}{% if concluido %}<span class="visually-hidden"> (concluído)</span>{% elif atual %}<span class="visually-hidden"> (próximo passo)</span>{% endif %}</p>
+                <p class="passo-descricao">{{ descricao }}</p>
+                {% if atual and url %}
+                <a href="{{ url }}" class="btn btn-primary btn-sm mt-2"><i class="bi {{ icone }} me-1"></i>{{ rotulo }}</a>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+</section>

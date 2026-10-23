@@ -10,7 +10,7 @@
 <p class="auth-subtitulo">Use o e-mail e a senha da sua conta.</p>
 
 {% if request.query_params.get("cadastro") == "ok" %}
-<div class="alert alert-success">Cadastro realizado! Faça login para continuar.</div>
+<div class="alert alert-success">Cadastro realizado! Faça login para ver os primeiros passos.</div>
 {% elif request.query_params.get("senha") == "redefinida" %}
 <div class="alert alert-success">Senha redefinida com sucesso. Faça login com a nova senha.</div>
 {% endif %}
