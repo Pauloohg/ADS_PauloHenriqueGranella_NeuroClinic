@@ -7,5 +7,5 @@ from app.models.paciente import Paciente  # noqa: F401
 from app.models.plano import Plano  # noqa: F401
 from app.models.sessao import Sessao  # noqa: F401
 from app.models.historico_remarcacao import HistoricoRemarcacao  # noqa: F401
-from app.models.laudo import Laudo  # noqa: F401
+from app.models.avaliacao import Avaliacao  # noqa: F401
 from app.models.pagamento import Pagamento  # noqa: F401

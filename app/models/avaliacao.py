@@ -6,8 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
-class Laudo(Base):
-    __tablename__ = "laudo"
+class Avaliacao(Base):
+    __tablename__ = "avaliacao"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sessao_id: Mapped[int] = mapped_column(ForeignKey("sessao.id"), nullable=False, unique=True)
@@ -16,4 +16,4 @@ class Laudo(Base):
     liberado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     def __repr__(self) -> str:
-        return f"<Laudo id={self.id} sessao_id={self.sessao_id} comparecimento={self.comparecimento}>"
+        return f"<Avaliacao id={self.id} sessao_id={self.sessao_id} comparecimento={self.comparecimento}>"

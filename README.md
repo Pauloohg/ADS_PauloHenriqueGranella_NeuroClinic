@@ -25,8 +25,9 @@ nacionais), Pytest.
 - Contratação e renovação de plano: escolha de especialidade, profissional, paciente, dia(s) e
   horário, frequência semanal e duração. O sistema simula as sessões, valida a disponibilidade, pula
   feriados nacionais e calcula o valor pela quantidade real de sessões.
-- Pagamento do plano por Pix ou boleto (AbacatePay), com confirmação automática por webhook e
-  e-mail de confirmação.
+- Pagamento do plano por Pix (pagar em até 4 horas) ou boleto (vencimento próprio em dias úteis,
+  respeitando a data da primeira sessão), via AbacatePay, com confirmação automática por webhook,
+  conferência de reserva na própria AbacatePay e e-mail de confirmação.
 - Página inicial com a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
 
 **Funcionário**
@@ -163,10 +164,17 @@ horários fixos, sem depender do relógio real.
 
 ## Pagamento em desenvolvimento (AbacatePay, Dev mode)
 
-O sistema cobra por Pix ou boleto pela API v2 da AbacatePay (`/v2/transparents/create`). A
-confirmação não é consultada pelo sistema: a AbacatePay avisa por **webhook** (evento
-`transparent.completed`), e só então as sessões do plano passam de `pendente_pagamento` para
-`agendada`. Como o servidor roda em `localhost`, o webhook precisa de um túnel público.
+O sistema cobra por Pix ou boleto pela API v2 da AbacatePay (`/v2/transparents/create`). O caminho
+principal de confirmação é o **webhook** (evento `transparent.completed`): quando a AbacatePay
+avisa, as sessões do plano passam de `pendente_pagamento` para `agendada`, o plano fica ativo e o
+e-mail de confirmação é enviado. Como o servidor roda em `localhost`, o webhook precisa de um
+túnel público.
+
+Como rede de segurança, a página de cobrança também **confere o pagamento na API** da AbacatePay
+(`GET /v2/transparents/list`, no máximo uma vez a cada 10 segundos por cobrança): se a cobrança
+estiver paga e o webhook não tiver chegado, o sistema confirma pelo mesmo caminho do webhook, sem
+duplicar a confirmação nem o e-mail. Isso só acontece enquanto a página de cobrança está aberta;
+com o webhook funcionando, o plano é confirmado mesmo com o navegador fechado.
 
 ### 1. Conta e chave de API
 
@@ -195,26 +203,44 @@ recebidas, abra `http://127.0.0.1:4040` (painel local do ngrok).
 
 ### 3. Simular o pagamento
 
-No Dev mode ninguém paga de verdade. Contrate um plano com Pix e simule o pagamento:
+No Dev mode ninguém paga de verdade. Há dois scripts, com papéis diferentes:
+
+**Pix: `simular_pagamento`** marca a cobrança como paga na própria AbacatePay (a simulação deles
+só existe para Pix):
 
 ```bash
 python -m scripts.simular_pagamento <id do plano>
 ```
 
-A página do plano deve virar "Pagamento confirmado" em até 15 segundos, o plano passa a "Ativo" e
-o e-mail de confirmação chega ao Mailtrap. O script se recusa a rodar fora do Dev mode.
+Com o ngrok no ar, a AbacatePay avisa o webhook. Sem o ngrok, deixe a página de cobrança aberta:
+em poucos segundos a conferência descobre o pagamento e confirma. Em ambos os casos a página vira
+"Pagamento confirmado", o plano passa a "Ativo" e o e-mail chega ao Mailtrap.
+
+**Pix ou boleto: `simular_webhook`** não fala com a AbacatePay: monta o aviso de pagamento, assina
+como a AbacatePay assina e envia para o servidor local (não precisa de ngrok):
+
+```bash
+python -m scripts.simular_webhook <id do plano>
+```
+
+É o único jeito de ver um boleto ser confirmado em teste. Os dois scripts se recusam a rodar fora
+do Dev mode (chave `abc_dev_`), e o `simular_webhook` só envia para `localhost`.
 
 ### Limitações conhecidas
 
-- A simulação do Dev mode só existe para **Pix**. O boleto é criado e exibido normalmente, mas não
-  há como pagá-lo em teste.
-- O plano reservado vence em 4 horas (RN09). Um boleto dificilmente é compensado nesse prazo; se o
-  pagamento chegar depois, ele só é aceito se a reserva ainda existir e o horário continuar livre.
-  Para confirmação imediata, o Pix é o caminho indicado.
+- A simulação do Dev mode só existe para **Pix**. O boleto é criado de verdade pela AbacatePay
+  (linha digitável, vencimento e PDF), mas não há como pagá-lo em teste: sua confirmação foi
+  validada apenas com o aviso simulado pelo `simular_webhook`, que prova o nosso lado e não o
+  formato real do evento do boleto.
+- Prazos (RN09): o Pix deve ser pago em até 4 horas. O boleto vence em até 3 dias úteis, nunca
+  depois do 2º dia útil anterior à primeira sessão; se isso cair hoje ou antes, só o Pix é
+  oferecido. Pagamentos fora do prazo só são aceitos se a reserva ainda existir e o horário
+  continuar livre.
 - Pagamentos que chegam para um plano já removido ou com horário ocupado não são confirmados: o
   caso é registrado no log para estorno manual.
-- A URL do webhook depende de o ngrok e o servidor estarem rodando. Antes de uma demonstração,
-  suba os dois e faça um pagamento de teste.
+- O ngrok e o servidor precisam estar rodando para o webhook funcionar. Antes de uma demonstração,
+  suba os dois e faça um pagamento de teste; se o webhook falhar, a conferência cobre o Pix com a
+  página de cobrança aberta.
 
 ## Regras de negócio
 
@@ -228,7 +254,7 @@ o e-mail de confirmação chega ao Mailtrap. O script se recusa a rodar fora do 
 | RN06 | Feriados nacionais não têm atendimento: a sessão é deslocada para a semana seguinte, sem mudar a quantidade de sessões nem o valor. |
 | RN07 | A especialidade de um funcionário só pode mudar nas mesmas condições da RN05. |
 | RN08 | Sessões de 60 minutos, em hora cheia, de segunda a sexta, das 8h às 11h e das 14h às 17h. |
-| RN09 | O plano reservado deve ser pago em até 4 horas. Depois disso as sessões pendentes deixam de bloquear o horário e o plano é removido após 60 minutos de carência. |
+| RN09 | O plano reservado deve ser pago em até 4 horas (Pix) ou até o vencimento do boleto (menor entre 3 dias úteis e o 2º dia útil antes da primeira sessão). Depois do prazo, as sessões pendentes deixam de bloquear o horário e o plano é removido após a carência (60 minutos no Pix, 1 dia útil no boleto), nunca se houver sessão agendada, realizada ou pagamento confirmado. |
 | RN10 | A primeira sessão de um plano precisa estar a pelo menos 4 horas de distância. |
 
 ## Estrutura de pastas (Arquitetura em Camadas)
@@ -244,6 +270,12 @@ app/
   templates/  → páginas Jinja2 (View)
   static/     → CSS/JS customizados (Bootstrap vem via CDN)
 alembic/      → migrations do banco de dados
-scripts/      → scripts de linha de comando (criar_admin, simular_pagamento)
+scripts/      → scripts de linha de comando (criar_admin, simular_pagamento, simular_webhook)
 tests/        → testes automatizados (Pytest)
 ```
+
+## Segurança
+
+- O `.env` e o `.venv` não são versionados. Nunca publique chaves de API, segredos nem credenciais
+  de e-mail em commits, prints ou conversas.
+- Se uma chave for exposta, gere outra no painel do serviço e atualize o `.env`.

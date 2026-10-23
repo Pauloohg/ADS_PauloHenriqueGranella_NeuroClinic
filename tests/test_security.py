@@ -52,5 +52,8 @@ def test_tokens_de_login_e_redefinicao_nao_sao_intercambiaveis(agora):
 
 def test_token_adulterado_e_rejeitado(agora):
     token = security.criar_token_redefinicao(7, "hash-atual", agora)
+    cabecalho_e_payload, assinatura = token.rsplit(".", 1)
+    # Troca o 1º caractere da assinatura por um sempre diferente: no último, o base64url ignora bits de sobra
+    adulterado = f"{cabecalho_e_payload}.{'B' if assinatura[0] == 'A' else 'A'}{assinatura[1:]}"
     with pytest.raises(security.TokenInvalido):
-        security.decodificar_token_redefinicao(token[:-2] + "xx", agora)
+        security.decodificar_token_redefinicao(adulterado, agora)

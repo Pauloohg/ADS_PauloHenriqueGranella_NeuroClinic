@@ -122,7 +122,9 @@ def test_corpo_segue_o_formato_documentado_e_le_o_id_da_cobranca(db, plano, bole
 
 def test_assinatura_adulterada_e_recusada(client, db, plano, boleto_gerado):
     params, corpo, cabecalhos = _envio(db, boleto_gerado, plano)
-    adulterada = {**cabecalhos, "X-Webhook-Signature": "A" + cabecalhos["X-Webhook-Signature"][1:]}
+    assinatura = cabecalhos["X-Webhook-Signature"]
+    # Troca sempre por um caractere diferente: com "A" fixo, a assinatura que já começa com "A" não mudava
+    adulterada = {**cabecalhos, "X-Webhook-Signature": ("B" if assinatura[0] == "A" else "A") + assinatura[1:]}
 
     resposta = client.post(URL, params=params, content=corpo, headers=adulterada)
     assert resposta.status_code == 401
