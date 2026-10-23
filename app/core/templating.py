@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
-from app.core.config import DADOS_CLINICA
+from app.core.config import DADOS_CLINICA, DESCONTO_POR_DURACAO
 
 DIRETORIO_APP = Path(__file__).resolve().parent.parent
 
@@ -116,3 +116,4 @@ templates.env.filters["mes_iso"] = mes_iso
 templates.env.filters["percentual"] = percentual
 templates.env.filters["idade"] = idade
 templates.env.globals["rotulos_duracao"] = ROTULOS_DURACAO
+templates.env.globals["descontos_por_duracao"] = DESCONTO_POR_DURACAO

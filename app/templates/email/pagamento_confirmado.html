@@ -26,7 +26,7 @@
               <tr><td style="padding:6px 0; color:#4A544B;">Profissional</td><td style="padding:6px 0;">{{ profissional }}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Dias e horário</td><td style="padding:6px 0;">{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Período</td><td style="padding:6px 0;">{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</td></tr>
-              <tr><td style="padding:6px 0; color:#4A544B;">Valor</td><td style="padding:6px 0;">{{ plano.valor_total | moeda }}</td></tr>
+              <tr><td style="padding:6px 0; color:#4A544B;">Total pago</td><td style="padding:6px 0;">{{ plano.valor_total | moeda }}{% if plano.desconto_percentual %} (com {{ plano.desconto_percentual }}% de desconto){% endif %}</td></tr>
               <tr><td style="padding:6px 0; color:#4A544B;">Forma de pagamento</td><td style="padding:6px 0;">{{ forma }}</td></tr>
             </table>
             <h2 style="margin:0 0 8px; font-family:Lora, Georgia, serif; font-size:18px; font-weight:600; color:#1F2A22;">{{ sessoes | length }} sessões</h2>

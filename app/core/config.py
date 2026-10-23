@@ -42,6 +42,7 @@ ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS = PRAZO_PAGAMENTO_HORAS  # RN10: a primeira s
 CARENCIA_REMOCAO_MINUTOS = 60  # RN09: só vale para apagar o plano vencido; o horário é liberado já no fim do prazo
 DIAS_UTEIS_VENCIMENTO_BOLETO = 3  # RN09
 FOLGA_BOLETO_DIAS_UTEIS = 2  # RN09: o boleto vence no máximo no 2º dia útil antes da primeira sessão, para compensar a tempo
+DESCONTO_POR_DURACAO = {"quinzenal": 0, "mensal": 5, "bimestral": 7, "anual": 10}  # RN11: percentual inteiro sobre o valor bruto
 CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS = 1  # RN09: premissa de compensação bancária em até 1 dia útil (a AbacatePay não documenta)
 
 # Pagamento (RF06)

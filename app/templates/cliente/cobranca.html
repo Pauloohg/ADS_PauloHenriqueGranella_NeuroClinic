@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
+{% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
 {% set plano = detalhe.plano %}
 {% set pagamento = tela.pagamento %}
 {% set cobranca = tela.cobranca %}
@@ -75,6 +76,7 @@
             </h2>
             <dl class="resumo-valores">
                 <dt>Forma</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
+                {{ linhas_desconto_plano(plano) }}
                 <dt class="resumo-total-rotulo">Valor</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
             {% if aguardando %}

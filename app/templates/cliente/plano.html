@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
+{% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
 {% set plano = detalhe.plano %}
 {% set situacao = detalhe.situacao %}
 
@@ -62,6 +63,7 @@
             </h2>
             <dl class="resumo-valores">
                 <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
+                {{ linhas_desconto_plano(plano) }}
                 {% if confirmado_em %}
                 <dt>Pagamento</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
                 <dt>Confirmado em</dt><dd>{{ confirmado_em | data_br }} às {{ confirmado_em.strftime("%H:%M") }}</dd>

@@ -97,7 +97,8 @@ def test_confirmacao_cria_plano_e_sessoes_pendentes(client, db, carla, pedro, ma
     assert resposta.status_code == 303 and resposta.headers["location"] == f"/planos/{plano.id}"
     assert (plano.paciente_id, plano.funcionario_id, plano.especialidade_id) == (pedro.id, carla.usuario.id, carla.especialidade.id)
     assert plano.status == StatusPlano.ATIVO
-    assert plano.valor_total == Decimal("750.00")
+    # RN11: 5 sessões x R$ 150 = R$ 750,00; mensal tem 5% (R$ 37,50) e o plano guarda o valor cobrado
+    assert (plano.desconto_percentual, plano.valor_desconto, plano.valor_total) == (5, Decimal("37.50"), Decimal("712.50"))
     assert (plano.data_inicio, plano.data_fim) == (date(2026, 8, 3), date(2026, 8, 31))
     assert (plano.dias_semana, plano.horario, plano.frequencia_semanal, plano.duracao) == ([0], time(14, 0), 1, "mensal")
     assert plano.observacao == "Prefere tarde"
@@ -115,7 +116,7 @@ def test_valores_adulterados_no_formulario_sao_ignorados(client, db, carla, pedr
     _confirmar(client, carla, dados)
 
     plano = db.query(Plano).one()
-    assert plano.valor_total == Decimal("750.00")
+    assert (plano.desconto_percentual, plano.valor_desconto, plano.valor_total) == (5, Decimal("37.50"), Decimal("712.50"))
     assert plano.data_fim == date(2026, 8, 31) and plano.especialidade_id == carla.especialidade.id
     assert plano.status == StatusPlano.ATIVO
     assert db.query(Sessao).count() == 5
@@ -125,7 +126,9 @@ def test_valor_usa_o_valor_atual_da_especialidade(client, db, fono, carla, pedro
     fono.valor_sessao = Decimal("199.90")
     db.commit()
     _confirmar(client, carla, _form(pedro))
-    assert db.query(Plano).one().valor_total == Decimal("999.50")
+    # RN11: 5 x R$ 199,90 = R$ 999,50; 5% = R$ 49,975, arredondado para R$ 49,98
+    plano = db.query(Plano).one()
+    assert (plano.valor_desconto, plano.valor_total) == (Decimal("49.98"), Decimal("949.52"))
 
 
 def test_feriados_ficam_fora_das_sessoes(client, db, carla, pedro, maria_logada):
@@ -135,7 +138,8 @@ def test_feriados_ficam_fora_das_sessoes(client, db, carla, pedro, maria_logada)
     datas = [s.data_hora.date() for s in db.query(Sessao).order_by(Sessao.data_hora)]
     assert len(datas) == 9 and date(2026, 9, 7) not in datas  # Independência do Brasil
     assert plano.data_fim == date(2026, 10, 5) and datas[-1] == plano.data_fim
-    assert plano.valor_total == Decimal("1350.00")
+    # RN11: 9 sessões reais (feriado pulado) x R$ 150 = R$ 1.350,00; bimestral tem 7% (R$ 94,50)
+    assert (plano.desconto_percentual, plano.valor_desconto, plano.valor_total) == (7, Decimal("94.50"), Decimal("1255.50"))
 
 
 @pytest.mark.parametrize("agora_local, inicio_esperado", [

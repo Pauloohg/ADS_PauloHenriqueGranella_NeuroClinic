@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
+{% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
 
 {% block title %}Pagamento do plano — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/planos/" ~ detalhe.plano.id if detalhe is defined else "/", "Plano" if detalhe is defined else "Início") }}{% endblock %}
@@ -43,6 +44,7 @@
             <dl class="resumo-valores">
                 <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
                 <dt>Período</dt><dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
+                {{ linhas_desconto_plano(plano) }}
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
             <div class="prazo-pagamento" role="note">

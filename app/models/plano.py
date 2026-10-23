@@ -27,7 +27,9 @@ class Plano(Base):
     horario: Mapped[datetime] = mapped_column(Time, nullable=False)
     frequencia_semanal: Mapped[int] = mapped_column(Integer, nullable=False)
     duracao: Mapped[str] = mapped_column(String(20), nullable=False)
-    valor_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    valor_total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)  # RN11: já com desconto (valor cobrado)
+    desconto_percentual: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0, server_default="0")
+    valor_desconto: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=0, server_default="0")
     data_inicio: Mapped[date] = mapped_column(Date, nullable=False)
     data_fim: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[StatusPlano] = mapped_column(

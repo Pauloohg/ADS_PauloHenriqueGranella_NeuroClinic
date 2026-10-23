@@ -320,6 +320,9 @@ def simulacao(
     return {
         "quantidade": sim.quantidade,
         "valor_sessao": moeda(sim.valor_sessao),
+        "valor_bruto": moeda(sim.valor_bruto),
+        "desconto_percentual": sim.desconto_percentual,
+        "valor_desconto": moeda(sim.valor_desconto),
         "valor_total": moeda(sim.valor_total),
         "data_inicio": sim.data_inicio.strftime("%d/%m/%Y"),
         "data_fim": sim.data_fim.strftime("%d/%m/%Y"),

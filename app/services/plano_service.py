@@ -13,6 +13,7 @@ from app.core.config import (
     ANTECEDENCIA_PRIMEIRA_SESSAO_HORAS,
     CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS,
     CARENCIA_REMOCAO_MINUTOS,
+    DESCONTO_POR_DURACAO,
     DIAS_UTEIS,
     DIAS_UTEIS_VENCIMENTO_BOLETO,
     DURACAO_SESSAO_MINUTOS,
@@ -83,6 +84,9 @@ class SimulacaoPlano:
     sessoes: list[datetime]
     quantidade: int
     valor_sessao: Decimal
+    valor_bruto: Decimal
+    desconto_percentual: int
+    valor_desconto: Decimal
     valor_total: Decimal
     data_inicio: date
     data_fim: date
@@ -206,6 +210,12 @@ def calcular_valor_total(valor_sessao: Decimal, quantidade: int) -> Decimal:
     return (valor_sessao * quantidade).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def aplicar_desconto(valor_bruto: Decimal, duracao: str) -> tuple[int, Decimal, Decimal]:
+    percentual = DESCONTO_POR_DURACAO[duracao]
+    valor_desconto = (valor_bruto * percentual / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return percentual, valor_desconto, valor_bruto - valor_desconto
+
+
 def ocupa_horario(
     status: StatusSessao,
     plano_criado_em_utc: datetime,
@@ -290,13 +300,18 @@ def simular_plano(
     especialidade = db.get(Especialidade, funcionario.especialidade_id)
 
     simulacao = simular_sessoes(dias_semana, horario, frequencia_semanal, duracao, agora)
+    valor_bruto = calcular_valor_total(especialidade.valor_sessao, simulacao.quantidade)
+    percentual, valor_desconto, valor_total = aplicar_desconto(valor_bruto, duracao)
     return SimulacaoPlano(
         funcionario_id=funcionario_id,
         especialidade_id=especialidade.id,
         sessoes=simulacao.sessoes,
         quantidade=simulacao.quantidade,
         valor_sessao=especialidade.valor_sessao,
-        valor_total=calcular_valor_total(especialidade.valor_sessao, simulacao.quantidade),
+        valor_bruto=valor_bruto,
+        desconto_percentual=percentual,
+        valor_desconto=valor_desconto,
+        valor_total=valor_total,
         data_inicio=simulacao.data_inicio,
         data_fim=simulacao.data_fim,
         feriados_pulados=simulacao.feriados_pulados,

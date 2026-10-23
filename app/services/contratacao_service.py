@@ -262,6 +262,8 @@ def confirmar_plano(
             frequencia_semanal=resumo.frequencia_semanal,
             duracao=resumo.duracao,
             valor_total=sim.valor_total,
+            desconto_percentual=sim.desconto_percentual,
+            valor_desconto=sim.valor_desconto,
             data_inicio=sim.data_inicio,
             data_fim=sim.data_fim,
             status=StatusPlano.ATIVO,

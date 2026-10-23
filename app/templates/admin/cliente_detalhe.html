@@ -1,5 +1,6 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import voltar %}
+{% from "cliente/_valores_plano.html" import nota_desconto %}
 
 {% block title %}{{ cliente.nome }} — Clientes — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/admin/clientes", "Clientes") }}{% endblock %}
@@ -51,7 +52,7 @@
                             <dt>Período</dt>
                             <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
                             <dt>Valor total</dt>
-                            <dd class="font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+                            <dd class="font-monospace-num">{{ plano.valor_total | moeda }}{{ nota_desconto(plano.desconto_percentual) }}</dd>
                         </dl>
                     </li>
                     {% endfor %}

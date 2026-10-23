@@ -1,5 +1,6 @@
 {% extends "inicio/_saudacao.html" %}
 {% from "inicio/_atalhos.html" import atalho %}
+{% from "cliente/_valores_plano.html" import nota_desconto %}
 
 {% block subtitulo_pagina %}Acompanhe as sessões e os planos de atendimento dos seus atendidos.{% endblock %}
 
@@ -70,7 +71,7 @@
                     <dt>Período</dt>
                     <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
                     <dt>Valor total</dt>
-                    <dd class="font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+                    <dd class="font-monospace-num">{{ plano.valor_total | moeda }}{{ nota_desconto(plano.desconto_percentual) }}</dd>
                 </dl>
                 {% if resumo.situacao == "ativo" %}
                 <div class="progresso-plano">

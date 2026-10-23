@@ -1,6 +1,7 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas %}
 {% from "cliente/_etapas_contratacao.html" import etapas %}
+{% from "cliente/_valores_plano.html" import linhas_desconto %}
 {% set sim = resumo.simulacao %}
 
 {% block title %}Resumo do plano — NeuroClinic{% endblock %}
@@ -65,6 +66,7 @@
             <dl class="resumo-valores">
                 <dt>Valor da sessão</dt><dd class="font-monospace-num">{{ sim.valor_sessao | moeda }}</dd>
                 <dt>Sessões</dt><dd>{{ sim.quantidade }}</dd>
+                {{ linhas_desconto(sim.valor_bruto, sim.desconto_percentual, sim.valor_desconto) }}
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ sim.valor_total | moeda }}</dd>
             </dl>
             <div class="alert alert-warning small mt-3 mb-0" role="note" id="aviso-prazo">

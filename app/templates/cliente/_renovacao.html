@@ -1,3 +1,4 @@
+{% from "cliente/_valores_plano.html" import linhas_desconto, nota_desconto %}
 {% set anterior = renovacao.plano_anterior %}
 {% set sim = renovacao.simulacao %}
 <section class="cartao cartao-renovacao mb-4" aria-labelledby="titulo-renovacao">
@@ -15,7 +16,7 @@
                 <dt>Período</dt>
                 <dd>{{ anterior.data_inicio | data_br }} a {{ anterior.data_fim | data_br }}</dd>
                 <dt>Valor total</dt>
-                <dd class="font-monospace-num">{{ anterior.valor_total | moeda }}</dd>
+                <dd class="font-monospace-num">{{ anterior.valor_total | moeda }}{{ nota_desconto(anterior.desconto_percentual) }}</dd>
             </dl>
         </div>
         <div class="col-md-6" id="renovacao-nova">
@@ -30,6 +31,7 @@
                 <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }}</dd>
                 <dt>Valor da sessão</dt>
                 <dd class="font-monospace-num">{{ sim.valor_sessao | moeda }} <span class="text-muted small">(valor atual)</span></dd>
+                {{ linhas_desconto(sim.valor_bruto, sim.desconto_percentual, sim.valor_desconto) }}
                 <dt>Valor total</dt>
                 <dd class="font-monospace-num fw-semibold">{{ sim.valor_total | moeda }}</dd>
             </dl>

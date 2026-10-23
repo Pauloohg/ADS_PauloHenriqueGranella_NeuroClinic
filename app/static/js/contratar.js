@@ -83,6 +83,11 @@
             $("resumo-quantidade").textContent = dados.quantidade;
             $("resumo-periodo").textContent = `${dados.data_inicio} a ${dados.data_fim}`;
             $("resumo-valor-sessao").textContent = dados.valor_sessao;
+            $("resumo-valor-bruto").textContent = dados.valor_bruto;
+            $("resumo-rotulo-desconto").textContent = `Desconto de ${dados.desconto_percentual}%`;
+            $("resumo-valor-desconto").textContent = `− ${dados.valor_desconto}`;
+            ["resumo-rotulo-bruto", "resumo-valor-bruto", "resumo-rotulo-desconto", "resumo-valor-desconto"]
+                .forEach((id) => mostrar(id, dados.desconto_percentual > 0));
             $("resumo-valor-total").textContent = dados.valor_total;
             mostrar("resumo-valores", true);
             preencherLista("resumo-feriados-lista", dados.feriados_pulados.map((f) => `${f.data} — ${f.nome}`));

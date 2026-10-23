@@ -307,14 +307,15 @@ def test_simular_plano_usa_valor_atual_da_especialidade(db, fono, carla):
     fono.valor_sessao = Decimal("160.00")
     db.commit()
     sim = simular_plano(db, carla.usuario.id, [SEG], H14, 1, "mensal", datetime(2026, 8, 1, 10, 0))
-    assert (sim.quantidade, sim.valor_sessao, sim.valor_total) == (5, Decimal("160.00"), Decimal("800.00"))
+    assert (sim.quantidade, sim.valor_sessao, sim.valor_bruto) == (5, Decimal("160.00"), Decimal("800.00"))
+    assert (sim.desconto_percentual, sim.valor_desconto, sim.valor_total) == (5, Decimal("40.00"), Decimal("760.00"))
     assert sim.especialidade_id == fono.id and sim.conflitos == []
 
 
 def test_simular_plano_com_feriado_e_conflito(db, fono, carla):
     _ocupar(db, carla, fono, datetime(2026, 9, 14, 14, 30))
     sim = simular_plano(db, carla.usuario.id, [SEG], H14, 1, "mensal", datetime(2026, 8, 28, 10, 0))
-    assert sim.quantidade == 5 and sim.valor_total == Decimal("750.00")
+    assert sim.quantidade == 5 and sim.valor_bruto == Decimal("750.00") and sim.valor_total == Decimal("712.50")
     assert (sim.data_inicio, sim.data_fim) == (date(2026, 8, 31), date(2026, 10, 5))
     assert sim.feriados_pulados == [date(2026, 9, 7)]
     assert sim.conflitos == [datetime(2026, 9, 14, 14, 0)]

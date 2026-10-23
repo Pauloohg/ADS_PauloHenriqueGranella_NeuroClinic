@@ -1506,3 +1506,19 @@
 .explicacao-plano {
     background-color: #fff;
 }
+
+/* --- RN11: desconto por duração --- */
+.texto-desconto {
+    color: var(--cor-fonoaudiologia-texto);
+}
+
+.tabela-descontos {
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.5rem;
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.tabela-descontos ul {
+    padding-left: 1.1rem;
+}

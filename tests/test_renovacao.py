@@ -166,7 +166,7 @@ def test_um_clique_renova_com_a_mesma_configuracao(client, db, pedro, carla, enc
     novo = db.scalars(select(Plano).where(Plano.id != encerrado.id)).one()
     assert resposta.status_code == 303 and resposta.headers["location"] == f"/planos/{novo.id}"
     assert (novo.paciente_id, novo.funcionario_id, novo.dias_semana, novo.horario) == (pedro.id, carla.usuario.id, [0], time(14, 0))
-    assert (novo.data_inicio, novo.data_fim, novo.valor_total) == (date(2026, 8, 3), date(2026, 8, 31), Decimal("750.00"))
+    assert (novo.data_inicio, novo.data_fim, novo.valor_total) == (date(2026, 8, 3), date(2026, 8, 31), Decimal("712.50"))
     assert {s.status for s in db.query(Sessao).filter(Sessao.plano_id == novo.id)} == {PENDENTE}
     assert _snapshot(db, encerrado.id) == antes  # plano anterior intacto
 
@@ -176,12 +176,13 @@ def test_valor_recalculado_com_o_valor_atual_da_especialidade(client, db, fono, 
     db.commit()
 
     html = _html(_renovar(client, encerrado))
-    assert "R$ 1.000,00" in html and "R$ 600,00" in html  # novo total e o total do plano anterior
+    # RN11: 5 x R$ 200 = R$ 1.000,00 cheio, 5% de desconto no mensal; R$ 600,00 é o total do plano anterior
+    assert "R$ 1.000,00" in html and "R$ 950,00" in html and "R$ 600,00" in html
 
     action, campos = _form_direto(_renovar(client, encerrado).text)
     client.post(action, data={nome: valor for nome, valor in campos})
     novo = db.scalars(select(Plano).where(Plano.id != encerrado.id)).one()
-    assert novo.valor_total == Decimal("1000.00")
+    assert novo.valor_total == Decimal("950.00")
     assert db.get(Plano, encerrado.id).valor_total == Decimal("600.00")
 
 

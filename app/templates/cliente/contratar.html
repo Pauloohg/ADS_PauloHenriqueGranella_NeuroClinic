@@ -1,6 +1,7 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import campo, alertas, voltar with context %}
 {% from "cliente/_etapas_contratacao.html" import etapas, explicacao_plano %}
+{% from "cliente/_valores_plano.html" import tabela_descontos %}
 {% set tem_contexto = profissional is defined and profissional %}
 {% set em_renovacao = renovacao is defined and renovacao %}
 {% set lista_pacientes = pacientes if pacientes is defined else [] %}
@@ -83,6 +84,7 @@
                         {% endfor %}
                     </select>
                     {% if erros.duracao %}<div class="invalid-feedback">{{ erros.duracao }}</div>{% endif %}
+                    {{ tabela_descontos() }}
                 </div>
             </section>
 
@@ -166,6 +168,8 @@
                         <dt>Sessões</dt><dd id="resumo-quantidade"></dd>
                         <dt>Período</dt><dd id="resumo-periodo"></dd>
                         <dt>Valor da sessão</dt><dd id="resumo-valor-sessao" class="font-monospace-num"></dd>
+                        <dt id="resumo-rotulo-bruto" class="d-none">Valor cheio</dt><dd id="resumo-valor-bruto" class="font-monospace-num d-none"></dd>
+                        <dt id="resumo-rotulo-desconto" class="d-none"></dt><dd id="resumo-valor-desconto" class="font-monospace-num texto-desconto d-none"></dd>
                         <dt class="resumo-total-rotulo">Valor total</dt><dd id="resumo-valor-total" class="resumo-total font-monospace-num"></dd>
                     </dl>
                     <div class="resumo-feriados d-none" id="resumo-feriados">

@@ -176,7 +176,10 @@ def test_simulacao_json(client, carla, maria_logada):
     assert resposta.json() == {
         "quantidade": 9,
         "valor_sessao": "R$ 150,00",
-        "valor_total": "R$ 1.350,00",
+        "valor_bruto": "R$ 1.350,00",
+        "desconto_percentual": 7,
+        "valor_desconto": "R$ 94,50",
+        "valor_total": "R$ 1.255,50",
         "data_inicio": "03/08/2026",
         "data_fim": "05/10/2026",
         "feriados_pulados": [{"data": "07/09/2026", "nome": "Independência do Brasil"}],
