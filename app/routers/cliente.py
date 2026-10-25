@@ -211,7 +211,7 @@ def listar_profissionais(
     contexto = {
         "usuario": usuario,
         "especialidade": especialidade,
-        "profissionais": funcionario_service.listar_ativos_da_especialidade(db, especialidade_id),
+        "profissionais": funcionario_service.perfis_ativos_da_especialidade(db, especialidade_id),
         "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
     }
     return templates.TemplateResponse(request, TEMPLATE_PROFISSIONAIS, contexto)
@@ -240,6 +240,7 @@ def _tela_contratacao(
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
         "usuario": usuario,
         "profissional": profissional,
+        "perfil_profissional": funcionario_service.perfil_publico(profissional.usuario, profissional.funcionario),
         "pacientes": paciente_service.listar_do_cliente(db, usuario.id),
         "pedir_cpf": cliente_service.obter_cliente(db, usuario).cpf is None,
         "livres": plano_service.disponibilidade_semanal(db, profissional.usuario.id, duracao, agora_local()),

@@ -10,7 +10,7 @@ from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
 from app.schemas.especialidade import EspecialidadeCadastro, EspecialidadeValor
-from app.schemas.funcionario import FuncionarioCadastro, FuncionarioEdicao
+from app.schemas.funcionario import CAMPOS_CONTATO, FuncionarioCadastro, FuncionarioEdicao
 from app.services import admin_clientes_service, auth_service, especialidade_service, funcionario_service, painel_service
 
 somente_admin = get_usuario_por_tipo(TipoUsuario.ADMIN)
@@ -98,10 +98,19 @@ def cadastrar_funcionario(
     email: Annotated[str, Form()] = "",
     especialidade_id: Annotated[str, Form()] = "",
     senha: Annotated[str, Form()] = "",
+    telefone_contato: Annotated[str, Form()] = "",
+    email_contato: Annotated[str, Form()] = "",
+    formacao: Annotated[str, Form()] = "",
+    registro_profissional: Annotated[str, Form()] = "",
+    apresentacao: Annotated[str, Form()] = "",
     usuario: Usuario = Depends(somente_admin),
     db: Session = Depends(get_db),
 ):
-    dados_form = {"nome": nome, "email": email, "especialidade_id": especialidade_id}
+    dados_form = {
+        "nome": nome, "email": email, "especialidade_id": especialidade_id,
+        "telefone_contato": telefone_contato, "email_contato": email_contato, "formacao": formacao,
+        "registro_profissional": registro_profissional, "apresentacao": apresentacao,
+    }
     try:
         dados = FuncionarioCadastro(**dados_form, senha=senha)
         funcionario_service.cadastrar(db, dados, agora_utc())
@@ -121,7 +130,10 @@ def editar_funcionario_form(
     request: Request, funcionario_id: int, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
 ):
     resumo = _buscar_funcionario_ou_404(db, funcionario_id)
-    dados = {"nome": resumo.usuario.nome, "especialidade_id": str(resumo.funcionario.especialidade_id)}
+    dados = {
+        "nome": resumo.usuario.nome, "especialidade_id": str(resumo.funcionario.especialidade_id),
+        **{campo: getattr(resumo.funcionario, campo) or "" for campo in CAMPOS_CONTATO},
+    }
     return _form_funcionario(request, usuario, db, dados, {}, resumo)
 
 
@@ -131,11 +143,20 @@ def editar_funcionario(
     funcionario_id: int,
     nome: Annotated[str, Form()] = "",
     especialidade_id: Annotated[str, Form()] = "",
+    telefone_contato: Annotated[str, Form()] = "",
+    email_contato: Annotated[str, Form()] = "",
+    formacao: Annotated[str, Form()] = "",
+    registro_profissional: Annotated[str, Form()] = "",
+    apresentacao: Annotated[str, Form()] = "",
     usuario: Usuario = Depends(somente_admin),
     db: Session = Depends(get_db),
 ):
     resumo = _buscar_funcionario_ou_404(db, funcionario_id)
-    dados_form = {"nome": nome, "especialidade_id": especialidade_id}
+    dados_form = {
+        "nome": nome, "especialidade_id": especialidade_id,
+        "telefone_contato": telefone_contato, "email_contato": email_contato, "formacao": formacao,
+        "registro_profissional": registro_profissional, "apresentacao": apresentacao,
+    }
     try:
         funcionario_service.atualizar(db, funcionario_id, FuncionarioEdicao(**dados_form), agora_local())
     except ValidationError as exc:

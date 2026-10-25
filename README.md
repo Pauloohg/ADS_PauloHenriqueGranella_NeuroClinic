@@ -8,8 +8,12 @@ em dia e horário fixos, durante semanas ou meses. Por isso o sistema não traba
 avulsas: o responsável contrata um **plano** uma única vez e o sistema o desdobra em várias
 **sessões**.
 
-**Perfis:** Cliente (responsável pelo atendido), Profissional e Admin (administração
-da clínica).
+**Perfis:** Cliente (responsável pelo atendido), Profissional (quem realiza os atendimentos) e Admin
+(administração da clínica).
+
+**Vocabulário:** na interface, quem é atendido é o **atendido**, quem atende é o **profissional** e o
+documento de cada sessão é a **avaliação**. No código e no banco, esses nomes continuam `Paciente`,
+`Funcionario` e `Avaliacao` (tabelas `paciente`, `funcionario` e `avaliacao`).
 
 **Stack:** Python 3.12, FastAPI, Jinja2 + Bootstrap 5.3, PostgreSQL 16, SQLAlchemy 2.0, Alembic,
 PyJWT, Passlib (bcrypt), fastapi-mail, AbacatePay API v2 (pagamentos), `holidays` (feriados
@@ -19,26 +23,42 @@ nacionais), Pytest.
 
 **Cliente**
 - Cadastro, login e redefinição de senha por e-mail (link válido por 30 minutos, uso único).
+- Página inicial com o bloco "Primeiros passos" (cadastrar o atendido, contratar um plano, pagar,
+  acompanhar as sessões), a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
 - Perfil (nome, e-mail, telefone, CPF opcional) e alteração de senha.
 - Cadastro de um ou mais atendidos.
-- Consulta de especialidades e dos profissionais ativos de cada uma.
+- Consulta de especialidades e dos profissionais ativos de cada uma, com formação, registro
+  profissional, apresentação e contato quando o Admin os preencheu.
 - Contratação e renovação de plano: escolha de especialidade, profissional, atendido, dia(s) e
   horário, frequência semanal e duração. O sistema simula as sessões, valida a disponibilidade, pula
-  feriados nacionais e calcula o valor pela quantidade real de sessões.
+  feriados nacionais e calcula o valor pela quantidade real de sessões, com desconto conforme a
+  duração do plano.
 - Pagamento do plano por Pix (pagar em até 4 horas) ou boleto (vencimento próprio em dias úteis,
   respeitando a data da primeira sessão), via AbacatePay, com confirmação automática por webhook,
   conferência de reserva na própria AbacatePay e e-mail de confirmação.
-- Página inicial com a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
 
 **Profissional**
 - Login, página inicial e alteração de senha.
 
 **Admin**
-- Gestão de profissionais (cadastro, edição, desativação e reativação) e de especialidades e valores
-  de sessão.
+- Gestão de profissionais (cadastro, edição, desativação e reativação, com contato e formação
+  opcionais) e de especialidades e valores de sessão.
 - Consulta dos clientes cadastrados, com seus atendidos e planos.
 - Painel gerencial: receita do mês, planos contratados, novos clientes, ranking de profissionais e
   desempenho por especialidade.
+
+### Desconto por duração do plano (RN11)
+
+| Duração | Desconto |
+|---|---|
+| Quinzenal | sem desconto |
+| Mensal | 5% |
+| Bimestral | 7% |
+| Anual | 10% |
+
+O desconto incide sobre o valor da quantidade real de sessões (valor da sessão × sessões geradas),
+arredondado a duas casas, e fica registrado no plano. Os percentuais ficam em `DESCONTO_POR_DURACAO`,
+em `app/core/config.py`.
 
 ## Status
 
@@ -48,9 +68,10 @@ nacionais), Pytest.
 | 2 | RF02 (perfil), RF03 (atendidos), RF11 (profissionais), RF12 (especialidades) | Concluída |
 | 3 | RF04 (especialidades e profissionais) e RF05 (simulação e disponibilidade, feriados) | Concluída |
 | 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
-| 5 | RF08 (agenda do profissional) e RF07 (remarcação) | Pendente |
-| 6 | RF09 (avaliações) e RF10 (histórico) | Pendente |
-| 7 e 8 | Testes, usabilidade, segurança e apresentação | Pendente |
+| 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Ajustes concluídos; RF08 pendente |
+| 6 | RF07 (remarcação) | Pendente |
+| 7 | RF09 (avaliações) e RF10 (histórico) | Pendente |
+| 8 | Testes finais, segurança, privacidade e apresentação | Pendente |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel
 gerencial). O RF13 (lembrete por WhatsApp) é opcional e só será feito se sobrar tempo.
@@ -115,9 +136,9 @@ Não deixe espaço depois do `=` e reinicie o servidor sempre que alterar o `.en
 alembic upgrade head
 ```
 
-Isso cria todas as tabelas e enums do banco a partir da migration inicial, em um PostgreSQL
-vazio. **Não rode `alembic revision --autogenerate` ao configurar o projeto:** a migration
-inicial já existe no repositório.
+Isso cria todas as tabelas e enums do banco a partir da migration inicial e das seguintes, em um
+PostgreSQL vazio. **Não rode `alembic revision --autogenerate` ao configurar o projeto:** as
+migrations já existem no repositório.
 
 Ao alterar um model, gere uma nova migration e **abra o arquivo gerado antes de aplicar**,
 conferindo que não há `op.drop_table(...)` inesperado (acontece quando um model novo não é
@@ -127,6 +148,9 @@ importado em `app/models/__init__.py`):
 alembic revision --autogenerate -m "descrição da mudança"
 alembic upgrade head
 ```
+
+Para **renomear** uma tabela ou coluna, escreva a migration à mão (`op.rename_table`): o
+`--autogenerate` trataria como remoção seguida de criação e apagaria os dados.
 
 ### 6. Criar o primeiro Administrador
 
@@ -164,11 +188,11 @@ horários fixos, sem depender do relógio real.
 
 ## Pagamento em desenvolvimento (AbacatePay, Dev mode)
 
-O sistema cobra por Pix ou boleto pela API v2 da AbacatePay (`/v2/transparents/create`). O caminho
-principal de confirmação é o **webhook** (evento `transparent.completed`): quando a AbacatePay
-avisa, as sessões do plano passam de `pendente_pagamento` para `agendada`, o plano fica ativo e o
-e-mail de confirmação é enviado. Como o servidor roda em `localhost`, o webhook precisa de um
-túnel público.
+O sistema cobra por Pix ou boleto pela API v2 da AbacatePay (`/v2/transparents/create`). O valor
+cobrado é o total do plano já com o desconto da duração. O caminho principal de confirmação é o
+**webhook** (evento `transparent.completed`): quando a AbacatePay avisa, as sessões do plano passam
+de `pendente_pagamento` para `agendada`, o plano fica ativo e o e-mail de confirmação é enviado.
+Como o servidor roda em `localhost`, o webhook precisa de um túnel público.
 
 Como rede de segurança, a página de cobrança também **confere o pagamento na API** da AbacatePay
 (`GET /v2/transparents/list`, no máximo uma vez a cada 10 segundos por cobrança): se a cobrança
@@ -250,12 +274,13 @@ do Dev mode (chave `abc_dev_`), e o `simular_webhook` só envia para `localhost`
 | RN02 | A remarcação exige no mínimo 4 horas de antecedência. |
 | RN03 | A avaliação só é acessível ao cliente responsável, ao Admin e ao profissional com sessão vinculada ao atendido. |
 | RN04 | A avaliação só pode ser liberada depois de a sessão estar realizada. |
-| RN05 | O profissional só pode ser desativado sem sessões futuras agendadas ou aguardando pagamento. |
+| RN05 | Profissional só pode ser desativado sem sessões futuras agendadas ou aguardando pagamento. |
 | RN06 | Feriados nacionais não têm atendimento: a sessão é deslocada para a semana seguinte, sem mudar a quantidade de sessões nem o valor. |
 | RN07 | A especialidade de um profissional só pode mudar nas mesmas condições da RN05. |
 | RN08 | Sessões de 60 minutos, em hora cheia, de segunda a sexta, das 8h às 11h e das 14h às 17h. |
 | RN09 | O plano reservado deve ser pago em até 4 horas (Pix) ou até o vencimento do boleto (menor entre 3 dias úteis e o 2º dia útil antes da primeira sessão). Depois do prazo, as sessões pendentes deixam de bloquear o horário e o plano é removido após a carência (60 minutos no Pix, 1 dia útil no boleto), nunca se houver sessão agendada, realizada ou pagamento confirmado. |
 | RN10 | A primeira sessão de um plano precisa estar a pelo menos 4 horas de distância. |
+| RN11 | O valor do plano recebe desconto conforme a duração (quinzenal 0%, mensal 5%, bimestral 7%, anual 10%), arredondado a duas casas, e o desconto aplicado fica registrado no plano. |
 
 ## Estrutura de pastas (Arquitetura em Camadas)
 
@@ -279,3 +304,5 @@ tests/        → testes automatizados (Pytest)
 - O `.env` e o `.venv` não são versionados. Nunca publique chaves de API, segredos nem credenciais
   de e-mail em commits, prints ou conversas.
 - Se uma chave for exposta, gere outra no painel do serviço e atualize o `.env`.
+- O e-mail de login do profissional nunca aparece para o Cliente: o contato público é um campo
+  separado, preenchido pelo Admin.

@@ -6,7 +6,7 @@
 {% block title %}{{ "Editar profissional" if editando else "Novo profissional" }} — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/admin/funcionarios", "Profissionais") }}{% endblock %}
 {% block titulo_pagina %}{{ "Editar profissional" if editando else "Novo profissional" }}{% endblock %}
-{% block subtitulo_pagina %}{{ "Altere o nome ou a especialidade do profissional." if editando else "O profissional entra com o e-mail e a senha provisória definidos aqui." }}{% endblock %}
+{% block subtitulo_pagina %}{{ "Altere o nome, a especialidade, o contato e a formação do profissional." if editando else "O profissional entra com o e-mail e a senha provisória definidos aqui." }}{% endblock %}
 
 {% block conteudo %}
 <section class="cartao cartao-formulario">
@@ -48,6 +48,25 @@
         {{ campo("senha", "Senha provisória", tipo="password", autocomplete="new-password",
                  ajuda="Mínimo de 8 caracteres. Repasse ao profissional, que pode trocá-la depois em “Alterar senha”.") }}
         {% endif %}
+
+        <fieldset class="secao-formulario" id="contato-formacao">
+            <legend class="cartao-titulo">Contato e formação</legend>
+            <p class="form-text mt-0 mb-3">Aparecem para o Cliente na escolha do profissional, só quando preenchidos. O e-mail de acesso nunca é mostrado.</p>
+            {{ campo("formacao", "Formação", obrigatorio=False, autocomplete="off", atributos={"maxlength": 300},
+                     ajuda="Ex.: Psicologia (UPF), especialização em Psicopedagogia.") }}
+            {{ campo("registro_profissional", "Registro profissional", obrigatorio=False, autocomplete="off", atributos={"maxlength": 50},
+                     ajuda="Ex.: CRP 07/12345.") }}
+            <div class="mb-3">
+                <label for="apresentacao" class="form-label">Apresentação <span class="text-muted fw-normal">(opcional)</span></label>
+                <textarea id="apresentacao" name="apresentacao" rows="3" maxlength="500" aria-describedby="apresentacao-ajuda"
+                          class="form-control {% if erros.apresentacao %}is-invalid{% endif %}">{{ (dados or {}).get("apresentacao", "") }}</textarea>
+                {% if erros.apresentacao %}<div class="invalid-feedback">{{ erros.apresentacao }}</div>{% endif %}
+                <div id="apresentacao-ajuda" class="form-text">Até 500 caracteres, em linguagem simples para quem vai contratar.</div>
+            </div>
+            {{ campo("telefone_contato", "Telefone de contato", tipo="tel", obrigatorio=False, autocomplete="off", atributos={"maxlength": 20}) }}
+            {{ campo("email_contato", "E-mail de contato", tipo="email", obrigatorio=False, autocomplete="off", atributos={"maxlength": 120},
+                     ajuda="Separado do e-mail de acesso. Deixe vazio para não mostrar e-mail ao Cliente.") }}
+        </fieldset>
 
         <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar profissional" }}</button>

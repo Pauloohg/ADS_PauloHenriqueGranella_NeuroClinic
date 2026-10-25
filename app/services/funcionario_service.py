@@ -10,7 +10,7 @@ from app.models.funcionario import Funcionario
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import TipoUsuario, Usuario
-from app.schemas.funcionario import FuncionarioCadastro, FuncionarioEdicao
+from app.schemas.funcionario import CAMPOS_CONTATO, ContatoProfissional, FuncionarioCadastro, FuncionarioEdicao
 from app.services import especialidade_service
 from app.services.auth_service import EmailJaCadastrado, buscar_por_email, utc_sem_fuso
 
@@ -35,6 +35,44 @@ class FuncionarioResumo:
     usuario: Usuario
     funcionario: Funcionario
     especialidade: Especialidade
+
+
+# Sem o e-mail de login de propósito: é o único objeto do Profissional que chega às telas do Cliente
+@dataclass(frozen=True)
+class PerfilProfissional:
+    id: int
+    nome: str
+    formacao: str | None
+    registro_profissional: str | None
+    apresentacao: str | None
+    telefone_contato: str | None
+    email_contato: str | None
+
+    @property
+    def tem_contato(self) -> bool:
+        return bool(self.telefone_contato or self.email_contato)
+
+
+def perfil_publico(usuario: Usuario, funcionario: Funcionario) -> PerfilProfissional:
+    return PerfilProfissional(
+        usuario.id, usuario.nome, funcionario.formacao, funcionario.registro_profissional,
+        funcionario.apresentacao, funcionario.telefone_contato, funcionario.email_contato,
+    )
+
+
+def perfis_ativos_da_especialidade(db: Session, especialidade_id: int) -> list[PerfilProfissional]:
+    consulta = (
+        select(Usuario, Funcionario)
+        .join(Funcionario, Funcionario.usuario_id == Usuario.id)
+        .where(Funcionario.especialidade_id == especialidade_id, Funcionario.ativo.is_(True))
+        .order_by(Usuario.nome)
+    )
+    return [perfil_publico(usuario, funcionario) for usuario, funcionario in db.execute(consulta)]
+
+
+def _aplicar_contato(funcionario: Funcionario, dados: ContatoProfissional) -> None:
+    for campo in CAMPOS_CONTATO:
+        setattr(funcionario, campo, getattr(dados, campo))
 
 
 def listar(db: Session) -> list[FuncionarioResumo]:
@@ -80,7 +118,9 @@ def cadastrar(db: Session, dados: FuncionarioCadastro, agora: datetime) -> Funci
     )
     db.add(usuario)
     db.flush()  # não remover: Funcionario precisa de usuario.id antes do commit
-    db.add(Funcionario(usuario_id=usuario.id, especialidade_id=dados.especialidade_id, ativo=True))
+    funcionario = Funcionario(usuario_id=usuario.id, especialidade_id=dados.especialidade_id, ativo=True)
+    _aplicar_contato(funcionario, dados)
+    db.add(funcionario)
     db.commit()
     return buscar(db, usuario.id)
 
@@ -93,6 +133,7 @@ def atualizar(db: Session, funcionario_id: int, dados: FuncionarioEdicao, agora:
         raise EspecialidadeComSessoesFuturas
     resumo.usuario.nome = dados.nome
     resumo.funcionario.especialidade_id = dados.especialidade_id
+    _aplicar_contato(resumo.funcionario, dados)
     db.commit()
     return buscar(db, funcionario_id)
 

@@ -1,0 +1,40 @@
+{# Recebe só funcionario_service.PerfilProfissional, que não tem o e-mail de login #}
+{% macro contato(perfil) %}
+{% if perfil.tem_contato %}
+<ul class="perfil-contato">
+    {% if perfil.telefone_contato %}<li><i class="bi bi-telephone me-1" aria-hidden="true"></i><span class="visually-hidden">Telefone: </span><a href="tel:{{ perfil.telefone_contato | replace(' ', '') }}">{{ perfil.telefone_contato }}</a></li>{% endif %}
+    {% if perfil.email_contato %}<li><i class="bi bi-envelope me-1" aria-hidden="true"></i><span class="visually-hidden">E-mail: </span><a href="mailto:{{ perfil.email_contato }}">{{ perfil.email_contato }}</a></li>{% endif %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro cartao_profissional(perfil) %}
+<article class="cartao cartao-profissional h-100" aria-labelledby="profissional-{{ perfil.id }}">
+    <header class="d-flex align-items-start gap-3 mb-2">
+        <span class="avatar-iniciais" aria-hidden="true">{{ perfil.nome | iniciais }}</span>
+        <div>
+            <h2 class="titulo-serifa h5 mb-0" id="profissional-{{ perfil.id }}">{{ perfil.nome }}</h2>
+            {% if perfil.registro_profissional %}<p class="perfil-registro">{{ perfil.registro_profissional }}</p>{% endif %}
+        </div>
+    </header>
+    {% if perfil.formacao %}<p class="perfil-formacao"><i class="bi bi-mortarboard me-1" aria-hidden="true"></i><span class="visually-hidden">Formação: </span>{{ perfil.formacao }}</p>{% endif %}
+    {% if perfil.apresentacao %}<p class="perfil-apresentacao">{{ perfil.apresentacao }}</p>{% endif %}
+    {{ contato(perfil) }}
+    <a href="/contratar/{{ perfil.id }}" class="btn btn-primary btn-sm align-self-start mt-auto">
+        Contratar<span class="visually-hidden"> plano com {{ perfil.nome }}</span>
+    </a>
+</article>
+{% endmacro %}
+
+{% macro cartao_resumido(perfil) %}
+<aside class="cartao cartao-profissional-resumido mb-4" aria-label="Sobre o profissional">
+    <div class="d-flex align-items-start gap-3">
+        <span class="avatar-iniciais" aria-hidden="true">{{ perfil.nome | iniciais }}</span>
+        <div class="flex-grow-1">
+            <p class="fw-semibold mb-0">{{ perfil.nome }}{% if perfil.registro_profissional %} <span class="perfil-registro d-inline">· {{ perfil.registro_profissional }}</span>{% endif %}</p>
+            {% if perfil.formacao %}<p class="perfil-formacao mb-1">{{ perfil.formacao }}</p>{% endif %}
+            {{ contato(perfil) }}
+        </div>
+    </div>
+</aside>
+{% endmacro %}

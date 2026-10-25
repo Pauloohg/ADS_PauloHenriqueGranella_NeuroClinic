@@ -1522,3 +1522,52 @@
 .tabela-descontos ul {
     padding-left: 1.1rem;
 }
+
+/* --- Perfil do profissional (RF04) --- */
+.cartao-profissional {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.perfil-registro {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+    margin: 0.1rem 0 0;
+}
+
+.perfil-formacao {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.perfil-apresentacao {
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+    margin: 0;
+}
+
+.perfil-contato {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    font-size: 0.9rem;
+}
+
+.perfil-contato a {
+    overflow-wrap: anywhere;
+}
+
+.cartao-profissional-resumido {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.secao-formulario {
+    border-top: 1px solid var(--bs-border-color);
+    padding-top: 1.25rem;
+    margin: 1.5rem 0;
+}
