@@ -6,6 +6,17 @@
 {% block conteudo %}
 <div class="row g-3 g-lg-4">
     <div class="col-12 col-md-6 col-xl-4">
+        <section class="cartao cartao-agenda-hoje">
+            <h2 class="cartao-especialidade-rotulo mt-0">Agenda de hoje</h2>
+            <p class="agenda-hoje-numero mb-1">
+                <span class="font-monospace-num">{{ consultas_hoje }}</span>
+                {{ "consulta" if consultas_hoje == 1 else "consultas" }}
+            </p>
+            <p class="text-muted small">{{ "Nenhum atendido marcado para hoje." if consultas_hoje == 0 else "Confirmadas para hoje." }}</p>
+            <a href="/agenda" class="btn btn-primary mt-auto align-self-start"><i class="bi bi-calendar-week me-2"></i>Ver agenda</a>
+        </section>
+    </div>
+    <div class="col-12 col-md-6 col-xl-4">
         <section class="cartao cartao-especialidade {{ (especialidade or '') | classe_especialidade }}">
             <h2 class="cartao-especialidade-rotulo mt-0">Sua especialidade</h2>
             <p class="cartao-especialidade-valor mb-2">{{ especialidade or "Não informada" }}</p>

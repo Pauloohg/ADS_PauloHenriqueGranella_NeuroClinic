@@ -5,7 +5,7 @@ from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_opcional
-from app.services import inicio_service, paciente_service, plano_service
+from app.services import agenda_service, inicio_service, paciente_service, plano_service
 
 router = APIRouter(tags=["inicio"])
 
@@ -30,7 +30,10 @@ def _contexto_cliente(db: Session, usuario: Usuario, agora) -> dict:
 
 
 def _contexto_funcionario(db: Session, usuario: Usuario, agora) -> dict:
-    return {"especialidade": inicio_service.nome_especialidade_do_funcionario(db, usuario.id)}
+    return {
+        "especialidade": inicio_service.nome_especialidade_do_funcionario(db, usuario.id),
+        "consultas_hoje": agenda_service.contar_consultas_do_dia(db, usuario.id, agora.date()),
+    }
 
 
 def _contexto_admin(db: Session, usuario: Usuario, agora) -> dict:

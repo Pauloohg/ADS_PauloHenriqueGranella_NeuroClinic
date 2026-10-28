@@ -9,8 +9,8 @@
 {% endmacro %}
 
 {% macro cartao_profissional(perfil) %}
-<article class="cartao cartao-profissional h-100" aria-labelledby="profissional-{{ perfil.id }}">
-    <header class="d-flex align-items-start gap-3 mb-2">
+<article class="cartao cartao-profissional" aria-labelledby="profissional-{{ perfil.id }}">
+    <header class="d-flex align-items-start gap-3">
         <span class="avatar-iniciais" aria-hidden="true">{{ perfil.nome | iniciais }}</span>
         <div>
             <h2 class="titulo-serifa h5 mb-0" id="profissional-{{ perfil.id }}">{{ perfil.nome }}</h2>
@@ -20,7 +20,7 @@
     {% if perfil.formacao %}<p class="perfil-formacao"><i class="bi bi-mortarboard me-1" aria-hidden="true"></i><span class="visually-hidden">Formação: </span>{{ perfil.formacao }}</p>{% endif %}
     {% if perfil.apresentacao %}<p class="perfil-apresentacao">{{ perfil.apresentacao }}</p>{% endif %}
     {{ contato(perfil) }}
-    <a href="/contratar/{{ perfil.id }}" class="btn btn-primary btn-sm align-self-start mt-auto">
+    <a href="/contratar/{{ perfil.id }}" class="btn btn-primary btn-sm align-self-center mt-1">
         Contratar<span class="visually-hidden"> plano com {{ perfil.nome }}</span>
     </a>
 </article>

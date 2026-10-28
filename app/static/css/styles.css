@@ -1571,3 +1571,202 @@
     padding-top: 1.25rem;
     margin: 1.5rem 0;
 }
+
+/* --- Agenda do Profissional (RF08) ------------------------------------------------------------ */
+
+.cartao-agenda-hoje {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-top: 4px solid var(--bs-primary);
+}
+
+.agenda-hoje-numero {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.agenda-visoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.agenda-filtro {
+    padding: 1rem 1.25rem;
+}
+
+.agenda-filtro summary {
+    cursor: pointer;
+    color: var(--cor-texto-escuro);
+}
+
+.agenda-filtro-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+@media (min-width: 576px) {
+    .agenda-filtro-form {
+        grid-template-columns: minmax(0, 12rem) minmax(0, 12rem) auto;
+        justify-content: start;
+    }
+
+    .agenda-filtro-erro {
+        grid-column: 1 / -1;
+    }
+}
+
+.agenda-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.agenda-intervalo {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.agenda-total {
+    display: block;
+    font-family: var(--bs-body-font-family);
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.agenda-navegacao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.agenda-dias {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.agenda-dia {
+    background-color: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+    padding: 1rem 1.25rem;
+}
+
+.agenda-dia-hoje {
+    outline: 2px solid var(--bs-primary);
+    background-color: #FBFCFA;
+}
+
+.agenda-dia-vazio {
+    background-color: transparent;
+    box-shadow: none;
+    border: 1px dashed var(--bs-border-color);
+    padding-block: 0.6rem;
+}
+
+.agenda-dia-titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    margin-bottom: 0.75rem;
+}
+
+.agenda-dia-vazio .agenda-dia-titulo {
+    margin-bottom: 0.15rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+
+.agenda-dias-vazios {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+}
+
+.agenda-selo-titulo {
+    font-family: var(--bs-body-font-family);
+    font-size: 0.75rem;
+    vertical-align: middle;
+}
+
+.agenda-dia-nome {
+    font-family: "Lora", Georgia, serif;
+}
+
+.agenda-sem-consultas {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+}
+
+.agenda-consultas {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.agenda-consulta {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.25rem 1rem;
+    padding: 0.75rem 0 0.75rem 0.9rem;
+    border-left: 4px solid var(--esp-cor, var(--bs-primary));
+    border-radius: 4px;
+}
+
+.agenda-consulta + .agenda-consulta {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.agenda-consulta-horario {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.agenda-consulta-selos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.agenda-consulta-observacao {
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background-color: var(--cor-fundo-creme);
+    overflow-wrap: anywhere;
+}
+
+.agenda-observacao-texto {
+    white-space: pre-line;
+}
+
+@media (max-width: 575.98px) {
+    .agenda-consulta {
+        grid-template-columns: 1fr;
+    }
+
+    .agenda-navegacao {
+        width: 100%;
+    }
+
+    .agenda-navegacao .btn {
+        flex: 1 1 auto;
+    }
+}

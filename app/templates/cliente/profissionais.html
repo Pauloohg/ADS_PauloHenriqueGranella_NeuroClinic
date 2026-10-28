@@ -12,7 +12,7 @@
 {{ etapas(1) }}
 {% if not tem_atendido %}{{ aviso_sem_atendido() }}{% endif %}
 {% if profissionais %}
-<div class="row g-3 g-lg-4 {{ especialidade.nome | classe_especialidade }}">
+<div class="row g-3 g-lg-4 align-items-start {{ especialidade.nome | classe_especialidade }}">
     {% for perfil in profissionais %}
     <div class="col-12 col-md-6">{{ cartao_profissional(perfil) }}</div>
     {% endfor %}

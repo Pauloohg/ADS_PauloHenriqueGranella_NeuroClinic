@@ -13,7 +13,7 @@ LINKS_POR_PERFIL = {
         "/": "Início", "/admin/painel": "Painel", "/admin/clientes": "Clientes", "/admin/funcionarios": "Profissionais",
         "/admin/especialidades": "Especialidades", "/conta/alterar-senha": "Alterar senha",
     },
-    "funcionario": {"/": "Início", "/conta/alterar-senha": "Alterar senha"},
+    "funcionario": {"/": "Início", "/agenda": "Agenda", "/conta/alterar-senha": "Alterar senha"},
 }
 TODOS_OS_LINKS = {href for links in LINKS_POR_PERFIL.values() for href in links}
 

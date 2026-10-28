@@ -1,0 +1,140 @@
+{% extends "_interno.html" %}
+
+{% block title %}Agenda — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Agenda de atendimentos{% endblock %}
+{% block subtitulo_pagina %}Suas consultas confirmadas. Sessões aguardando pagamento não aparecem até serem pagas.{% endblock %}
+
+{% block conteudo %}
+{% set ref_hoje = hoje if visao.inicio <= hoje <= visao.fim else visao.inicio %}
+<nav class="agenda-visoes mb-3" aria-label="Escolher visão da agenda">
+    <a href="/agenda?{{ {'visao': 'dia', 'data': ref_hoje.isoformat()} | urlencode }}"
+       class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'dia' else 'btn-outline-primary' }}"
+       {% if visao.tipo == 'dia' %}aria-current="page"{% endif %}>Dia</a>
+    <a href="/agenda?{{ {'visao': 'semana', 'data': ref_hoje.isoformat()} | urlencode }}"
+       class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'semana' else 'btn-outline-primary' }}"
+       {% if visao.tipo == 'semana' %}aria-current="page"{% endif %}>Semana</a>
+    <a href="/agenda?{{ {'visao': 'periodo', 'inicio': visao.inicio.isoformat(), 'fim': visao.fim.isoformat()} | urlencode }}" class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'periodo' else 'btn-outline-primary' }}"
+       {% if visao.tipo == 'periodo' %}aria-current="page"{% endif %}>Período</a>
+</nav>
+
+<details id="periodo" class="cartao agenda-filtro mb-4" {% if visao.tipo == 'periodo' or erro_no_periodo %}open{% endif %}>
+    <summary class="fw-medium">Escolher um período <span class="text-muted small fw-normal">(até 92 dias)</span></summary>
+    <form method="get" action="/agenda" class="agenda-filtro-form mt-3" novalidate>
+        <input type="hidden" name="visao" value="periodo">
+        <div>
+            <label for="inicio" class="form-label small">Data inicial</label>
+            <input type="date" id="inicio" name="inicio" class="form-control {% if erro_no_periodo %}is-invalid{% endif %}"
+                   value="{{ form.inicio if erro_no_periodo else (visao.inicio.isoformat() if visao.tipo == 'periodo' else '') }}">
+        </div>
+        <div>
+            <label for="fim" class="form-label small">Data final</label>
+            <input type="date" id="fim" name="fim" class="form-control {% if erro_no_periodo %}is-invalid{% endif %}"
+                   value="{{ form.fim if erro_no_periodo else (visao.fim.isoformat() if visao.tipo == 'periodo' else '') }}">
+        </div>
+        <button type="submit" class="btn btn-primary">Ver período</button>
+        {% if erro_no_periodo %}
+        <p class="invalid-feedback d-block agenda-filtro-erro mb-0" role="alert">{{ erro }} Mostrando a semana atual.</p>
+        {% endif %}
+    </form>
+</details>
+
+{% if erro and not erro_no_periodo %}
+<div class="alert alert-warning" role="alert">{{ erro }} Mostrando a semana atual.</div>
+{% endif %}
+
+<div class="agenda-barra mb-3">
+    <h2 class="titulo-serifa agenda-intervalo mb-0">
+        {% if visao.tipo == 'dia' %}
+        {{ visao.inicio.weekday() | nome_dia }}, {{ visao.inicio | data_br }}
+        {% if visao.inicio == hoje %}<span class="badge rounded-pill status-ativo agenda-selo-titulo">Hoje</span>{% endif %}
+        {% if dias and dias[0].feriado %}<span class="badge rounded-pill status-inativo agenda-selo-titulo">Feriado nacional</span>{% endif %}
+        {% else %}
+        {{ visao.inicio | data_br }} a {{ visao.fim | data_br }}
+        {% endif %}
+        <span class="agenda-total">{{ total }} {{ "consulta" if total == 1 else "consultas" }}</span>
+    </h2>
+    <div class="agenda-navegacao" role="group" aria-label="Navegar na agenda">
+        {% if navegacao.anterior %}
+        <a class="btn btn-outline-primary btn-sm" href="/agenda?{{ navegacao.anterior | urlencode }}" rel="prev">
+            <i class="bi bi-chevron-left"></i><span class="ms-1">{{ "Dia anterior" if visao.tipo == 'dia' else ("Semana anterior" if visao.tipo == 'semana' else "Período anterior") }}</span>
+        </a>
+        {% endif %}
+        {% if navegacao.hoje %}
+        <a class="btn btn-outline-primary btn-sm" href="/agenda?{{ navegacao.hoje | urlencode }}">Hoje</a>
+        {% endif %}
+        {% if navegacao.proximo %}
+        <a class="btn btn-outline-primary btn-sm" href="/agenda?{{ navegacao.proximo | urlencode }}" rel="next">
+            <span class="me-1">{{ "Próximo dia" if visao.tipo == 'dia' else ("Próxima semana" if visao.tipo == 'semana' else "Próximo período") }}</span><i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if total == 0 %}
+<section class="cartao estado-vazio mb-4">
+    <span class="icone-destaque mb-3"><i class="bi bi-calendar-x"></i></span>
+    <p class="fw-medium mb-1">Nenhuma consulta {{ "neste dia" if visao.tipo == 'dia' else ("nesta semana" if visao.tipo == 'semana' else "neste período") }}.</p>
+    <p class="text-muted small mb-0">Use os botões acima para ver outras datas.</p>
+</section>
+{% endif %}
+
+{% if total %}
+<div class="agenda-dias">
+    {% for dia in dias %}
+    {% if dia.grupo %}
+    {% set formato = '%d/%m' if dia.inicio.year == dia.fim.year else '%d/%m/%Y' %}
+    <p class="agenda-dia agenda-dia-vazio agenda-dias-vazios mb-0">
+        Sem consultas de <span class="font-monospace-num">{{ dia.inicio.strftime(formato) }}</span>
+        a <span class="font-monospace-num">{{ dia.fim.strftime(formato) }}</span>
+    </p>
+    {% else %}
+    {% set eh_hoje = dia.data == hoje %}
+    <section class="agenda-dia {% if eh_hoje %}agenda-dia-hoje{% endif %} {% if not dia.consultas %}agenda-dia-vazio{% endif %}"
+             {% if visao.tipo == 'dia' %}aria-label="Consultas do dia"{% else %}aria-labelledby="dia-{{ dia.data.isoformat() }}"{% endif %}>
+        {% if visao.tipo != 'dia' %}
+        <h3 class="agenda-dia-titulo" id="dia-{{ dia.data.isoformat() }}">
+            <span class="agenda-dia-nome">{{ dia.data.weekday() | nome_dia }}</span>
+            <span class="font-monospace-num">{{ dia.data | data_br }}</span>
+            {% if eh_hoje %}<span class="badge rounded-pill status-ativo">Hoje</span>{% endif %}
+            {% if dia.feriado %}<span class="badge rounded-pill status-inativo">Feriado nacional</span>{% endif %}
+        </h3>
+        {% endif %}
+        {% if dia.consultas %}
+        <ul class="agenda-consultas">
+            {% for c in dia.consultas %}
+            <li class="agenda-consulta {{ c.especialidade | classe_especialidade }}">
+                <p class="agenda-consulta-horario font-monospace-num mb-0">
+                    {{ c.inicio.strftime('%H:%M') }}<span class="text-muted"> – {{ c.fim.strftime('%H:%M') }}</span>
+                </p>
+                <div class="agenda-consulta-corpo">
+                    <p class="agenda-consulta-atendido mb-1">
+                        <span class="fw-medium">{{ c.atendido }}</span>
+                        <span class="text-muted small">· {{ c.idade | idade }}</span>
+                    </p>
+                    <p class="agenda-consulta-selos mb-0">
+                        <span class="chip-especialidade">{{ c.especialidade }}</span>
+                        {% if c.status.value == 'realizada' %}
+                        <span class="badge rounded-pill status-inativo">Realizada</span>
+                        {% else %}
+                        <span class="badge rounded-pill status-ativo">Agendada</span>
+                        {% endif %}
+                        {% if c.remarcada %}<span class="badge rounded-pill status-pendente">Remarcada</span>{% endif %}
+                    </p>
+                    {% if c.observacao %}
+                    <p class="agenda-consulta-observacao small mb-0">
+                        <span class="text-muted">Observação do plano:</span> <span class="agenda-observacao-texto">{{ c.observacao }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="agenda-sem-consultas mb-0">Sem consultas</p>
+        {% endif %}
+    </section>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
