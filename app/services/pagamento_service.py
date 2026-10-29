@@ -31,7 +31,7 @@ from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
 from app.services import abacatepay_client, plano_service
 from app.services.abacatepay_client import Cobranca, ErroAbacatePay
-from app.services.contratacao_service import _travar_agenda, buscar_plano_do_cliente
+from app.services.contratacao_service import buscar_plano_do_cliente
 
 logger = logging.getLogger(__name__)
 
@@ -363,7 +363,7 @@ def confirmar_pagamento(
         return ResultadoWebhook("ja_confirmado", pagamento.id)
     try:
         if plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento) < agora:  # RN09
-            _travar_agenda(db, plano.funcionario_id)
+            plano_service.travar_agenda(db, plano.funcionario_id)
             datas = list(db.scalars(
                 select(Sessao.data_hora)
                 .where(Sessao.plano_id == plano.id, Sessao.status == StatusSessao.PENDENTE_PAGAMENTO)

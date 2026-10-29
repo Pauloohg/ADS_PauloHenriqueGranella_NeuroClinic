@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.core.templating import NOMES_DIAS
 from app.models.cliente import Cliente
 from app.models.especialidade import Especialidade
-from app.models.funcionario import Funcionario
 from app.models.pagamento import FormaPagamento
 from app.models.paciente import Paciente
 from app.models.plano import Plano, StatusPlano
@@ -224,11 +223,6 @@ def _plano_reenviado(
     return None
 
 
-def _travar_agenda(db: Session, funcionario_id: int) -> None:
-    # FOR UPDATE serializa confirmações simultâneas do mesmo profissional no PostgreSQL (o SQLite ignora)
-    db.execute(select(Funcionario.usuario_id).where(Funcionario.usuario_id == funcionario_id).with_for_update())
-
-
 def confirmar_plano(
     db: Session,
     cliente: Cliente,
@@ -243,7 +237,7 @@ def confirmar_plano(
 ) -> tuple[Plano, bool]:
     plano_service.remover_planos_vencidos(db, agora)
     try:
-        _travar_agenda(db, funcionario_id)
+        plano_service.travar_agenda(db, funcionario_id)
         existente = _plano_reenviado(db, paciente, funcionario_id, celulas, frequencia, duracao, agora)
         if existente is not None:
             db.rollback()

@@ -229,9 +229,10 @@ def ocupa_horario(
 
 
 def buscar_horarios_ocupados(
-    db: Session, funcionario_id: int, inicio: datetime, fim: datetime, agora: datetime
+    db: Session, funcionario_id: int, inicio: datetime, fim: datetime, agora: datetime,
+    ignorar_sessao_id: int | None = None,
 ) -> list[datetime]:
-    linhas = db.execute(
+    consulta = (
         select(Sessao.data_hora, Sessao.status, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento)
         .join(Plano, Plano.id == Sessao.plano_id)
         .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
@@ -240,6 +241,9 @@ def buscar_horarios_ocupados(
         .where(Sessao.data_hora > inicio - DURACAO_SESSAO)
         .where(Sessao.data_hora < fim + DURACAO_SESSAO)
     )
+    if ignorar_sessao_id is not None:
+        consulta = consulta.where(Sessao.id != ignorar_sessao_id)
+    linhas = db.execute(consulta)
     return sorted(
         data_hora for data_hora, status, criado_em, data_inicio, forma in linhas
         if ocupa_horario(status, criado_em, agora, data_inicio, forma)
@@ -256,11 +260,20 @@ def comparar_conflitos(propostas: list[datetime], ocupados_ordenados: list[datet
     return sorted(conflitos)
 
 
-def verificar_conflitos(db: Session, funcionario_id: int, datas_hora: list[datetime], agora: datetime) -> list[datetime]:
+def verificar_conflitos(
+    db: Session, funcionario_id: int, datas_hora: list[datetime], agora: datetime, ignorar_sessao_id: int | None = None,
+) -> list[datetime]:
     if not datas_hora:
         return []
-    ocupados = buscar_horarios_ocupados(db, funcionario_id, min(datas_hora), max(datas_hora), agora)
+    ocupados = buscar_horarios_ocupados(
+        db, funcionario_id, min(datas_hora), max(datas_hora), agora, ignorar_sessao_id
+    )
     return comparar_conflitos(datas_hora, ocupados)
+
+
+def travar_agenda(db: Session, funcionario_id: int) -> None:
+    # FOR UPDATE serializa confirmações simultâneas do mesmo profissional no PostgreSQL (o SQLite ignora)
+    db.execute(select(Funcionario.usuario_id).where(Funcionario.usuario_id == funcionario_id).with_for_update())
 
 
 def disponibilidade_semanal(db: Session, funcionario_id: int, duracao: str, agora: datetime) -> dict[int, list[int]]:

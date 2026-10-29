@@ -239,7 +239,7 @@ def test_consulta_remarcada_aparece_so_na_nova_data(client, db, fono, paciente):
     original = _agenda(client, visao="dia", data="2026-10-27")
     nova = _agenda(client, visao="dia", data="2026-10-29")
     assert "Pedro Souza" not in original and "Nenhuma consulta neste dia" in original
-    assert "Pedro Souza" in nova and 'status-pendente">Remarcada<' in nova
+    assert "Pedro Souza" in nova and 'status-remarcada">Remarcada<' in nova
     assert "10:00" in nova and "11:00" in nova
 
 

@@ -1770,3 +1770,101 @@
         flex: 1 1 auto;
     }
 }
+
+/* --- Consultas e remarcação do Cliente (RF07) ------------------------------------------------- */
+
+/* Selo "Remarcada" da lista do Cliente e da agenda do Profissional: não usar o amarelo de "Aguardando pagamento" */
+.status-remarcada {
+    background-color: #E1E8EF;
+    color: #2F4558;
+}
+
+.lista-consultas {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.consulta-item {
+    display: grid;
+    grid-template-columns: 13rem 1fr auto;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    background-color: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+    border-left: 4px solid var(--esp-cor, var(--bs-primary));
+    padding: 1rem 1.25rem;
+}
+
+.consulta-quando {
+    display: flex;
+    flex-direction: column;
+}
+
+.consulta-data {
+    font-family: "Lora", Georgia, serif;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.consulta-acao {
+    text-align: right;
+}
+
+.consulta-motivo {
+    font-size: 0.85rem;
+    color: var(--bs-secondary-color);
+}
+
+.consulta-atual {
+    border-top: 4px solid var(--esp-cor, var(--bs-primary));
+}
+
+.consulta-atual-quando {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.remarcar-data {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.remarcar-data > div {
+    flex: 0 1 14rem;
+}
+
+.remarcar-horarios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.remarcar-horarios .btn {
+    min-width: 5.5rem;
+}
+
+.remarcar-motivo {
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+}
+
+@media (max-width: 767.98px) {
+    .consulta-item {
+        grid-template-columns: 1fr;
+    }
+
+    .consulta-acao {
+        text-align: left;
+    }
+}

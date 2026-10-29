@@ -8,7 +8,10 @@ from app.main import FORMULARIOS_POR_ROTA, app as fastapi_app
 from tests.fabricas import criar_admin, criar_cliente, criar_especialidade, criar_funcionario, logar
 
 LINKS_POR_PERFIL = {
-    "cliente": {"/": "Início", "/pacientes": "Atendidos", "/especialidades": "Contratar plano", "/perfil": "Meu perfil"},
+    "cliente": {
+        "/": "Início", "/pacientes": "Atendidos", "/especialidades": "Contratar plano", "/consultas": "Consultas",
+        "/perfil": "Meu perfil",
+    },
     "admin": {
         "/": "Início", "/admin/painel": "Painel", "/admin/clientes": "Clientes", "/admin/funcionarios": "Profissionais",
         "/admin/especialidades": "Especialidades", "/conta/alterar-senha": "Alterar senha",

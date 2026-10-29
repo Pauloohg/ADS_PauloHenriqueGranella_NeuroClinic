@@ -1,0 +1,85 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas %}
+{% set r = resultado %}
+
+{% block title %}Consultas — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Consultas{% endblock %}
+{% block subtitulo_pagina %}Todas as consultas dos seus atendidos, passadas e futuras.{% endblock %}
+
+{% block conteudo %}
+{% if repetido %}
+<div class="alert alert-info d-flex gap-2" role="status"><i class="bi bi-info-circle"></i><span>{{ sucesso }}</span></div>
+{% else %}
+{{ alertas(sucesso) }}
+{% endif %}
+
+<nav class="agenda-visoes mb-4" aria-label="Escolher consultas">
+    <a href="/consultas?aba=proximas" class="btn btn-sm {{ 'btn-primary' if r.aba == 'proximas' else 'btn-outline-primary' }}"
+       {% if r.aba == 'proximas' %}aria-current="page"{% endif %}>Próximas</a>
+    <a href="/consultas?aba=anteriores" class="btn btn-sm {{ 'btn-primary' if r.aba == 'anteriores' else 'btn-outline-primary' }}"
+       {% if r.aba == 'anteriores' %}aria-current="page"{% endif %}>Anteriores</a>
+</nav>
+
+{% if r.consultas %}
+<p class="small text-muted mb-2">{{ r.total }} {{ "consulta" if r.total == 1 else "consultas" }}{% if r.aba == 'proximas' %} a partir de agora{% endif %}.</p>
+<ul class="lista-consultas">
+    {% for c in r.consultas %}
+    <li class="consulta-item {{ c.especialidade | classe_especialidade }}">
+        <div class="consulta-quando">
+            <span class="consulta-data">{{ c.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ c.data_hora | data_br }}</span></span>
+            <span class="font-monospace-num text-muted small">{{ c.data_hora.strftime('%H:%M') }} – {{ c.fim.strftime('%H:%M') }}</span>
+        </div>
+        <div class="consulta-dados">
+            <p class="mb-1"><span class="fw-medium">{{ c.atendido }}</span> <span class="text-muted small">com {{ c.profissional }}</span></p>
+            <p class="agenda-consulta-selos mb-0">
+                <span class="chip-especialidade">{{ c.especialidade }}</span>
+                {% if c.status.value == 'pendente_pagamento' %}
+                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+                {% elif c.status.value == 'realizada' %}
+                <span class="badge rounded-pill status-inativo">Realizada</span>
+                {% else %}
+                <span class="badge rounded-pill status-ativo">Agendada</span>
+                {% endif %}
+                {% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+            </p>
+        </div>
+        <div class="consulta-acao">
+            {% if c.pode_remarcar %}
+            <a href="/consultas/{{ c.id }}/remarcar" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar-event me-1"></i>Remarcar</a>
+            {% else %}
+            <span class="consulta-motivo">{{ c.motivo_bloqueio }}</span>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+{% if r.total_paginas > 1 %}
+<nav class="paginacao mt-4" aria-label="Paginação das consultas">
+    {% if r.pagina > 1 %}
+    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ {'aba': r.aba, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+        <i class="bi bi-chevron-left me-1"></i>Anterior
+    </a>
+    {% else %}<span></span>{% endif %}
+    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    {% if r.pagina < r.total_paginas %}
+    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ {'aba': r.aba, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+        Próxima<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-calendar-x"></i></div>
+    {% if r.aba == 'proximas' %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
+    <p class="text-muted">As consultas aparecem aqui assim que um plano é contratado.</p>
+    <a href="/especialidades" class="btn btn-primary">Contratar plano</a>
+    {% else %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta anterior</h2>
+    <p class="text-muted mb-0">As consultas que já passaram aparecem aqui.</p>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.templating import templates
-from app.routers import admin, agenda, auth, cliente, conta, inicio, webhooks
+from app.routers import admin, agenda, auth, cliente, conta, consultas, inicio, webhooks
 from app.routers.auth import NaoAutenticado, erros_por_campo
 
 if settings.DEBUG:
@@ -23,6 +23,7 @@ app.include_router(inicio.router)
 app.include_router(auth.router)
 app.include_router(conta.router)
 app.include_router(cliente.router)
+app.include_router(consultas.router)
 app.include_router(admin.router)
 app.include_router(agenda.router)
 app.include_router(webhooks.router)
@@ -46,6 +47,7 @@ FORMULARIOS_POR_ROTA = {
     "/contratar/{funcionario_id}": "cliente/contratar.html",
     "/contratar/{funcionario_id}/confirmar": "cliente/contratar.html",
     "/planos/{plano_id}/pagamento": "cliente/pagamento.html",
+    "/consultas/{sessao_id}/remarcar": "cliente/remarcar.html",
     "/admin/funcionarios/novo": "admin/funcionario_form.html",
     "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
     "/admin/especialidades/nova": "admin/especialidade_form.html",

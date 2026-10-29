@@ -1,0 +1,91 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas, voltar %}
+
+{% block title %}Remarcar consulta — NeuroClinic{% endblock %}
+{% block head %}
+{% if consulta and not bloqueio %}<script src="{{ url_estatico('js/remarcar.js') }}" defer></script>{% endif %}
+{% endblock %}
+{% block voltar %}{{ voltar("/consultas", "Consultas") }}{% endblock %}
+{% block titulo_pagina %}Remarcar consulta{% endblock %}
+{% block subtitulo_pagina %}{% if consulta %}{{ consulta.atendido }} · {{ consulta.especialidade }} com {{ consulta.profissional }}{% endif %}{% endblock %}
+
+{% block conteudo %}
+{{ alertas(erro=erro) }}
+{% if not consulta %}
+<p class="text-muted">Volte para a lista de consultas e tente novamente.</p>
+{% else %}
+<div class="row g-4">
+    <div class="col-lg-4 order-lg-2">
+        <section class="cartao consulta-atual {{ consulta.especialidade | classe_especialidade }}">
+            <h2 class="cartao-especialidade-rotulo mt-0">Horário atual</h2>
+            <p class="consulta-atual-quando mb-1">
+                {{ consulta.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>
+            </p>
+            <p class="font-monospace-num mb-3">{{ consulta.data_hora.strftime('%H:%M') }} – {{ fim_atual.strftime('%H:%M') }}</p>
+            <p class="agenda-consulta-selos mb-0">
+                <span class="chip-especialidade">{{ consulta.especialidade }}</span>
+                {% if consulta.foi_remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+            </p>
+        </section>
+    </div>
+
+    <div class="col-lg-8 order-lg-1">
+        {% if bloqueio %}
+        <section class="cartao">
+            <div class="alert alert-warning d-flex gap-2 mb-3" role="alert"><i class="bi bi-exclamation-triangle"></i><span>{{ bloqueio }}</span></div>
+            <a href="/consultas" class="btn btn-outline-primary">Voltar para as consultas</a>
+        </section>
+        {% else %}
+        <section class="cartao">
+            <h2 class="cartao-titulo">Escolha o novo horário</h2>
+            <p class="text-muted small">
+                A consulta continua com {{ consulta.profissional }}, no mesmo plano; as demais sessões não mudam.
+                Escolha uma data entre hoje e {{ janela_fim | data_br }}.
+            </p>
+
+            <form method="get" action="/consultas/{{ consulta.id }}/remarcar" id="form-data" class="remarcar-data"
+                  data-url-horarios="/consultas/{{ consulta.id }}/horarios">
+                <div>
+                    <label for="data" class="form-label">Nova data</label>
+                    <input type="date" id="data" name="data" class="form-control {% if data_invalida %}is-invalid{% endif %}"
+                           min="{{ janela_inicio.isoformat() }}" max="{{ janela_fim.isoformat() }}" value="{{ data_texto }}" required>
+                    {% if data_invalida %}<div class="invalid-feedback">Informe uma data válida.</div>{% endif %}
+                </div>
+                <button type="submit" class="btn btn-outline-primary" id="btn-ver-horarios">Ver horários</button>
+            </form>
+
+            <form method="post" action="/consultas/{{ consulta.id }}/remarcar" id="form-remarcar" class="mt-4">
+                <div id="horarios" aria-live="polite">
+                    {% if horarios %}
+                    {% if horarios.motivo %}
+                    <p class="remarcar-motivo mb-0" id="horarios-motivo">
+                        <i class="bi bi-calendar-x me-1"></i>{{ horarios.motivo }}{% if feriado %} ({{ feriado }}){% endif %}.
+                        Escolha outra data.
+                    </p>
+                    {% else %}
+                    <fieldset>
+                        <legend class="form-label fs-6">Horários livres em {{ horarios.data | data_br }}</legend>
+                        <div class="remarcar-horarios">
+                            {% for h in horarios.horarios %}
+                            {% set valor = h.isoformat(timespec='minutes') %}
+                            <input type="radio" class="btn-check" name="novo_horario" id="h-{{ loop.index }}" value="{{ valor }}"
+                                   {% if valor == escolhido %}checked{% endif %} required>
+                            <label class="btn btn-outline-primary font-monospace-num" for="h-{{ loop.index }}">{{ h.strftime('%H:%M') }}</label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted small mb-0" id="horarios-instrucao">Escolha uma data para ver os horários livres.</p>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary mt-4 {% if not horarios or horarios.motivo %}d-none{% endif %}" id="btn-confirmar">
+                    Confirmar remarcação
+                </button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

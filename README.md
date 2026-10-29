@@ -36,9 +36,14 @@ nacionais), Pytest.
 - Pagamento do plano por Pix (pagar em até 4 horas) ou boleto (vencimento próprio em dias úteis,
   respeitando a data da primeira sessão), via AbacatePay, com confirmação automática por webhook,
   conferência de reserva na própria AbacatePay e e-mail de confirmação.
+- Lista de consultas (próximas e anteriores) e remarcação de uma consulta já paga: o Cliente escolhe uma
+  nova data e um horário livre do mesmo profissional, com pelo menos 4 horas de antecedência do horário
+  original, sem cair em feriado nem fora dos horários da clínica; as demais sessões do plano não mudam.
 
 **Profissional**
-- Login, página inicial e alteração de senha.
+- Login, página inicial (com a quantidade de consultas de hoje) e alteração de senha.
+- Agenda de atendimentos por dia, semana ou período (até 92 dias), com o atendido (nome e idade), a
+  especialidade e a observação do plano; só aparecem consultas já confirmadas (pagas).
 
 **Admin**
 - Gestão de profissionais (cadastro, edição, desativação e reativação, com contato e formação
@@ -68,8 +73,8 @@ em `app/core/config.py`.
 | 2 | RF02 (perfil), RF03 (atendidos), RF11 (profissionais), RF12 (especialidades) | Concluída |
 | 3 | RF04 (especialidades e profissionais) e RF05 (simulação e disponibilidade, feriados) | Concluída |
 | 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
-| 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Ajustes concluídos; RF08 pendente |
-| 6 | RF07 (remarcação) | Pendente |
+| 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Concluída |
+| 6 | RF07 (remarcação) | Concluída |
 | 7 | RF09 (avaliações) e RF10 (histórico) | Pendente |
 | 8 | Testes finais, segurança, privacidade e apresentação | Pendente |
 
