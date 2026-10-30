@@ -49,6 +49,7 @@ def test_especialidade_sem_profissionais_retorna_lista_vazia(db, fono):
 
 def test_cliente_ve_especialidades_com_valor_e_chip(client, db, fono, cliente_logado):
     psico = criar_especialidade(db, "Psicologia", "1250.00")
+    criar_funcionario(db, psico, email="paula@exemplo.com", nome="Paula Psico")  # o link só aparece com profissional ativo
     html = client.get("/especialidades").text
 
     assert 'class="chip-especialidade align-self-start">Fonoaudiologia' in html
@@ -56,6 +57,38 @@ def test_cliente_ve_especialidades_com_valor_e_chip(client, db, fono, cliente_lo
     assert "R$ 150,00" in html and "R$ 1.250,00" in html
     assert f'href="/especialidades/{psico.id}/profissionais"' in html
     assert "Contratar" not in html.split("<main", 1)[1]  # a navbar tem "Contratar plano"; o conteúdo da página não
+
+
+def test_especialidades_com_profissional_ativo(db, fono, equipe_fono):
+    terapia = criar_especialidade(db, "Terapia Ocupacional")
+    so_inativo = criar_especialidade(db, "Psicologia")
+    inativo = criar_funcionario(db, so_inativo, email="paula@exemplo.com", nome="Paula Psico")
+    funcionario_service.desativar(db, inativo.usuario.id, AGORA.replace(tzinfo=None))
+
+    ids = funcionario_service.especialidades_com_profissional_ativo(db)
+    assert ids == {fono.id}
+    assert terapia.id not in ids and so_inativo.id not in ids
+
+
+def test_especialidade_com_e_sem_profissional_ativo_na_lista(client, db, fono, equipe_fono, cliente_logado):
+    terapia = criar_especialidade(db, "Terapia Ocupacional", "180.00")
+    html = " ".join(client.get("/especialidades").text.split())
+
+    assert f'href="/especialidades/{fono.id}/profissionais"' in html
+    assert f'href="/especialidades/{terapia.id}/profissionais"' not in html
+    assert html.count("Sem profissionais disponíveis no momento") == 1
+    assert 'chip-especialidade align-self-start">Terapia Ocupacional' in html  # o cartão continua visível
+    assert "R$ 180,00" in html
+    assert html.count("Ver profissionais") == 1
+
+
+def test_especialidade_so_com_inativos_na_lista_fica_sem_botao(client, db, fono, cliente_logado):
+    inativo = criar_funcionario(db, fono)
+    funcionario_service.desativar(db, inativo.usuario.id, AGORA.replace(tzinfo=None))
+
+    html = client.get("/especialidades").text
+    assert "Sem profissionais disponíveis no momento" in html
+    assert f'href="/especialidades/{fono.id}/profissionais"' not in html
 
 
 def test_cliente_sem_especialidades_ve_estado_vazio(client, cliente_logado):

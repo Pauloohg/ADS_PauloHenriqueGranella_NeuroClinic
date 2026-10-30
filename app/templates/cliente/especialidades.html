@@ -17,9 +17,15 @@
             <span class="chip-especialidade align-self-start">{{ especialidade.nome }}</span>
             <p class="cartao-especialidade-rotulo">Valor da sessão</p>
             <p class="cartao-especialidade-valor font-monospace-num">{{ especialidade.valor_sessao | moeda }}</p>
+            {% if especialidade.id in com_profissional %}
             <a href="/especialidades/{{ especialidade.id }}/profissionais" class="btn btn-outline-primary btn-sm align-self-start mt-auto">
                 Ver profissionais<span class="visually-hidden"> de {{ especialidade.nome }}</span><i class="bi bi-arrow-right ms-1"></i>
             </a>
+            {% else %}
+            <p class="especialidade-sem-profissional mt-auto mb-0">
+                <i class="bi bi-person-dash me-1" aria-hidden="true"></i>Sem profissionais disponíveis no momento
+            </p>
+            {% endif %}
         </article>
     </div>
     {% endfor %}

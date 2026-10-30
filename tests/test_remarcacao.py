@@ -100,7 +100,7 @@ def _remarcar(client, sessao_id, novo: datetime | str):
 
 def test_rn02_exatamente_4_horas_pode_e_3h59_nao():
     assert remarcacao_service.motivo_bloqueio(AGENDADA, AGORA + timedelta(hours=4), AGORA) is None
-    assert remarcacao_service.motivo_bloqueio(AGENDADA, AGORA + timedelta(hours=3, minutes=59), AGORA) == "Faltam menos de 4 horas"
+    assert remarcacao_service.motivo_bloqueio(AGENDADA, AGORA + timedelta(hours=3, minutes=59), AGORA) == "Remarcação indisponível: menos de 4 h para a consulta"
     with pytest.raises(RemarcacaoInvalida) as erro:
         remarcacao_service.validar_sessao_remarcavel(AGENDADA, datetime(2026, 11, 3, 13, 59), AGORA)
     assert "pelo menos 4 horas de antecedência" in erro.value.mensagem
@@ -108,7 +108,7 @@ def test_rn02_exatamente_4_horas_pode_e_3h59_nao():
 
 
 @pytest.mark.parametrize("status, data_hora, motivo", [
-    (PENDENTE, QUI, "Disponível após o pagamento"),
+    (PENDENTE, QUI, "Após o pagamento"),
     (REALIZADA, datetime(2026, 11, 2, 14, 0), "Consulta já realizada"),
     (AGENDADA, datetime(2026, 11, 2, 14, 0), "Horário já passou"),
     (AGENDADA, AGORA, "Horário já passou"),
@@ -469,8 +469,8 @@ def test_lista_proximas_com_status_botao_e_motivos(db, logado, paciente, fono, p
     datas = re.findall(r'consulta-data">\w+, <span class="font-monospace-num">([\d/]+)</span></span> <span[^>]*>(\d\d:\d\d)', html)
     assert datas == [("03/11/2026", "13:00"), ("04/11/2026", "09:00"), ("05/11/2026", "14:00"),
                      ("10/11/2026", "14:00"), ("12/11/2026", "14:00")]
-    assert "Faltam menos de 4 horas" in html
-    assert "Disponível após o pagamento" in html
+    assert "Remarcação indisponível: menos de 4 h para a consulta" in html
+    assert "Após o pagamento" in html
     assert html.count(">Remarcar</a>") == 3
     assert html.count('status-pendente">Aguardando pagamento<') == 1
     assert html.count('status-remarcada">Remarcada<') == 1
@@ -526,3 +526,44 @@ def test_lista_faz_uma_unica_consulta_ao_banco(db, cliente, fono):
         event.remove(db.get_bind(), "before_cursor_execute", ouvinte)
     assert len(pagina.consultas) == 6 and pagina.total == 6
     assert len(comandos) == 1
+
+
+# --- Polimento de interface (entre as Semanas 6 e 7) ---------------------------------------------
+
+def test_aviso_unico_de_sessoes_aguardando_pagamento_com_link_por_plano(db, logado, paciente, fono, psico, plano):
+    fono_pendente = criar_plano(db, paciente, fono, [
+        (datetime(2026, 11, 4, 9, 0), PENDENTE), (datetime(2026, 11, 11, 9, 0), PENDENTE),
+    ], criado_em=CRIADO_NO_PRAZO)
+    psico_pendente = criar_plano(db, paciente, psico, [(datetime(2026, 11, 6, 15, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
+
+    html = _html(logado.get("/consultas"))
+    assert html.count('id="aviso-pagamento-pendente"') == 1
+    assert "3 sessões aguardando pagamento" in html
+    for p in (fono_pendente, psico_pendente):
+        assert html.count(f'href="/planos/{p.id}" class="btn btn-primary btn-sm">Pagar agora') == 1
+    assert f'href="/planos/{plano.id}"' not in html  # plano pago não ganha link de pagamento
+    assert html.count(">Após o pagamento<") == 3
+    assert html.count(">Remarcar</a>") == 3  # a regra não muda: só sessão agendada é remarcável
+
+
+def test_aviso_de_pagamento_no_singular_e_fora_da_aba_anteriores(db, logado, paciente, fono):
+    criar_plano(db, paciente, fono, [(datetime(2026, 11, 4, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
+    assert "1 sessão aguardando pagamento" in _html(logado.get("/consultas"))
+    assert "aviso-pagamento-pendente" not in _html(logado.get("/consultas", params={"aba": "anteriores"}))
+
+
+def test_sem_aviso_de_pagamento_quando_nada_esta_pendente_ou_o_prazo_venceu(db, logado, paciente, fono, plano):
+    assert "aviso-pagamento-pendente" not in _html(logado.get("/consultas"))
+    criar_plano(db, paciente, fono, [(datetime(2026, 11, 4, 9, 0), PENDENTE)], criado_em=CRIADO_VENCIDO)
+    assert "aviso-pagamento-pendente" not in _html(logado.get("/consultas"))
+
+
+def test_tela_de_remarcar_mostra_o_limite_da_janela(db, logado, plano, monkeypatch):
+    html = _html(logado.get(f"/consultas/{_sessao(db, plano, QUI).id}/remarcar"))
+    assert "até 02/01/2027 (60 dias a partir de hoje)" in html
+
+    monkeypatch.setattr(remarcacao_service, "JANELA_REMARCACAO_DIAS", 30)
+    monkeypatch.setattr(consultas_router, "JANELA_REMARCACAO_DIAS", 30)
+    monkeypatch.setattr(remarcacao_service, "janela", lambda agora: (agora.date(), agora.date() + timedelta(days=30)))
+    html = _html(logado.get(f"/consultas/{_sessao(db, plano, QUI).id}/remarcar"))
+    assert "até 03/12/2026 (30 dias a partir de hoje)" in html

@@ -17,7 +17,8 @@
        {% if visao.tipo == 'periodo' %}aria-current="page"{% endif %}>Período</a>
 </nav>
 
-<details id="periodo" class="cartao agenda-filtro mb-4" {% if visao.tipo == 'periodo' or erro_no_periodo %}open{% endif %}>
+{% if visao.tipo == 'periodo' or erro_no_periodo %}
+<details id="periodo" class="cartao agenda-filtro mb-4" open>
     <summary class="fw-medium">Escolher um período <span class="text-muted small fw-normal">(até 92 dias)</span></summary>
     <form method="get" action="/agenda" class="agenda-filtro-form mt-3" novalidate>
         <input type="hidden" name="visao" value="periodo">
@@ -37,6 +38,7 @@
         {% endif %}
     </form>
 </details>
+{% endif %}
 
 {% if erro and not erro_no_periodo %}
 <div class="alert alert-warning" role="alert">{{ erro }} Mostrando a semana atual.</div>

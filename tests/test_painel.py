@@ -297,3 +297,35 @@ def test_cliente_e_funcionario_nao_acessam_o_painel(client, db, fono, perfil):
 def test_painel_sem_login_redireciona(client):
     resposta = client.get("/admin/painel", follow_redirects=False)
     assert resposta.status_code == 303 and resposta.headers["location"] == "/login"
+
+
+# --- Polimento de interface ----------------------------------------------------------------------
+
+def test_mes_atual_e_rotulado_como_em_andamento_ate_hoje(admin_logado, db):
+    html = _html(admin_logado.get("/admin/painel"))
+    assert "Mês em andamento (até 15/10)" in html
+    assert "Mês em andamento" not in _html(admin_logado.get("/admin/painel?mes=2026-09"))
+
+
+def test_comparacao_do_mes_atual_diz_mes_anterior_inteiro(admin_logado, db, fono, paciente):
+    _contratar(db, paciente, fono, "1200.00", datetime(2026, 9, 10, 15, 0))
+    assert "em relação a setembro inteiro (R$ 1.200,00)" in _html(admin_logado.get("/admin/painel"))
+
+    setembro = _html(admin_logado.get("/admin/painel?mes=2026-09"))
+    assert "em relação a agosto (R$ 0,00)" in setembro and "inteiro" not in setembro
+
+
+def test_botao_do_mes_seguinte_mostra_o_nome_do_mes(admin_logado, db):
+    atual = _html(admin_logado.get("/admin/painel"))
+    assert 'aria-disabled="true" title="Mês ainda não chegou">Novembro<' in atual
+    assert "?mes=2026-11" not in atual and ">Próximo<" not in atual
+
+    setembro = _html(admin_logado.get("/admin/painel?mes=2026-09"))
+    assert 'href="/admin/painel?mes=2026-10" class="btn btn-outline-primary btn-sm" rel="next"> Outubro<' in setembro
+    assert 'aria-disabled="true"' not in setembro
+
+
+def test_coluna_de_clientes_ativos_diz_hoje(admin_logado, db, fono, paciente):
+    html = _html(admin_logado.get("/admin/painel"))
+    assert '<th scope="col">Clientes com plano ativo hoje</th>' in html
+    assert 'data-rotulo="Clientes com plano ativo hoje"' in html

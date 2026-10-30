@@ -17,7 +17,7 @@
         {{ so_mes(painel.mes_seguinte) | capitalize }}<i class="bi bi-chevron-right ms-1"></i>
     </a>
     {% else %}
-    <span class="btn btn-outline-primary btn-sm disabled" aria-disabled="true">Próximo<i class="bi bi-chevron-right ms-1"></i></span>
+    <span class="btn btn-outline-primary btn-sm disabled" aria-disabled="true" title="Mês ainda não chegou">{{ so_mes(proximo_mes) | capitalize }}<i class="bi bi-chevron-right ms-1"></i></span>
     {% endif %}
 </nav>
 {% endblock %}
@@ -37,10 +37,13 @@
             <div class="cartao indicador">
                 <p class="indicador-rotulo">Receita do mês</p>
                 <p class="indicador-valor font-monospace-num">{{ p.receita | moeda }}</p>
+                {% if p.mes == hoje.replace(day=1) %}
+                <p class="indicador-andamento" id="mes-em-andamento">Mês em andamento (até {{ hoje.strftime("%d/%m") }})</p>
+                {% endif %}
                 {% set v = p.variacao %}
                 <p class="indicador-detalhe">
                     <span class="variacao {% if v.valor > 0 %}variacao-alta{% elif v.valor < 0 %}variacao-baixa{% endif %}">{{ sinal(v.valor) }}{{ v.valor | abs | moeda }} ({% if v.percentual is none %}—{% else %}{{ sinal(v.percentual) }}{{ v.percentual | abs | percentual }}{% endif %})</span>
-                    em relação a {{ so_mes(p.mes_anterior) }} ({{ p.receita_anterior | moeda }})
+                    em relação a {{ so_mes(p.mes_anterior) }}{% if p.mes == hoje.replace(day=1) %} inteiro{% endif %} ({{ p.receita_anterior | moeda }})
                 </p>
             </div>
         </div>
@@ -112,7 +115,7 @@
                 <thead>
                     <tr>
                         <th scope="col">Especialidade</th>
-                        <th scope="col">Clientes com plano ativo</th>
+                        <th scope="col">Clientes com plano ativo hoje</th>
                         <th scope="col">Planos no mês</th>
                         <th scope="col">Receita no mês</th>
                     </tr>
@@ -124,7 +127,7 @@
                             <span class="chip-especialidade">{{ linha.nome }}</span>
                             {% if linha.destaque %}<span class="selo-destaque"><i class="bi bi-star-fill me-1" aria-hidden="true"></i>Mais clientes</span>{% endif %}
                         </th>
-                        <td data-rotulo="Clientes com plano ativo">
+                        <td data-rotulo="Clientes com plano ativo hoje">
                             <span class="barra-valor font-monospace-num">{{ linha.clientes_ativos }}</span>
                             <span class="barra" aria-hidden="true"><span class="barra-preenchida" style="width: {{ linha.largura_clientes }}%"></span></span>
                         </td>

@@ -10,6 +10,7 @@ from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
 from app.services.admin_clientes_service import POR_PAGINA
+from app.services.inicio_service import AGUARDANDO_PAGAMENTO, planos_do_cliente
 from app.services.plano_service import DURACAO_SESSAO
 from app.services.remarcacao_service import motivo_bloqueio
 
@@ -33,6 +34,14 @@ class ConsultaCliente:
     @property
     def pode_remarcar(self) -> bool:
         return self.motivo_bloqueio is None
+
+
+@dataclass(frozen=True)
+class PlanoAguardandoPagamento:
+    plano_id: int
+    atendido: str
+    especialidade: str
+    sessoes: int
 
 
 @dataclass(frozen=True)
@@ -89,3 +98,11 @@ def consultas_do_cliente(db: Session, cliente_id: int, agora: datetime, aba: str
         for id_, data_hora, atendido, profissional, especialidade, status, remarcada, _ in linhas
     ]
     return PaginaConsultas(consultas, aba, pagina, max(1, -(-total // POR_PAGINA)), total)
+
+
+def planos_aguardando_pagamento(db: Session, cliente_id: int, agora: datetime) -> list[PlanoAguardandoPagamento]:
+    return [
+        PlanoAguardandoPagamento(r.plano.id, r.paciente, r.especialidade, r.total_sessoes)
+        for r in planos_do_cliente(db, cliente_id, agora)
+        if r.situacao == AGUARDANDO_PAGAMENTO
+    ]

@@ -32,8 +32,10 @@
                 <dt>Valor da sessão</dt>
                 <dd class="font-monospace-num">{{ sim.valor_sessao | moeda }} <span class="text-muted small">(valor atual)</span></dd>
                 {{ linhas_desconto(sim.valor_bruto, sim.desconto_percentual, sim.valor_desconto) }}
-                <dt>Valor total</dt>
-                <dd class="font-monospace-num fw-semibold">{{ sim.valor_total | moeda }}</dd>
+            </dl>
+            <dl class="resumo-valores renovacao-total">
+                <dt class="resumo-total-rotulo">Valor total</dt>
+                <dd class="resumo-total font-monospace-num">{{ sim.valor_total | moeda }}</dd>
             </dl>
             {% if sim.feriados_pulados %}
             <p class="small text-muted"><i class="bi bi-calendar-event me-1"></i>{{ sim.feriados_pulados | length }} feriado(s) pulado(s); o plano se estende sem mudar o valor.</p>

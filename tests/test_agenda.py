@@ -517,3 +517,20 @@ def test_visao_de_dia_feriado_tem_selo_no_titulo(client, db, fono):
     logar(client, fono.usuario.email)
     html = _agenda(client, visao="dia", data="2026-11-02")
     assert re.search(r'Segunda, 02/11/2026 <span class="badge rounded-pill status-inativo agenda-selo-titulo">Feriado nacional<', html)
+
+
+# --- Polimento de interface: o filtro de período só aparece na aba Período -----------------------
+
+@pytest.mark.parametrize("params", [{}, {"visao": "semana"}, {"visao": "dia", "data": "2026-10-28"}])
+def test_filtro_de_periodo_nao_aparece_nas_abas_dia_e_semana(client, fono, params):
+    logar(client, fono.usuario.email)
+    html = _agenda(client, **params)
+    assert 'id="periodo"' not in html and "Escolher um período" not in html
+    assert 'href="/agenda?visao=periodo' in html  # a aba Período continua disponível
+
+
+def test_filtro_de_periodo_aparece_na_aba_periodo_e_no_erro_do_periodo(client, fono):
+    logar(client, fono.usuario.email)
+    assert "Escolher um período" in _agenda(client, visao="periodo", inicio="2026-10-26", fim="2026-11-06")
+    html = _agenda(client, visao="periodo", inicio="2026-10-10", fim="2026-10-01")
+    assert "Escolher um período" in html and agenda_service.MSG_PERIODO_INVERTIDO in html

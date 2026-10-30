@@ -20,6 +20,24 @@
        {% if r.aba == 'anteriores' %}aria-current="page"{% endif %}>Anteriores</a>
 </nav>
 
+{% if aguardando_pagamento %}
+{% set total_pendentes = aguardando_pagamento | sum(attribute="sessoes") %}
+<section class="aviso-consultas-pendentes mb-4" id="aviso-pagamento-pendente" aria-labelledby="titulo-aviso-pendente">
+    <p class="fw-semibold mb-1" id="titulo-aviso-pendente">
+        <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ total_pendentes }} {{ "sessão aguardando pagamento" if total_pendentes == 1 else "sessões aguardando pagamento" }}
+    </p>
+    <p class="small mb-2">Depois que o pagamento do plano for recebido, elas ficam confirmadas e podem ser remarcadas.</p>
+    <ul class="aviso-consultas-planos">
+        {% for p in aguardando_pagamento %}
+        <li>
+            <span>{{ p.atendido }} · {{ p.especialidade }} <span class="small">({{ p.sessoes }} {{ "sessão" if p.sessoes == 1 else "sessões" }})</span></span>
+            <a href="/planos/{{ p.plano_id }}" class="btn btn-primary btn-sm">Pagar agora<span class="visually-hidden"> o plano de {{ p.atendido }} ({{ p.especialidade }})</span></a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 {% if r.consultas %}
 <p class="small text-muted mb-2">{{ r.total }} {{ "consulta" if r.total == 1 else "consultas" }}{% if r.aba == 'proximas' %} a partir de agora{% endif %}.</p>
 <ul class="lista-consultas">

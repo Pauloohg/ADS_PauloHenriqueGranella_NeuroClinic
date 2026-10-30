@@ -9,7 +9,7 @@
 {% block title %}Cobrança do plano — NeuroClinic{% endblock %}
 {% block head %}{% if aguardando %}<meta http-equiv="refresh" content="{{ intervalo_atualizacao }}">{% endif %}{% endblock %}
 {% block voltar %}{{ voltar("/planos/" ~ plano.id, "Plano") }}{% endblock %}
-{% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else "Pagamento via " ~ rotulos_forma[pagamento.forma_pagamento] }}{% endblock %}
+{% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else ("Pagamento via Pix" if pagamento.forma_pagamento.value == "pix" else "Pagamento via boleto") }}{% endblock %}
 {% block subtitulo_pagina %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endblock %}
 
 {% block conteudo %}
@@ -40,16 +40,16 @@
                 {% endif %}
                 <div class="flex-grow-1">
                     <p class="small text-muted">Abra o app do seu banco, escolha Pix e leia o QR Code, ou use o código copia e cola:</p>
-                    <label for="pix-copia-cola" class="form-label">Pix copia e cola</label>
-                    <textarea id="pix-copia-cola" class="form-control font-monospace small cobranca-codigo" rows="4" readonly>{{ cobranca.br_code or "" }}</textarea>
-                    <p class="form-text">Selecione o texto e copie.</p>
+                    <p class="form-label" id="rotulo-pix-copia-cola">Pix copia e cola</p>
+                    <p id="pix-copia-cola" class="cobranca-codigo mb-0" aria-labelledby="rotulo-pix-copia-cola" aria-describedby="ajuda-pix-copia-cola">{{ cobranca.br_code or "" }}</p>
+                    <p class="form-text" id="ajuda-pix-copia-cola">Clique no código para selecioná-lo e copie.</p>
                 </div>
             </div>
             {% else %}
             <h2 class="cartao-titulo" id="titulo-cobranca">Pague com boleto</h2>
-            <label for="linha-digitavel" class="form-label">{{ "Linha digitável" if cobranca.linha_digitavel else "Código de barras" }}</label>
-            <input id="linha-digitavel" type="text" class="form-control font-monospace cobranca-codigo" value="{{ cobranca.linha_digitavel or cobranca.codigo_barras or '' }}" readonly>
-            <p class="form-text">Selecione o texto e copie, ou abra o boleto para imprimir.</p>
+            <p class="form-label" id="rotulo-linha-digitavel">{{ "Linha digitável" if cobranca.linha_digitavel else "Código de barras" }}</p>
+            <p id="linha-digitavel" class="cobranca-codigo mb-0" aria-labelledby="rotulo-linha-digitavel" aria-describedby="ajuda-linha-digitavel">{{ cobranca.linha_digitavel or cobranca.codigo_barras or '' }}</p>
+            <p class="form-text" id="ajuda-linha-digitavel">Clique no código para selecioná-lo e copie, ou abra o boleto para imprimir.</p>
             <p class="small mb-0" id="vencimento-boleto"><i class="bi bi-calendar-event me-1"></i>Vence em {{ tela.prazo | data_br }}. O horário fica reservado até o vencimento.</p>
             {% if cobranca.url_boleto %}
             <a href="{{ cobranca.url_boleto }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir boleto</a>

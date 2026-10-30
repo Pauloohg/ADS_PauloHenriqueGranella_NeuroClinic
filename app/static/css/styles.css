@@ -16,6 +16,19 @@
     --cor-fundo-creme-escuro: #EDE7D9;
     --cor-texto-escuro: #1F2A22;
 
+    --cor-borda-campo: #7D8479;
+    --cor-erro: #B02A37;
+    --cor-erro-rgb: 176, 42, 55;
+    --cor-aviso-salvia-fundo: #E3E8E0;
+    --cor-aviso-salvia-texto: #2F3830;
+    --cor-aviso-salvia-borda: #C4CEC1;
+    --cor-aviso-creme-borda: #DDD4C1;
+
+    --bs-danger: var(--cor-erro);
+    --bs-danger-rgb: var(--cor-erro-rgb);
+    --bs-form-invalid-color: var(--cor-erro);
+    --bs-form-invalid-border-color: var(--cor-erro);
+
     --cor-psicopedagogia: #C68A3D;
     --cor-psicopedagogia-texto: #7A4E14;
     --cor-psicopedagogia-fundo: #F6E8D3;
@@ -52,11 +65,32 @@
     --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
+.form-control,
+.form-select,
+.form-check-input {
+    border-color: var(--cor-borda-campo);
+}
+
 /* Mesmo motivo: o foco de .form-control usa azul fixo no CSS do Bootstrap */
 .form-control:focus,
 .form-select:focus {
-    border-color: #9AA697;
+    border-color: var(--bs-primary);
     box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Avisos informativos na paleta: .alert-info em verde-sálvia e .alert-secondary em creme escuro */
+.alert-info {
+    --bs-alert-color: var(--cor-aviso-salvia-texto);
+    --bs-alert-bg: var(--cor-aviso-salvia-fundo);
+    --bs-alert-border-color: var(--cor-aviso-salvia-borda);
+    --bs-alert-link-color: var(--cor-aviso-salvia-texto);
+}
+
+.alert-secondary {
+    --bs-alert-color: var(--cor-texto-escuro);
+    --bs-alert-bg: var(--cor-fundo-creme-escuro);
+    --bs-alert-border-color: var(--cor-aviso-creme-borda);
+    --bs-alert-link-color: var(--cor-texto-escuro);
 }
 
 .container-wide {
@@ -621,6 +655,11 @@
     margin-bottom: 1.25rem;
 }
 
+.especialidade-sem-profissional {
+    font-size: 0.875rem;
+    color: var(--bs-secondary-color);
+}
+
 .lista-profissionais {
     list-style: none;
     padding: 0;
@@ -822,8 +861,11 @@
 
 @media (min-width: 992px) {
     .resumo-plano {
+        --resumo-topo: 1rem;
         position: sticky;
-        top: 1.5rem;
+        top: var(--resumo-topo);
+        max-height: calc(100vh - 2 * var(--resumo-topo));
+        overflow-y: auto;
     }
 }
 
@@ -1056,6 +1098,10 @@
     border-left: 4px solid var(--bs-primary);
 }
 
+.resumo-valores.renovacao-total {
+    margin: 0.75rem 0 1.5rem;
+}
+
 .prazo-pagamento {
     margin-top: 1.25rem;
     padding: 0.9rem 1rem;
@@ -1126,8 +1172,17 @@
 }
 
 .cobranca-codigo {
-    word-break: break-all;
+    display: block;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--cor-borda-campo);
+    border-radius: var(--bs-border-radius);
     background-color: var(--cor-fundo-creme);
+    font-family: var(--bs-font-monospace);
+    font-size: 0.875rem;
+    word-break: break-all;
+    -webkit-user-select: all;
+    user-select: all;
+    cursor: text;
 }
 
 /* --- Admin: clientes (RF14) e painel (RF15) --------------------------------------------------- */
@@ -1193,6 +1248,17 @@
     font-weight: 600;
     color: var(--cor-texto-escuro);
     margin-bottom: 0.25rem;
+}
+
+.indicador-andamento {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
 }
 
 .indicador-detalhe {
@@ -1286,6 +1352,14 @@
     text-transform: none;
     color: var(--cor-texto-escuro);
     border-left: 4px solid transparent;
+}
+
+.tabela-especialidades th[scope="row"] {
+    min-width: 13rem;
+}
+
+.tabela-especialidades .chip-especialidade {
+    white-space: nowrap;
 }
 
 .tabela-especialidades .linha-destaque th[scope="row"] {
@@ -1777,6 +1851,30 @@
 .status-remarcada {
     background-color: #E1E8EF;
     color: #2F4558;
+}
+
+.aviso-consultas-pendentes {
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+.aviso-consultas-planos {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.aviso-consultas-planos li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
 }
 
 .lista-consultas {

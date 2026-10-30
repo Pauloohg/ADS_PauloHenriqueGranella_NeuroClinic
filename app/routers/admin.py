@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from dateutil.relativedelta import relativedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
@@ -297,4 +298,10 @@ def painel(request: Request, mes: str | None = None, usuario: Usuario = Depends(
     agora = agora_local()
     mes_escolhido, ajustado = painel_service.resolver_mes(mes, agora)
     dados = painel_service.montar_painel(db, mes_escolhido, agora, ajustado)
-    return templates.TemplateResponse(request, TEMPLATE_PAINEL, {"usuario": usuario, "painel": dados})
+    contexto = {
+        "usuario": usuario,
+        "painel": dados,
+        "hoje": agora.date(),
+        "proximo_mes": dados.mes + relativedelta(months=1),
+    }
+    return templates.TemplateResponse(request, TEMPLATE_PAINEL, contexto)

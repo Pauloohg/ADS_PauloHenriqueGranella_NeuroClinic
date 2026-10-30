@@ -95,6 +95,11 @@ def listar_ativos_da_especialidade(db: Session, especialidade_id: int) -> list[U
     return list(db.scalars(consulta))
 
 
+def especialidades_com_profissional_ativo(db: Session) -> set[int]:
+    consulta = select(Funcionario.especialidade_id).where(Funcionario.ativo.is_(True)).distinct()
+    return set(db.scalars(consulta))
+
+
 def buscar(db: Session, funcionario_id: int) -> FuncionarioResumo:
     funcionario = db.get(Funcionario, funcionario_id)
     if funcionario is None:

@@ -39,7 +39,8 @@ def test_home_visitante_mostra_landing_institucional(client):
 
 def test_home_visitante_mostra_botoes_de_cta(client):
     html = _html_normalizado(client.get("/"))
-    assert _tem_link(html, "/cadastro", "Agendar avaliação")
+    assert "Agendar avaliação" not in html  # "avaliação" é o documento do RF09/RF10, não a marcação de consulta
+    assert html.count('href="/cadastro" class="btn btn-primary btn-lg px-4">Criar minha conta</a>') == 1
     assert _tem_link(html, "/login", "Já sou cliente")
     assert _tem_link(html, "/cadastro", "Criar minha conta")
 

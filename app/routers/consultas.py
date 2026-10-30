@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import JANELA_REMARCACAO_DIAS
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -68,6 +69,10 @@ def listar(
     contexto = {
         "usuario": usuario,
         "resultado": resultado,
+        "aguardando_pagamento": (
+            consultas_service.planos_aguardando_pagamento(db, usuario.id, agora)
+            if resultado.aba == consultas_service.PROXIMAS else []
+        ),
         "sucesso": _mensagem_da_lista(db, usuario, remarcada, repetido == "1"),
         "repetido": repetido == "1",
     }
@@ -90,6 +95,7 @@ def _tela_remarcar(request, usuario, db, consulta, agora, data_texto="", escolhi
         "bloqueio": bloqueio,
         "janela_inicio": inicio,
         "janela_fim": fim,
+        "janela_dias": JANELA_REMARCACAO_DIAS,
         "data_texto": data_texto,
         "data_invalida": bool(data_texto) and dia is None,
         "horarios": horarios,

@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -98,6 +99,11 @@ def _pagar(client, plano, forma="pix"):
 
 def _html(resposta) -> str:
     return " ".join(resposta.text.split())
+
+
+def _codigo(html: str, id_: str) -> str | None:
+    achado = re.search(rf'<p id="{id_}" class="cobranca-codigo[^"]*"[^>]*>([^<]*)</p>', html)
+    return achado.group(1) if achado else None
 
 
 # --- Conversão e regras puras ------------------------------------------------------------------
@@ -373,7 +379,8 @@ def test_tela_do_pix_tem_qr_code_copia_e_cola_e_atualizacao(client, plano, maria
     html = _html(resposta)
     assert resposta.status_code == 200
     assert f'src="{QR_CODE_BASE64}"' in html
-    assert f"readonly>{BR_CODE}</textarea>" in html
+    assert _codigo(html, "pix-copia-cola") == BR_CODE and "<textarea" not in html
+    assert "Clique no código para selecioná-lo e copie." in html
     assert '<meta http-equiv="refresh" content="15">' in html
     for trecho in ("R$ 750,00", "Prazo limite", "01/08/2026 às 13:00", "horário de Brasília", "Aguardando pagamento"):
         assert trecho in html, trecho
@@ -384,9 +391,9 @@ def test_tela_do_boleto_tem_linha_digitavel_e_link(client, plano_boleto, maria_l
     api_falsa.responder("/transparents/create", cobranca_boleto())
     html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
-    assert f'value="{LINHA_DIGITAVEL}" readonly' in html
+    assert _codigo(html, "linha-digitavel") == LINHA_DIGITAVEL and "readonly" not in html
     assert f'href="{URL_BOLETO}" target="_blank" rel="noopener noreferrer"' in html
-    assert "Pagamento via Boleto" in html and "R$ 600,00" in html
+    assert "Pagamento via boleto" in html and "Pagamento via Boleto" not in html and "R$ 600,00" in html
     assert '<meta http-equiv="refresh" content="15">' in html
 
 
@@ -517,7 +524,7 @@ def test_boleto_mostra_linha_digitavel_de_identification_number(client, plano_bo
     api_falsa.responder("/transparents/create", cobranca_boleto())
     html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
-    assert "Linha digitável" in html and f'value="{LINHA_DIGITAVEL}" readonly' in html
+    assert "Linha digitável" in html and _codigo(html, "linha-digitavel") == LINHA_DIGITAVEL
     assert CODIGO_BARRAS not in html and IDENTIFICATION_NUMBER not in html
     assert BR_CODE_ALTERNATIVO not in html and "<img" not in html.split("<main", 1)[1]
     assert f'href="{URL_BOLETO}"' in html
@@ -530,7 +537,7 @@ def test_boleto_sem_identification_number_mostra_codigo_de_barras(client, plano_
     html = _html(client.post(f"/planos/{plano_boleto.id}/pagamento", data={"forma": "boleto"}))
 
     assert "Código de barras" in html and "Linha digitável" not in html
-    assert f'value="{CODIGO_BARRAS}" readonly' in html
+    assert _codigo(html, "linha-digitavel") == CODIGO_BARRAS
 
 
 def test_boleto_reexibido_pela_consulta_usa_os_mesmos_campos(client, db, plano_boleto, maria_logada, api_falsa):
@@ -540,7 +547,7 @@ def test_boleto_reexibido_pela_consulta_usa_os_mesmos_campos(client, db, plano_b
     api_falsa.responder("/transparents/list", [cobranca_boleto()])
 
     html = _html(client.get(f"/planos/{plano_boleto.id}/cobranca"))
-    assert f'value="{LINHA_DIGITAVEL}" readonly' in html and BR_CODE_ALTERNATIVO not in html
+    assert _codigo(html, "linha-digitavel") == LINHA_DIGITAVEL and BR_CODE_ALTERNATIVO not in html
 
 
 @pytest.mark.parametrize("base64_recebido", [QR_CODE_BASE64, QR_CODE_BASE64_PURO])

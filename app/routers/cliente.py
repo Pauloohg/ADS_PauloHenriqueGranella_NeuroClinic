@@ -195,6 +195,7 @@ def listar_especialidades(request: Request, usuario: Usuario = Depends(somente_c
     contexto = {
         "usuario": usuario,
         "especialidades": especialidade_service.listar(db),
+        "com_profissional": funcionario_service.especialidades_com_profissional_ativo(db),
         "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
     }
     return templates.TemplateResponse(request, TEMPLATE_ESPECIALIDADES, contexto)

@@ -40,7 +40,7 @@
             <h2 class="cartao-titulo">Escolha o novo horário</h2>
             <p class="text-muted small">
                 A consulta continua com {{ consulta.profissional }}, no mesmo plano; as demais sessões não mudam.
-                Escolha uma data entre hoje e {{ janela_fim | data_br }}.
+                Escolha uma nova data até {{ janela_fim | data_br }} ({{ janela_dias }} dias a partir de hoje).
             </p>
 
             <form method="get" action="/consultas/{{ consulta.id }}/remarcar" id="form-data" class="remarcar-data"

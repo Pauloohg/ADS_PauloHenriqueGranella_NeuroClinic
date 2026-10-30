@@ -15,10 +15,10 @@ from app.services import plano_service
 
 ANTECEDENCIA_REMARCACAO = timedelta(hours=ANTECEDENCIA_REMARCACAO_HORAS)
 
-MOTIVO_PENDENTE = "Disponível após o pagamento"
+MOTIVO_PENDENTE = "Após o pagamento"
 MOTIVO_REALIZADA = "Consulta já realizada"
 MOTIVO_JA_PASSOU = "Horário já passou"
-MOTIVO_MENOS_DE_4H = f"Faltam menos de {ANTECEDENCIA_REMARCACAO_HORAS} horas"
+MOTIVO_MENOS_DE_4H = f"Remarcação indisponível: menos de {ANTECEDENCIA_REMARCACAO_HORAS} h para a consulta"
 
 MSG_PENDENTE = (
     "Esta consulta ainda aguarda o pagamento do plano. A remarcação fica disponível depois que o pagamento "
