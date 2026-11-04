@@ -1,0 +1,101 @@
+{% extends "_interno.html" %}
+{% set r = resultado %}
+
+{% block title %}Histórico — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Histórico{% endblock %}
+{% block subtitulo_pagina %}Consultas e avaliações de cada atendido, da mais recente para a mais antiga.{% endblock %}
+
+{% block conteudo %}
+{% if not escolhido %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
+    <h2 class="titulo-serifa h5">Nenhum atendido cadastrado</h2>
+    <p class="text-muted">O histórico mostra as consultas e avaliações de cada atendido. Comece cadastrando quem será atendido.</p>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar atendido</a>
+</section>
+{% else %}
+
+{% if atendidos | length > 1 %}
+<nav class="agenda-visoes historico-atendidos mb-3" aria-label="Escolher o atendido">
+    {% for a in atendidos %}
+    <a href="/historico?atendido={{ a.id }}" class="btn btn-sm {{ 'btn-primary' if a.id == escolhido.id else 'btn-outline-primary' }}"
+       {% if a.id == escolhido.id %}aria-current="page"{% endif %}>{{ a.nome }}</a>
+    {% endfor %}
+</nav>
+{% endif %}
+
+<h2 class="titulo-serifa h5 mb-2" id="titulo-historico">Histórico de {{ escolhido.nome }}</h2>
+
+{% if r.consultas %}
+{% set s = r.resumo %}
+<ul class="historico-resumo mb-3" aria-label="Resumo do histórico de {{ escolhido.nome }}">
+    <li><strong class="font-monospace-num">{{ s.realizadas }}</strong> {{ "realizada" if s.realizadas == 1 else "realizadas" }}</li>
+    <li><strong class="font-monospace-num">{{ s.agendadas }}</strong> {{ "agendada" if s.agendadas == 1 else "agendadas" }}</li>
+    <li><strong class="font-monospace-num">{{ s.aguardando_pagamento }}</strong> aguardando pagamento</li>
+    <li><strong class="font-monospace-num">{{ s.avaliacoes }}</strong> {{ "avaliação disponível" if s.avaliacoes == 1 else "avaliações disponíveis" }}</li>
+</ul>
+
+<ul class="lista-consultas" aria-labelledby="titulo-historico">
+    {% for c in r.consultas %}
+    <li class="consulta-item {{ c.especialidade | classe_especialidade }}">
+        <div class="consulta-quando">
+            <span class="consulta-data">{{ c.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ c.data_hora | data_br }}</span></span>
+            <span class="font-monospace-num text-muted small">{{ c.data_hora.strftime('%H:%M') }} – {{ c.fim.strftime('%H:%M') }}</span>
+        </div>
+        <div class="consulta-dados">
+            <p class="mb-1"><span class="fw-medium">{{ c.profissional }}</span></p>
+            <p class="agenda-consulta-selos mb-0">
+                <span class="chip-especialidade">{{ c.especialidade }}</span>
+                {% if c.status.value == 'pendente_pagamento' %}
+                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+                {% elif c.status.value == 'realizada' %}
+                <span class="badge rounded-pill status-inativo">Realizada</span>
+                {% else %}
+                <span class="badge rounded-pill status-ativo">Agendada</span>
+                {% endif %}
+                {% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+            </p>
+        </div>
+        <div class="consulta-acao historico-avaliacao">
+            {% if c.avaliacao_disponivel %}
+            <span class="badge rounded-pill status-avaliacao">Avaliação disponível</span>
+            {% if c.liberado_em %}<span class="small text-muted">Liberada em <span class="font-monospace-num">{{ c.liberado_em | data_br }}</span></span>{% endif %}
+            <a href="/avaliacoes/{{ c.avaliacao_id }}/arquivo" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Ver avaliação<span class="visually-hidden"> de {{ c.data_hora | data_br }} (abre em nova aba)</span>
+            </a>
+            {% elif c.nao_compareceu %}
+            <span class="badge rounded-pill status-nao-compareceu">Não compareceu</span>
+            {% elif c.aguardando_registro %}
+            <span class="consulta-motivo">Aguardando registro do profissional</span>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+{% if r.total_paginas > 1 %}
+<nav class="paginacao mt-4" aria-label="Paginação do histórico">
+    {% if r.pagina > 1 %}
+    <a class="btn btn-outline-primary btn-sm" href="/historico?{{ {'atendido': escolhido.id, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+        <i class="bi bi-chevron-left me-1"></i>Anterior
+    </a>
+    {% else %}<span></span>{% endif %}
+    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    {% if r.pagina < r.total_paginas %}
+    <a class="btn btn-outline-primary btn-sm" href="/historico?{{ {'atendido': escolhido.id, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+        Próxima<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-calendar-x"></i></div>
+    <h2 class="titulo-serifa h5">Ainda não há consultas para {{ escolhido.nome }}</h2>
+    <p class="text-muted">As consultas e as avaliações aparecem aqui depois que um plano é contratado.</p>
+    <a href="/especialidades" class="btn btn-primary">Contratar plano</a>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

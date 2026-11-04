@@ -39,11 +39,18 @@ nacionais), Pytest.
 - Lista de consultas (próximas e anteriores) e remarcação de uma consulta já paga: o Cliente escolhe uma
   nova data e um horário livre do mesmo profissional, com pelo menos 4 horas de antecedência do horário
   original, sem cair em feriado nem fora dos horários da clínica; as demais sessões do plano não mudam.
+- Histórico de cada atendido (um por vez): todas as consultas, da mais recente para a mais antiga, com o
+  status de cada uma, o aviso de não comparecimento e a avaliação em PDF quando o profissional a envia
+  (o PDF abre no navegador; só o responsável pelo atendido, o Admin e profissionais com consulta do
+  atendido conseguem acessá-lo). Um e-mail avisa quando há avaliação nova, sem anexar o arquivo.
 
 **Profissional**
 - Login, página inicial (com a quantidade de consultas de hoje) e alteração de senha.
 - Agenda de atendimentos por dia, semana ou período (até 92 dias), com o atendido (nome e idade), a
   especialidade e a observação do plano; só aparecem consultas já confirmadas (pagas).
+- Registro do atendimento depois que a sessão termina: o profissional anexa a avaliação em PDF (até
+  10 MB) ou marca que o atendido não compareceu. O registro é definitivo. A aba "A registrar" da
+  agenda lista as consultas que esperam esse registro.
 
 **Admin**
 - Gestão de profissionais (cadastro, edição, desativação e reativação, com contato e formação
@@ -75,7 +82,7 @@ em `app/core/config.py`.
 | 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
 | 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Concluída |
 | 6 | RF07 (remarcação) | Concluída |
-| 7 | RF09 (avaliações) e RF10 (histórico) | Pendente |
+| 7 | RF09 (avaliações) e RF10 (histórico) | Concluída |
 | 8 | Testes finais, segurança, privacidade e apresentação | Pendente |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel
@@ -129,6 +136,7 @@ Abra o `.env` e ajuste:
 | `DATABASE_URL` | Usuário e senha do seu PostgreSQL local. |
 | `SECRET_KEY` | Chave dos tokens JWT. Gere uma de verdade: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `MAIL_*` | Servidor SMTP dos e-mails (redefinição de senha e confirmação de pagamento). Em desenvolvimento, use o Email Sandbox do Mailtrap (gratuito), que intercepta os e-mails sem entregá-los a ninguém. Sem essas variáveis a aplicação funciona, mas nenhum e-mail é enviado (a falha de SMTP é apenas registrada no log). |
+| `AVALIACOES_DIR` | Opcional. Pasta dos PDFs das avaliações; o padrão é `dados/avaliacoes`, dentro da pasta do projeto (um caminho relativo é sempre contado a partir da raiz do projeto). A pasta é criada sozinha, fica fora de `app/static` e não é versionada. |
 | `ABACATEPAY_API_KEY` | Chave de API da AbacatePay em Dev mode (ver a seção de pagamento abaixo). |
 | `ABACATEPAY_BASE_URL` | `https://api.abacatepay.com/v2` |
 | `ABACATEPAY_WEBHOOK_SECRET` | Segredo do webhook, o mesmo valor cadastrado no painel da AbacatePay. |

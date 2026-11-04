@@ -5,17 +5,20 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.models.avaliacao import Avaliacao
 from app.models.especialidade import Especialidade
 from app.models.paciente import Paciente
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.services.admin_clientes_service import calcular_idade
+from app.services.avaliacao_service import pode_registrar
 from app.services.plano_service import DURACAO_SESSAO, eh_feriado
 
 DIA = "dia"
 SEMANA = "semana"
 PERIODO = "periodo"
 VISOES = (DIA, SEMANA, PERIODO)
+A_REGISTRAR = "registrar"  # aba do RF09; não é uma visão de datas
 
 LIMITE_PERIODO_DIAS = 92
 # Guarda contra datas absurdas digitadas na URL: a navegação soma dias e estouraria date.max
@@ -57,6 +60,11 @@ class ConsultaAgenda:
     observacao: str | None
     status: StatusSessao
     remarcada: bool
+    sessao_id: int = 0
+    avaliacao_id: int | None = None
+    comparecimento: bool | None = None
+    tem_arquivo: bool = False
+    pode_registrar: bool = False
 
 
 @dataclass(frozen=True)
@@ -162,16 +170,18 @@ def _consulta_sessoes(funcionario_id: int, inicio: date, fim: date, *colunas):
 
 
 def consultas_do_profissional(
-    db: Session, funcionario_id: int, inicio: date, fim: date, hoje: date,
+    db: Session, funcionario_id: int, inicio: date, fim: date, hoje: date, agora: datetime | None = None,
 ) -> list[ConsultaAgenda]:
     colunas = (
         Sessao.data_hora, Sessao.status, Sessao.foi_remarcada,
         Paciente.nome, Paciente.data_nascimento, Especialidade.nome, Plano.observacao,
+        Sessao.id, Avaliacao.id, Avaliacao.comparecimento, Avaliacao.arquivo_url,
     )
     consulta = (
         _consulta_sessoes(funcionario_id, inicio, fim, *colunas)
         .join(Paciente, Paciente.id == Plano.paciente_id)
         .join(Especialidade, Especialidade.id == Plano.especialidade_id)
+        .outerjoin(Avaliacao, Avaliacao.sessao_id == Sessao.id)
         .order_by(Sessao.data_hora, Sessao.id)
     )
     return [
@@ -184,8 +194,16 @@ def consultas_do_profissional(
             observacao=(observacao or "").strip() or None,
             status=status,
             remarcada=remarcada,
+            sessao_id=sessao_id,
+            avaliacao_id=avaliacao_id,
+            comparecimento=comparecimento,
+            tem_arquivo=bool(arquivo),
+            pode_registrar=agora is not None and pode_registrar(status, data_hora, agora),
         )
-        for data_hora, status, remarcada, nome, nascimento, especialidade, observacao in db.execute(consulta)
+        for (
+            data_hora, status, remarcada, nome, nascimento, especialidade, observacao,
+            sessao_id, avaliacao_id, comparecimento, arquivo,
+        ) in db.execute(consulta)
     ]
 
 

@@ -1,4 +1,5 @@
 {% extends "_interno.html" %}
+{% from "_formulario.html" import alertas %}
 
 {% block title %}Agenda — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Agenda de atendimentos{% endblock %}
@@ -6,16 +7,77 @@
 
 {% block conteudo %}
 {% set ref_hoje = hoje if visao.inicio <= hoje <= visao.fim else visao.inicio %}
+{% set visao_ativa = 'registrar' if a_registrar else visao.tipo %}
+{{ alertas(sucesso) }}
 <nav class="agenda-visoes mb-3" aria-label="Escolher visão da agenda">
     <a href="/agenda?{{ {'visao': 'dia', 'data': ref_hoje.isoformat()} | urlencode }}"
-       class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'dia' else 'btn-outline-primary' }}"
-       {% if visao.tipo == 'dia' %}aria-current="page"{% endif %}>Dia</a>
+       class="btn btn-sm {{ 'btn-primary' if visao_ativa == 'dia' else 'btn-outline-primary' }}"
+       {% if visao_ativa == 'dia' %}aria-current="page"{% endif %}>Dia</a>
     <a href="/agenda?{{ {'visao': 'semana', 'data': ref_hoje.isoformat()} | urlencode }}"
-       class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'semana' else 'btn-outline-primary' }}"
-       {% if visao.tipo == 'semana' %}aria-current="page"{% endif %}>Semana</a>
-    <a href="/agenda?{{ {'visao': 'periodo', 'inicio': visao.inicio.isoformat(), 'fim': visao.fim.isoformat()} | urlencode }}" class="btn btn-sm {{ 'btn-primary' if visao.tipo == 'periodo' else 'btn-outline-primary' }}"
-       {% if visao.tipo == 'periodo' %}aria-current="page"{% endif %}>Período</a>
+       class="btn btn-sm {{ 'btn-primary' if visao_ativa == 'semana' else 'btn-outline-primary' }}"
+       {% if visao_ativa == 'semana' %}aria-current="page"{% endif %}>Semana</a>
+    <a href="/agenda?{{ {'visao': 'periodo', 'inicio': visao.inicio.isoformat(), 'fim': visao.fim.isoformat()} | urlencode }}" class="btn btn-sm {{ 'btn-primary' if visao_ativa == 'periodo' else 'btn-outline-primary' }}"
+       {% if visao_ativa == 'periodo' %}aria-current="page"{% endif %}>Período</a>
+    <a href="/agenda?visao=registrar" class="btn btn-sm {{ 'btn-primary' if visao_ativa == 'registrar' else 'btn-outline-primary' }}"
+       {% if visao_ativa == 'registrar' %}aria-current="page"{% endif %}>A registrar{% if total_a_registrar %} <span class="badge rounded-pill agenda-contador-registrar">{{ total_a_registrar }}</span>{% endif %}</a>
 </nav>
+
+{% macro botao_registrar(c, id) %}
+<a href="/agenda/sessoes/{{ id }}/registrar" class="btn btn-primary btn-sm"><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Registrar atendimento<span class="visually-hidden"> de {{ c.atendido }}</span></a>
+{% endmacro %}
+
+{% if a_registrar %}
+{% set r = pendentes %}
+<h2 class="titulo-serifa agenda-intervalo mb-1">Consultas a registrar
+    <span class="agenda-total">{{ r.total }} {{ "consulta" if r.total == 1 else "consultas" }}</span>
+</h2>
+<p class="text-muted small mb-3">Consultas já encerradas que ainda não têm o atendimento registrado, da mais antiga para a mais recente.</p>
+{% if r.consultas %}
+<ul class="agenda-consultas agenda-a-registrar">
+    {% for c in r.consultas %}
+    <li class="agenda-consulta {{ c.especialidade | classe_especialidade }}">
+        <p class="agenda-consulta-horario font-monospace-num mb-0">
+            <span class="agenda-consulta-data">{{ c.data_hora | data_br }}</span>
+            {{ c.data_hora.strftime('%H:%M') }}<span class="text-muted"> – {{ c.fim.strftime('%H:%M') }}</span>
+        </p>
+        <div class="agenda-consulta-corpo">
+            <p class="agenda-consulta-atendido mb-1">
+                <span class="fw-medium">{{ c.atendido }}</span>
+                <span class="text-muted small">· {{ c.idade | idade }}</span>
+            </p>
+            <p class="agenda-consulta-selos mb-0">
+                <span class="chip-especialidade">{{ c.especialidade }}</span>
+                <span class="badge rounded-pill status-ativo">Agendada</span>
+                {% if c.foi_remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+            </p>
+        </div>
+        <div class="agenda-consulta-acao">{{ botao_registrar(c, c.id) }}</div>
+    </li>
+    {% endfor %}
+</ul>
+{% if r.total_paginas > 1 %}
+<nav class="paginacao mt-4" aria-label="Paginação das consultas a registrar">
+    {% if r.pagina > 1 %}
+    <a class="btn btn-outline-primary btn-sm" href="/agenda?{{ {'visao': 'registrar', 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+        <i class="bi bi-chevron-left"></i><span class="ms-1">Anterior</span>
+    </a>
+    {% endif %}
+    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    {% if r.pagina < r.total_paginas %}
+    <a class="btn btn-outline-primary btn-sm" href="/agenda?{{ {'visao': 'registrar', 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+        <span class="me-1">Próxima</span><i class="bi bi-chevron-right"></i>
+    </a>
+    {% endif %}
+</nav>
+{% endif %}
+{% else %}
+<section class="cartao estado-vazio mb-4">
+    <span class="icone-destaque mb-3"><i class="bi bi-clipboard-check"></i></span>
+    <p class="fw-medium mb-1">Nenhuma consulta aguardando registro.</p>
+    <p class="text-muted small mb-0">Quando uma consulta terminar, ela aparece aqui até você registrar o atendimento.</p>
+</section>
+{% endif %}
+{% else %}
 
 {% if visao.tipo == 'periodo' or erro_no_periodo %}
 <details id="periodo" class="cartao agenda-filtro mb-4" open>
@@ -117,6 +179,11 @@
                         <span class="chip-especialidade">{{ c.especialidade }}</span>
                         {% if c.status.value == 'realizada' %}
                         <span class="badge rounded-pill status-inativo">Realizada</span>
+                        {% if c.comparecimento == false %}
+                        <span class="badge rounded-pill status-nao-compareceu">Não compareceu</span>
+                        {% elif c.tem_arquivo %}
+                        <span class="badge rounded-pill status-avaliacao">Avaliação enviada</span>
+                        {% endif %}
                         {% else %}
                         <span class="badge rounded-pill status-ativo">Agendada</span>
                         {% endif %}
@@ -128,6 +195,13 @@
                     </p>
                     {% endif %}
                 </div>
+                {% if c.pode_registrar %}
+                <div class="agenda-consulta-acao">{{ botao_registrar(c, c.sessao_id) }}</div>
+                {% elif c.tem_arquivo and c.comparecimento %}
+                <div class="agenda-consulta-acao">
+                    <a href="/avaliacoes/{{ c.avaliacao_id }}/arquivo" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Ver avaliação<span class="visually-hidden"> de {{ c.atendido }} (abre em nova aba)</span></a>
+                </div>
+                {% endif %}
             </li>
             {% endfor %}
         </ul>
@@ -138,5 +212,6 @@
     {% endif %}
     {% endfor %}
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}

@@ -1966,3 +1966,91 @@
         text-align: left;
     }
 }
+
+/* --- Registro de atendimento e avaliações (RF09) ---------------------------------------------- */
+
+.agenda-consulta-acao {
+    grid-column: 2;
+    margin-top: 0.4rem;
+}
+
+.agenda-consulta-data {
+    display: block;
+    font-weight: 500;
+}
+
+.agenda-contador-registrar {
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+/* Verde-claro com texto escuro: não confundir com o verde cheio de "Agendada" */
+.status-avaliacao {
+    background-color: #DDEBDD;
+    color: #24452A;
+}
+
+.status-nao-compareceu {
+    background-color: #F6E0DC;
+    color: #7A2E22;
+}
+
+.aviso-registro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+.aviso-registro a {
+    color: inherit;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    .agenda-consulta-acao {
+        grid-column: 1;
+    }
+
+    .agenda-consulta-acao .btn {
+        width: 100%;
+    }
+}
+
+/* --- Histórico do atendido (RF10) ------------------------------------------------------------- */
+
+.historico-resumo {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.9rem;
+}
+
+.historico-resumo strong {
+    color: var(--cor-texto-escuro);
+}
+
+.historico-avaliacao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+}
+
+@media (max-width: 767.98px) {
+    .historico-avaliacao {
+        align-items: flex-start;
+    }
+
+    .historico-avaliacao .btn {
+        width: 100%;
+    }
+}

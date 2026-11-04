@@ -13,6 +13,12 @@
                 {{ "consulta" if consultas_hoje == 1 else "consultas" }}
             </p>
             <p class="text-muted small">{{ "Nenhum atendido marcado para hoje." if consultas_hoje == 0 else "Confirmadas para hoje." }}</p>
+            {% if aguardando_registro %}
+            <p class="aviso-registro small" id="aguardando-registro">
+                <span><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Aguardando registro: <span class="font-monospace-num">{{ aguardando_registro }}</span> {{ "consulta" if aguardando_registro == 1 else "consultas" }}</span>
+                <a href="/agenda?visao=registrar">Registrar agora</a>
+            </p>
+            {% endif %}
             <a href="/agenda" class="btn btn-primary mt-auto align-self-start"><i class="bi bi-calendar-week me-2"></i>Ver agenda</a>
         </section>
     </div>

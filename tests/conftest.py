@@ -38,6 +38,13 @@ def sem_rede_real(monkeypatch):
     monkeypatch.setattr(pagamento_service, "_CONFERENCIAS", {})
 
 
+@pytest.fixture(autouse=True)
+def pasta_avaliacoes_temporaria(monkeypatch, tmp_path):
+    pasta = tmp_path / "avaliacoes"
+    monkeypatch.setattr(settings, "AVALIACOES_DIR", str(pasta))
+    return pasta
+
+
 @pytest.fixture
 def api_falsa(monkeypatch) -> ApiFalsa:
     api = ApiFalsa()

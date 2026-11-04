@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.core.fuso import utc_para_local
+from app.models.avaliacao import Avaliacao
 from app.models.especialidade import Especialidade
 from app.models.paciente import Paciente
 from app.models.plano import Plano
@@ -53,14 +55,18 @@ class PaginaConsultas:
     total: int
 
 
-def _consulta(cliente_id: int, aba: str, agora: datetime, *colunas):
-    filtro = Sessao.data_hora >= agora if aba == PROXIMAS else Sessao.data_hora < agora
+def _consulta(cliente_id: int, aba: str | None, agora: datetime, *colunas, paciente_id: int | None = None):
+    condicoes = [Paciente.cliente_id == cliente_id]
+    if aba is not None:
+        condicoes.append(Sessao.data_hora >= agora if aba == PROXIMAS else Sessao.data_hora < agora)
+    if paciente_id is not None:
+        condicoes.append(Paciente.id == paciente_id)
     return (
         select(*colunas)
         .select_from(Sessao)
         .join(Plano, Plano.id == Sessao.plano_id)
         .join(Paciente, Paciente.id == Plano.paciente_id)
-        .where(Paciente.cliente_id == cliente_id, filtro)
+        .where(*condicoes)
     )
 
 
@@ -106,3 +112,99 @@ def planos_aguardando_pagamento(db: Session, cliente_id: int, agora: datetime) -
         for r in planos_do_cliente(db, cliente_id, agora)
         if r.situacao == AGUARDANDO_PAGAMENTO
     ]
+
+
+# --- Histórico de um atendido (RF10 / HU13) ------------------------------------------------------
+
+@dataclass(frozen=True)
+class ConsultaHistorico:
+    id: int
+    data_hora: datetime
+    fim: datetime
+    profissional: str
+    especialidade: str
+    status: StatusSessao
+    remarcada: bool
+    avaliacao_id: int | None
+    comparecimento: bool | None
+    tem_arquivo: bool
+    liberado_em: datetime | None
+    aguardando_registro: bool
+
+    @property
+    def avaliacao_disponivel(self) -> bool:
+        return self.avaliacao_id is not None and bool(self.comparecimento) and self.tem_arquivo
+
+    @property
+    def nao_compareceu(self) -> bool:
+        return self.avaliacao_id is not None and self.comparecimento is False
+
+
+@dataclass(frozen=True)
+class ResumoHistorico:
+    realizadas: int = 0
+    agendadas: int = 0
+    aguardando_pagamento: int = 0
+    avaliacoes: int = 0
+
+
+@dataclass(frozen=True)
+class PaginaHistorico:
+    consultas: list[ConsultaHistorico]
+    pagina: int
+    total_paginas: int
+    total: int
+    resumo: ResumoHistorico
+
+
+def _contar_no_total(condicao):
+    return func.sum(case((condicao, 1), else_=0)).over()
+
+
+def historico_do_atendido(
+    db: Session, cliente_id: int, paciente_id: int, agora: datetime, pagina: int = 1,
+) -> PaginaHistorico:
+    pagina = max(pagina, 1)
+    com_arquivo = Avaliacao.arquivo_url.is_not(None)
+    colunas = (
+        Sessao.id, Sessao.data_hora, Usuario.nome, Especialidade.nome, Sessao.status, Sessao.foi_remarcada,
+        Avaliacao.id, Avaliacao.comparecimento, com_arquivo, Avaliacao.liberado_em,
+        func.count().over(),
+        _contar_no_total(Sessao.status == StatusSessao.REALIZADA),
+        _contar_no_total(Sessao.status == StatusSessao.AGENDADA),
+        _contar_no_total(Sessao.status == StatusSessao.PENDENTE_PAGAMENTO),
+        _contar_no_total(Avaliacao.comparecimento.is_(True) & com_arquivo),
+    )
+
+    def buscar(numero: int):
+        # Posse do atendido no WHERE (Paciente.cliente_id): atendido de outro Cliente nunca devolve linha
+        return db.execute(
+            _consulta(cliente_id, None, agora, *colunas, paciente_id=paciente_id)
+            .join(Especialidade, Especialidade.id == Plano.especialidade_id)
+            .join(Usuario, Usuario.id == Plano.funcionario_id)
+            .outerjoin(Avaliacao, Avaliacao.sessao_id == Sessao.id)
+            .order_by(Sessao.data_hora.desc(), Sessao.id.desc())
+            .limit(POR_PAGINA)
+            .offset((numero - 1) * POR_PAGINA)
+        ).all()
+
+    linhas = buscar(pagina)
+    if not linhas and pagina > 1:
+        total = db.scalar(_consulta(cliente_id, None, agora, func.count(Sessao.id), paciente_id=paciente_id))
+        pagina = max(1, -(-total // POR_PAGINA))
+        linhas = buscar(pagina) if total else []
+
+    if not linhas:
+        return PaginaHistorico([], pagina, 1, 0, ResumoHistorico())
+    total, realizadas, agendadas, pendentes, avaliacoes = (int(valor or 0) for valor in linhas[0][-5:])
+    consultas = [
+        ConsultaHistorico(
+            id_, data_hora, data_hora + DURACAO_SESSAO, profissional, especialidade, status, bool(remarcada),
+            avaliacao_id, comparecimento, bool(tem_arquivo), utc_para_local(liberado_em) if liberado_em else None,
+            status == StatusSessao.AGENDADA and data_hora + DURACAO_SESSAO <= agora,
+        )
+        for (id_, data_hora, profissional, especialidade, status, remarcada,
+             avaliacao_id, comparecimento, tem_arquivo, liberado_em, *_contagens) in linhas
+    ]
+    resumo = ResumoHistorico(realizadas, agendadas, pendentes, avaliacoes)
+    return PaginaHistorico(consultas, pagina, max(1, -(-total // POR_PAGINA)), total, resumo)

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova avaliação disponível</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F6F2EA; font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color:#1F2A22;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F2EA;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border:1px solid #EDE7D9; border-radius:8px;">
+        <tr>
+          <td style="background-color:#3F4A3D; border-radius:8px 8px 0 0; padding:20px 32px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#ffffff;">
+            {{ clinica.nome }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px; font-size:16px; line-height:1.5;">
+            <h1 style="margin:0 0 16px; font-family:Lora, Georgia, serif; font-size:22px; font-weight:600; color:#1F2A22;">Nova avaliação disponível</h1>
+            <p style="margin:0 0 16px;">Olá, {{ nome }}.</p>
+            <p style="margin:0 0 24px;">Há uma nova avaliação disponível para <strong>{{ atendido }}</strong>, referente à sessão do dia {{ data_sessao | data_br }}.</p>
+            <p style="margin:0 0 24px;">
+              <a href="{{ link }}" style="display:inline-block; background-color:#3F4A3D; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:6px; font-weight:600;">Ver histórico</a>
+            </p>
+            <p style="margin:0 0 8px; font-size:14px; color:#4A544B;">Por segurança, a avaliação não vai anexada a este e-mail: ela fica disponível só no site, depois que você entrar com a sua senha.</p>
+            <p style="margin:0; font-size:14px; color:#4A544B;">Se o botão não funcionar, copie este endereço no navegador: {{ link }}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top:1px solid #EDE7D9; padding:16px 32px; font-size:12px; color:#6B746C;">
+            {{ clinica.nome }} · {{ clinica.endereco }} · {{ clinica.telefone }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

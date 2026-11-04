@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import httpx
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,10 +30,16 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_PORT: int = 587
 
+    # Avaliações (RF09): fora de app/static e de qualquer rota pública; o download passa por /avaliacoes/{id}/arquivo
+    AVALIACOES_DIR: str = "dados/avaliacoes"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()
+
+# Caminho relativo do .env (ex.: AVALIACOES_DIR) é resolvido a partir daqui, nunca do diretório de onde o servidor foi iniciado
+RAIZ_PROJETO = Path(__file__).resolve().parents[2]
 
 # Agenda da clínica (RF05 / RN08): dias_semana segue datetime.weekday() — 0 = segunda ... 6 = domingo
 DURACAO_SESSAO_MINUTOS = 60
@@ -46,6 +54,9 @@ DESCONTO_POR_DURACAO = {"quinzenal": 0, "mensal": 5, "bimestral": 7, "anual": 10
 CARENCIA_REMOCAO_BOLETO_DIAS_UTEIS = 1  # RN09: premissa de compensação bancária em até 1 dia útil (a AbacatePay não documenta)
 ANTECEDENCIA_REMARCACAO_HORAS = 4  # RN02: contada a partir do horário ORIGINAL da sessão
 JANELA_REMARCACAO_DIAS = 60  # RF07: limite de interface (não é regra do DVP) para escolher a nova data
+
+# Avaliações (RF09)
+TAMANHO_MAXIMO_AVALIACAO_MB = 10
 
 # Pagamento (RF06)
 ABACATEPAY_TIMEOUT_SEGUNDOS = 15

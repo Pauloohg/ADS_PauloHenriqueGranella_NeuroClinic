@@ -26,7 +26,10 @@
                 <tr>
                     <td class="fw-medium">{{ paciente.nome }}</td>
                     <td>{{ paciente.data_nascimento.strftime("%d/%m/%Y") }}</td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                        <a href="/historico?atendido={{ paciente.id }}" class="btn btn-outline-primary btn-sm me-1">
+                            <i class="bi bi-clock-history me-1"></i>Histórico<span class="visually-hidden"> de {{ paciente.nome }}</span>
+                        </a>
                         <a href="/pacientes/{{ paciente.id }}/editar" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-pencil me-1"></i>Editar<span class="visually-hidden"> {{ paciente.nome }}</span>
                         </a>

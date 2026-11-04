@@ -270,7 +270,8 @@ def test_inicio_do_cliente_nao_adianta_funcionalidades_futuras(client, db, fono,
     criar_plano(db, paciente, fono, [(datetime(2026, 2, 6, 9, 0), REALIZADA)])
     logar(client, cliente.email)
 
-    html = _html(client.get("/")).lower()
+    # Só o conteúdo da home: desde o RF10 o link "Histórico" faz parte da navbar do Cliente
+    html = re.search(r"<main.*?</main>", _html(client.get("/")), re.S).group(0).lower()
     for texto in ["remarcar", "histórico", "minha agenda"]:
         assert texto not in html, texto
     assert html.count("pagar agora") == 1  # RF06 (Semana 4B): só no card do plano aguardando pagamento

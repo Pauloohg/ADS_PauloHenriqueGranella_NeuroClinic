@@ -10,7 +10,7 @@ from tests.fabricas import criar_admin, criar_cliente, criar_especialidade, cria
 LINKS_POR_PERFIL = {
     "cliente": {
         "/": "Início", "/pacientes": "Atendidos", "/especialidades": "Contratar plano", "/consultas": "Consultas",
-        "/perfil": "Meu perfil",
+        "/historico": "Histórico", "/perfil": "Meu perfil",
     },
     "admin": {
         "/": "Início", "/admin/painel": "Painel", "/admin/clientes": "Clientes", "/admin/funcionarios": "Profissionais",
