@@ -23,6 +23,7 @@ router = APIRouter(prefix="/agenda", tags=["agenda"], dependencies=[Depends(some
 
 TEMPLATE_AGENDA = "funcionario/agenda.html"
 TEMPLATE_REGISTRAR = "funcionario/registrar_atendimento.html"
+TEMPLATE_CONFIRMAR_FALTA = "funcionario/confirmar_nao_comparecimento.html"
 
 MENSAGENS_REGISTRO = {
     "comparecimento": "Atendimento registrado. A avaliação foi enviada e o responsável vai receber um aviso por e-mail.",
@@ -103,6 +104,20 @@ def registrar_form(
 ):
     agora = agora_local()
     return _tela_registrar(request, usuario, _sessao_ou_404(db, usuario, sessao_id, agora), agora)
+
+
+@router.get("/sessoes/{sessao_id}/nao-comparecimento/confirmar")
+def confirmar_nao_comparecimento(
+    request: Request, sessao_id: int, usuario: Usuario = Depends(somente_funcionario), db: Session = Depends(get_db),
+):
+    agora = agora_local()
+    consulta = _sessao_ou_404(db, usuario, sessao_id, agora)
+    contexto = {
+        "usuario": usuario,
+        "consulta": consulta,
+        "bloqueio": avaliacao_service.motivo_bloqueio(consulta.status, consulta.data_hora, agora),
+    }
+    return templates.TemplateResponse(request, TEMPLATE_CONFIRMAR_FALTA, contexto)
 
 
 @router.post("/sessoes/{sessao_id}/comparecimento")

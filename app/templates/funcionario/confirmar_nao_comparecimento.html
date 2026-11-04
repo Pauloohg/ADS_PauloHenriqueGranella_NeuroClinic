@@ -1,0 +1,47 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import voltar %}
+
+{% block title %}Confirmar não comparecimento — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/agenda/sessoes/" ~ consulta.id ~ "/registrar", "Registrar atendimento") }}{% endblock %}
+{% block titulo_pagina %}Confirmar não comparecimento{% endblock %}
+{% block subtitulo_pagina %}{{ consulta.atendido }} · {{ consulta.especialidade }}{% endblock %}
+
+{% block conteudo %}
+<div class="row g-4">
+    <div class="col-lg-4 order-lg-2">
+        {% include "funcionario/_consulta_registro.html" %}
+    </div>
+
+    <div class="col-lg-8 order-lg-1">
+        {% if bloqueio %}
+        <section class="cartao">
+            <div class="alert alert-warning d-flex gap-2 mb-3" role="alert"><i class="bi bi-exclamation-triangle"></i><span>{{ bloqueio }}</span></div>
+            <a href="/agenda" class="btn btn-outline-primary">Voltar para a agenda</a>
+        </section>
+        {% else %}
+        <section class="cartao" aria-labelledby="titulo-confirmar">
+            <h2 class="cartao-titulo" id="titulo-confirmar"><i class="bi bi-person-x me-2" aria-hidden="true"></i>{{ consulta.atendido }} não compareceu?</h2>
+            <p class="mb-3">
+                Consulta de <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>, das
+                <span class="font-monospace-num">{{ consulta.data_hora.strftime('%H:%M') }}</span> às
+                <span class="font-monospace-num">{{ consulta.fim.strftime('%H:%M') }}</span> ({{ consulta.especialidade }}).
+            </p>
+            <div class="alert alert-warning mb-4" role="note">
+                <p class="fw-semibold mb-2"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Antes de confirmar</p>
+                <ul class="mb-0 ps-3">
+                    <li>A consulta passa a constar como realizada, sem avaliação.</li>
+                    <li>O responsável não recebe e-mail.</li>
+                    <li>O registro não pode ser desfeito.</li>
+                </ul>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="/agenda/sessoes/{{ consulta.id }}/nao-comparecimento">
+                    <button type="submit" class="btn btn-danger">Confirmar não comparecimento</button>
+                </form>
+                <a href="/agenda/sessoes/{{ consulta.id }}/registrar" class="btn btn-outline-primary">Voltar</a>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

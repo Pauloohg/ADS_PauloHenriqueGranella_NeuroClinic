@@ -1,0 +1,12 @@
+<section class="cartao consulta-atual {{ consulta.especialidade | classe_especialidade }}" aria-labelledby="titulo-resumo">
+    <h2 class="cartao-especialidade-rotulo mt-0" id="titulo-resumo">Consulta</h2>
+    <p class="consulta-atual-quando mb-1">
+        {{ consulta.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>
+    </p>
+    <p class="font-monospace-num mb-3">{{ consulta.data_hora.strftime('%H:%M') }} – {{ consulta.fim.strftime('%H:%M') }}</p>
+    <p class="mb-2"><span class="fw-medium">{{ consulta.atendido }}</span> <span class="text-muted small">· {{ consulta.idade | idade }}</span></p>
+    <p class="agenda-consulta-selos mb-0">
+        <span class="chip-especialidade">{{ consulta.especialidade }}</span>
+        {% if consulta.foi_remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+    </p>
+</section>

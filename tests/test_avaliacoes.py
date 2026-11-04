@@ -165,7 +165,8 @@ def test_tela_de_registro_mostra_resumo_e_dois_formularios(logado_fono, sessao):
     assert "Pedro Souza" in html and "7 anos" in html and "Fonoaudiologia" in html
     assert "28/10/2026" in html and "14:00 – 15:00" in html
     assert f'action="/agenda/sessoes/{sessao.id}/comparecimento" enctype="multipart/form-data"' in html
-    assert f'action="/agenda/sessoes/{sessao.id}/nao-comparecimento"' in html
+    assert f'action="/agenda/sessoes/{sessao.id}/nao-comparecimento"' not in html  # a falta passa pela confirmação
+    assert f'href="/agenda/sessoes/{sessao.id}/nao-comparecimento/confirmar"' in html
     assert "Anexar avaliação e concluir" in html and "Registrar não comparecimento" in html
     assert "não gera avaliação nem envia e-mail" in html
     assert 'type="file"' in html and "/static/js/" not in html  # sem JavaScript próprio
@@ -753,3 +754,109 @@ def test_ver_avaliacao_na_agenda_abre_em_nova_aba(db, logado_fono, sessao, email
     html = _html(logado_fono.get("/agenda?visao=dia&data=2026-10-28"))
     assert f'href="/avaliacoes/{avaliacao_id}/arquivo" target="_blank" rel="noopener"' in html
     assert "(abre em nova aba)" in html
+
+
+# --- Confirmação antes do registro definitivo ------------------------------------------------------
+
+def _confirmar_url(sessao_id) -> str:
+    return f"/agenda/sessoes/{sessao_id}/nao-comparecimento/confirmar"
+
+
+def test_tela_de_confirmacao_mostra_atendido_data_e_aviso(logado_fono, sessao):
+    resposta = logado_fono.get(_confirmar_url(sessao.id))
+    assert resposta.status_code == 200
+    html = _html(resposta)
+    assert "Pedro Souza" in html and "7 anos" in html and "Fonoaudiologia" in html
+    assert "28/10/2026" in html and "14:00" in html and "15:00" in html
+    assert "A consulta passa a constar como realizada, sem avaliação." in html
+    assert "O responsável não recebe e-mail." in html
+    assert "O registro não pode ser desfeito." in html
+
+
+def test_tela_de_confirmacao_tem_o_formulario_e_o_voltar(logado_fono, sessao):
+    html = _html(logado_fono.get(_confirmar_url(sessao.id)))
+    form = re.search(r'<form method="post" action="([^"]+)">(.*?)</form>', html)
+    assert form and form.group(1) == f"/agenda/sessoes/{sessao.id}/nao-comparecimento"
+    assert "Confirmar não comparecimento" in form.group(2)
+    assert f'href="/agenda/sessoes/{sessao.id}/registrar" class="btn btn-outline-primary">Voltar</a>' in html
+
+
+def test_abrir_a_confirmacao_nao_muda_nada(db, logado_fono, sessao, emails):
+    for _ in range(2):
+        assert logado_fono.get(_confirmar_url(sessao.id)).status_code == 200
+    assert _status(db, sessao.id) == AGENDADA
+    assert _avaliacoes(db) == [] and emails == []
+
+
+def test_confirmacao_de_outro_profissional_e_inexistente_da_404(db, client, psico, sessao):
+    logar(client, psico.usuario.email)
+    for sessao_id in (sessao.id, 9999):
+        assert client.get(_confirmar_url(sessao_id)).status_code == 404
+    assert _status(db, sessao.id) == AGENDADA
+
+
+def test_confirmacao_antes_do_termino_mostra_o_motivo_sem_formulario(monkeypatch, logado_fono, sessao):
+    monkeypatch.setattr(agenda_router, "agora_local", lambda: AGORA - timedelta(minutes=1))
+    html = _html(logado_fono.get(_confirmar_url(sessao.id)))
+    assert "Só é possível registrar depois do fim da sessão (28/10/2026 às 15:00)." in html
+    assert "Confirmar não comparecimento</button>" not in html and "/nao-comparecimento\"" not in html
+
+
+@pytest.mark.parametrize("status, mensagem", [(PENDENTE, MSG_PENDENTE), (REALIZADA, MSG_JA_REGISTRADA)])
+def test_confirmacao_de_pendente_e_realizada_mostra_a_mesma_mensagem(db, logado_fono, paciente, fono, status, mensagem):
+    plano = criar_plano(db, paciente, fono, [(datetime(2026, 10, 21, 14, 0), status)])
+    sessao_id = db.scalar(select(Sessao.id).where(Sessao.plano_id == plano.id))
+    html = _html(logado_fono.get(_confirmar_url(sessao_id)))
+    assert mensagem in html and mensagem in _html(logado_fono.get(f"/agenda/sessoes/{sessao_id}/registrar"))
+    assert "Confirmar não comparecimento</button>" not in html
+
+
+def test_confirmacao_depois_de_registrar_mostra_ja_registrada(logado_fono, sessao):
+    logado_fono.post(f"/agenda/sessoes/{sessao.id}/nao-comparecimento")
+    html = _html(logado_fono.get(_confirmar_url(sessao.id)))
+    assert MSG_JA_REGISTRADA in html and "Confirmar não comparecimento</button>" not in html
+
+
+@pytest.mark.parametrize("perfil", ["cliente", "admin"])
+def test_cliente_e_admin_nao_acessam_a_confirmacao(db, client, cliente, sessao, perfil):
+    logar(client, cliente.email if perfil == "cliente" else criar_admin(db).email)
+    assert client.get(_confirmar_url(sessao.id)).status_code == 403
+
+
+def test_visitante_vai_para_o_login_na_confirmacao(client, sessao):
+    resposta = client.get(_confirmar_url(sessao.id), follow_redirects=False)
+    assert resposta.status_code == 303 and resposta.headers["location"] == "/login"
+
+
+def test_fluxo_completo_registrar_confirmar_e_selo_na_agenda(db, logado_fono, sessao, emails):
+    registrar = _html(logado_fono.get(f"/agenda/sessoes/{sessao.id}/registrar"))
+    assert _confirmar_url(sessao.id) in registrar
+    assert f"/agenda/sessoes/{sessao.id}/nao-comparecimento" in _html(logado_fono.get(_confirmar_url(sessao.id)))
+    resposta = logado_fono.post(f"/agenda/sessoes/{sessao.id}/nao-comparecimento", follow_redirects=False)
+    assert resposta.status_code == 303
+    assert resposta.headers["location"] == "/agenda?visao=dia&data=2026-10-28&registrado=falta"
+    assert "Não compareceu" in _html(logado_fono.get(resposta.headers["location"]))
+    assert emails == [] and _avaliacoes(db)[0].comparecimento is False
+
+
+def test_tela_de_registro_tem_checkbox_obrigatorio_com_atendido_e_data(logado_fono, sessao):
+    html = _html(logado_fono.get(f"/agenda/sessoes/{sessao.id}/registrar"))
+    form = re.search(r'<form method="post" action="/agenda/sessoes/\d+/comparecimento".*?</form>', html).group(0)
+    assert re.search(r'<input class="form-check-input" type="checkbox" id="confirmo-arquivo" name="confirmo_arquivo" value="1" required>', form)
+    assert "Confirmo que este arquivo é a avaliação de <strong>Pedro Souza</strong> referente à consulta de" in form
+    assert '<span class="font-monospace-num">28/10/2026</span>. Depois de enviado, não será possível trocá-lo.' in form
+
+
+def test_servidor_nao_exige_o_checkbox(db, logado_fono, sessao, emails):
+    assert _enviar_pdf(logado_fono, sessao.id).status_code == 303  # envio sem o campo confirmo_arquivo
+    assert _status(db, sessao.id) == REALIZADA
+
+
+def test_confirmacoes_nao_usam_javascript(logado_fono, sessao):
+    pasta_js = Path("app/static/js")
+    assert sorted(a.name for a in pasta_js.iterdir()) == ["contratar.js", "remarcar.js"]
+    for url in (f"/agenda/sessoes/{sessao.id}/registrar", _confirmar_url(sessao.id)):
+        html = logado_fono.get(url).text
+        scripts = re.findall(r"<script[^>]*>", html)
+        assert scripts == ['<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">']
+        assert "onclick" not in html and "onsubmit" not in html

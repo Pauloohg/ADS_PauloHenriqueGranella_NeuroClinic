@@ -13,18 +13,7 @@
 {% else %}
 <div class="row g-4">
     <div class="col-lg-4 order-lg-2">
-        <section class="cartao consulta-atual {{ consulta.especialidade | classe_especialidade }}" aria-labelledby="titulo-resumo">
-            <h2 class="cartao-especialidade-rotulo mt-0" id="titulo-resumo">Consulta</h2>
-            <p class="consulta-atual-quando mb-1">
-                {{ consulta.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>
-            </p>
-            <p class="font-monospace-num mb-3">{{ consulta.data_hora.strftime('%H:%M') }} – {{ consulta.fim.strftime('%H:%M') }}</p>
-            <p class="mb-2"><span class="fw-medium">{{ consulta.atendido }}</span> <span class="text-muted small">· {{ consulta.idade | idade }}</span></p>
-            <p class="agenda-consulta-selos mb-0">
-                <span class="chip-especialidade">{{ consulta.especialidade }}</span>
-                {% if consulta.foi_remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
-            </p>
-        </section>
+        {% include "funcionario/_consulta_registro.html" %}
     </div>
 
     <div class="col-lg-8 order-lg-1">
@@ -50,6 +39,13 @@
                     {% if erro_arquivo %}<div class="invalid-feedback" role="alert">{{ erro_arquivo }}</div>{% endif %}
                     <div id="arquivo-ajuda" class="form-text">Somente PDF, até {{ limite_mb }} MB.</div>
                 </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmo-arquivo" name="confirmo_arquivo" value="1" required>
+                    <label class="form-check-label" for="confirmo-arquivo">
+                        Confirmo que este arquivo é a avaliação de <strong>{{ consulta.atendido }}</strong> referente à consulta de
+                        <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>. Depois de enviado, não será possível trocá-lo.
+                    </label>
+                </div>
                 <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-2" aria-hidden="true"></i>Anexar avaliação e concluir</button>
             </form>
         </section>
@@ -59,9 +55,7 @@
             <p class="text-muted small">
                 A sessão conta como realizada, mas não gera avaliação nem envia e-mail ao responsável.
             </p>
-            <form method="post" action="/agenda/sessoes/{{ consulta.id }}/nao-comparecimento">
-                <button type="submit" class="btn btn-outline-danger">Registrar não comparecimento</button>
-            </form>
+            <a href="/agenda/sessoes/{{ consulta.id }}/nao-comparecimento/confirmar" class="btn btn-outline-danger">Registrar não comparecimento</a>
         </section>
         <p class="text-muted small mt-3 mb-0">
             <i class="bi bi-info-circle me-1" aria-hidden="true"></i>Depois de registrada, a consulta não pode ser editada nem desfeita.
