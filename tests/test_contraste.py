@@ -61,3 +61,44 @@ def test_foco_dos_campos_continua_visivel(fundo):
     assert "box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);" in regra
     assert razao_contraste(_variavel("bs-primary"), fundo) >= 3
     assert razao_contraste(_variavel("bs-primary"), _variavel("cor-borda-campo")) >= 2  # o foco escurece a borda
+
+
+# --- Tela inicial do Profissional (redesenho de 05/11) ---------------------------------------------
+
+def _cor(valor: str) -> str:
+    valor = valor.strip()
+    if valor.startswith("var("):
+        return _cor(_variavel(re.match(r"var\(--([\w-]+)\)", valor).group(1)))
+    return "#FFFFFF" if valor.lower() == "#fff" else valor
+
+
+def _cores_da_regra(seletor: str) -> tuple[str, str]:
+    corpo = re.search(rf"(?m)^{re.escape(seletor)}\s*\{{([^}}]*)\}}", CSS).group(1)
+    fundo = re.search(r"background-color:\s*([^;]+);", corpo).group(1)
+    texto = re.search(r"(?<!-)color:\s*([^;]+);", corpo).group(1)
+    return _cor(fundo), _cor(texto)
+
+
+@pytest.mark.parametrize("seletor", [
+    ".linha-tempo-agora",  # texto branco sobre o verde escuro da consulta em andamento
+    ".selo-em-andamento",  # selo claro dentro do bloco
+    ".inicio-prof-aviso",  # cartão âmbar de consultas esperando registro
+    ".status-pendente",  # selo "Aguardando registro" na linha do tempo
+    ".linha-tempo-consulta",  # consulta comum sobre o creme
+    ".inicio-prof-sem-atendimento",
+])
+def test_combinacoes_da_tela_inicial_do_profissional_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_selo_em_andamento_se_destaca_do_bloco_verde():
+    fundo_bloco, _ = _cores_da_regra(".linha-tempo-agora")
+    fundo_selo, _ = _cores_da_regra(".selo-em-andamento")
+    assert razao_contraste(fundo_selo, fundo_bloco) >= 3
+
+
+def test_borda_da_especialidade_aparece_no_bloco_em_andamento():
+    fundo_bloco, _ = _cores_da_regra(".linha-tempo-agora")
+    for especialidade in ("psicopedagogia", "fonoaudiologia", "psicologia"):
+        assert razao_contraste(_variavel(f"cor-{especialidade}"), fundo_bloco) >= 1.5

@@ -178,14 +178,6 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
     return sorted(resumos, key=lambda r: (ORDEM_SITUACAO[r.situacao], r.plano.data_inicio, r.plano.id))
 
 
-def nome_especialidade_do_funcionario(db: Session, funcionario_id: int) -> str | None:
-    return db.scalar(
-        select(Especialidade.nome)
-        .join(Funcionario, Funcionario.especialidade_id == Especialidade.id)
-        .where(Funcionario.usuario_id == funcionario_id)
-    )
-
-
 def contar_funcionarios_ativos(db: Session) -> int:
     return db.scalar(select(func.count()).select_from(Funcionario).where(Funcionario.ativo.is_(True)))
 

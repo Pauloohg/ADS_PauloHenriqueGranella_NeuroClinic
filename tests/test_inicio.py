@@ -282,7 +282,7 @@ def test_inicio_do_funcionario(client, db, fono):
     html = _html(client.get("/"))
     assert "Bom dia, Carlos" in html
     assert "Fonoaudiologia" in html
-    assert 'href="/conta/alterar-senha" class="cartao cartao-atalho"' in html
+    assert 'href="/conta/alterar-senha"' in html  # o atalho saiu do corpo no redesenho de 05/11; continua na navbar
     assert "Próxima sessão" not in html and "Planos de atendimento" not in html
     assert "Profissionais" not in html
 

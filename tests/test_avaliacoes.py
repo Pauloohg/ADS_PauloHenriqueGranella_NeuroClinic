@@ -712,7 +712,7 @@ def test_tela_inicial_mostra_aguardando_registro(db, logado_fono, paciente, fono
         (datetime(2026, 10, 28, 15, 0), AGENDADA),
     ])
     html = _html(logado_fono.get("/"))
-    assert 'Aguardando registro: <span class="font-monospace-num">2</span> consultas' in html
+    assert '<span class="font-monospace-num">2</span> consultas esperando registro' in html
     assert 'href="/agenda?visao=registrar"' in html
 
 

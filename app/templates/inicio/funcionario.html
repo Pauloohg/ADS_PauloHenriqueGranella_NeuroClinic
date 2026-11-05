@@ -1,36 +1,103 @@
 {% extends "inicio/_saudacao.html" %}
-{% from "inicio/_atalhos.html" import atalho %}
 
-{% block subtitulo_pagina %}Bem-vindo(a) à sua área na NeuroClinic.{% endblock %}
+{% block subtitulo_pagina %}{{ inicio.subtitulo }}{% endblock %}
+
+{% block acoes_pagina %}
+{% if inicio.especialidade %}
+<span class="chip-especialidade {{ inicio.especialidade | classe_especialidade }}">{{ inicio.especialidade }}</span>
+{% endif %}
+{% endblock %}
+
+{% macro selos(item, c) %}
+{% if item.em_andamento %}
+<span class="badge rounded-pill selo-em-andamento">Em andamento</span>
+{% elif c.pode_registrar %}
+<span class="badge rounded-pill status-pendente">Aguardando registro</span>
+{% elif c.status.value == 'realizada' %}
+<span class="badge rounded-pill status-inativo">Realizada</span>
+{% if c.comparecimento == false %}<span class="badge rounded-pill status-nao-compareceu">Não compareceu</span>{% endif %}
+{% else %}
+<span class="badge rounded-pill status-ativo">Agendada</span>
+{% endif %}
+{% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+{% endmacro %}
 
 {% block conteudo %}
-<div class="row g-3 g-lg-4">
-    <div class="col-12 col-md-6 col-xl-4">
-        <section class="cartao cartao-agenda-hoje">
-            <h2 class="cartao-especialidade-rotulo mt-0">Agenda de hoje</h2>
-            <p class="agenda-hoje-numero mb-1">
-                <span class="font-monospace-num">{{ consultas_hoje }}</span>
-                {{ "consulta" if consultas_hoje == 1 else "consultas" }}
-            </p>
-            <p class="text-muted small">{{ "Nenhum atendido marcado para hoje." if consultas_hoje == 0 else "Confirmadas para hoje." }}</p>
-            {% if aguardando_registro %}
-            <p class="aviso-registro small" id="aguardando-registro">
-                <span><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Aguardando registro: <span class="font-monospace-num">{{ aguardando_registro }}</span> {{ "consulta" if aguardando_registro == 1 else "consultas" }}</span>
-                <a href="/agenda?visao=registrar">Registrar agora</a>
-            </p>
+<div class="inicio-prof {% if not inicio.a_registrar %}inicio-prof-sem-aviso{% endif %}">
+    {% if inicio.a_registrar %}
+    {% set n = inicio.a_registrar %}
+    <section class="inicio-prof-aviso" id="aguardando-registro" aria-labelledby="aguardando-registro-titulo">
+        <h2 class="inicio-prof-aviso-titulo" id="aguardando-registro-titulo">
+            <span class="font-monospace-num">{{ n }}</span> {{ "consulta esperando registro" if n == 1 else "consultas esperando registro" }}
+        </h2>
+        <p class="small mb-3">{{ "Essa consulta já aconteceu e ainda não foi registrada." if n == 1 else "Essas consultas já aconteceram e ainda não foram registradas." }}</p>
+        <a href="/agenda?visao=registrar" class="btn btn-primary btn-sm">Registrar agora</a>
+    </section>
+    {% endif %}
+
+    <section class="cartao inicio-prof-dia" aria-labelledby="titulo-hoje">
+        <div class="inicio-prof-dia-cabecalho">
+            <h2 class="titulo-serifa inicio-prof-dia-titulo" id="titulo-hoje">
+                {{ inicio.titulo_dia }}
+                {% if inicio.feriado %}<span class="badge rounded-pill status-inativo agenda-selo-titulo">Feriado nacional</span>{% endif %}
+            </h2>
+            <a href="/agenda" class="inicio-prof-link">Ver agenda da semana</a>
+        </div>
+        {% if inicio.sem_atendimento %}
+        <p class="inicio-prof-sem-atendimento mb-0">{{ inicio.sem_atendimento }}</p>
+        {% else %}
+        <ol class="linha-tempo" aria-label="Consultas de hoje, por horário">
+            {% for item in inicio.linha_do_tempo %}
+            {% if item.intervalo %}
+            <li class="linha-tempo-intervalo">{{ item.intervalo }}</li>
+            {% else %}
+            <li class="linha-tempo-item">
+                <span class="linha-tempo-hora font-monospace-num">{{ item.horario.strftime('%H:%M') }}</span>
+                {% if item.consultas %}
+                <div class="linha-tempo-consultas">
+                    {% for d in item.consultas %}
+                    {% set c = d.consulta %}
+                    <div class="linha-tempo-consulta {{ c.especialidade | classe_especialidade }} {% if d.em_andamento %}linha-tempo-agora{% endif %}">
+                        <div class="linha-tempo-consulta-linha">
+                            <p class="linha-tempo-atendido mb-0"><strong>{{ c.atendido }}</strong> <span class="linha-tempo-idade">{{ c.idade | idade }}</span></p>
+                            <p class="linha-tempo-selos mb-0">{{ selos(d, c) }}</p>
+                        </div>
+                        {% if d.em_andamento and c.observacao %}
+                        <p class="linha-tempo-observacao small mb-0">Observação do plano: <span class="agenda-observacao-texto">{{ c.observacao }}</span></p>
+                        {% endif %}
+                        {% if c.pode_registrar %}
+                        <a href="/agenda/sessoes/{{ c.sessao_id }}/registrar" class="btn btn-outline-primary btn-sm linha-tempo-registrar">Registrar<span class="visually-hidden"> o atendimento de {{ c.atendido }}</span></a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span class="linha-tempo-livre">Livre</span>
+                {% endif %}
+            </li>
             {% endif %}
-            <a href="/agenda" class="btn btn-primary mt-auto align-self-start"><i class="bi bi-calendar-week me-2"></i>Ver agenda</a>
-        </section>
-    </div>
-    <div class="col-12 col-md-6 col-xl-4">
-        <section class="cartao cartao-especialidade {{ (especialidade or '') | classe_especialidade }}">
-            <h2 class="cartao-especialidade-rotulo mt-0">Sua especialidade</h2>
-            <p class="cartao-especialidade-valor mb-2">{{ especialidade or "Não informada" }}</p>
-            <p class="text-muted small mb-0">Cadastrada pela administração da clínica.</p>
-        </section>
-    </div>
-    <div class="col-12 col-md-6 col-xl-4">
-        {{ atalho("/conta/alterar-senha", "bi-key", "Alterar senha", "Altere a sua senha de acesso.") }}
-    </div>
+            {% endfor %}
+        </ol>
+        {% endif %}
+    </section>
+
+    <section class="inicio-prof-proximos" aria-labelledby="titulo-proximos">
+        <h2 class="titulo-serifa inicio-prof-proximos-titulo" id="titulo-proximos">Nos próximos dias</h2>
+        {% if inicio.proximas %}
+        <ol class="inicio-prof-proximos-lista">
+            {% for p in inicio.proximas %}
+            <li>
+                <span class="inicio-prof-proximos-quando">
+                    <strong class="font-monospace-num">{{ p.inicio.strftime('%H:%M') }}</strong>
+                    <span class="font-monospace-num">{{ p.dia }}</span>
+                </span>
+                <span><strong>{{ p.atendido }}</strong> <span class="linha-tempo-idade">{{ p.idade | idade }}</span></span>
+            </li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <p class="text-muted small mb-0">Nenhuma consulta agendada nos próximos dias.</p>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

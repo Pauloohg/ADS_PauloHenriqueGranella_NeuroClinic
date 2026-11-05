@@ -166,13 +166,16 @@ def _filtro_a_registrar(funcionario_id: int, agora: datetime):
     )
 
 
-def contar_a_registrar(db: Session, funcionario_id: int, agora: datetime) -> int:
-    consulta = (
+def consulta_contar_a_registrar(funcionario_id: int, agora: datetime):
+    return (
         select(func.count(Sessao.id))
         .join(Plano, Plano.id == Sessao.plano_id)
         .where(*_filtro_a_registrar(funcionario_id, agora))
     )
-    return db.scalar(consulta)
+
+
+def contar_a_registrar(db: Session, funcionario_id: int, agora: datetime) -> int:
+    return db.scalar(consulta_contar_a_registrar(funcionario_id, agora))
 
 
 def consultas_a_registrar(db: Session, funcionario_id: int, agora: datetime, pagina: int = 1) -> PaginaRegistro:

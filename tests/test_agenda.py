@@ -4,6 +4,7 @@ from datetime import date, datetime
 import pytest
 from sqlalchemy import event
 
+from app.core.config import HORARIOS_ATENDIMENTO
 from app.models.cliente import Cliente
 from app.models.sessao import Sessao, StatusSessao
 from app.routers import agenda as agenda_router
@@ -395,15 +396,15 @@ def test_inicio_do_profissional_mostra_consultas_de_hoje(client, db, fono, pacie
     criar_plano(db, paciente, fono, [(datetime(2026, 10, 28, 16, 0), PENDENTE)])
     logar(client, fono.usuario.email)
     html = _html(client.get("/"))
-    assert re.search(r'Agenda de hoje</h2> <p class="agenda-hoje-numero mb-1"> <span[^>]*>2</span> consultas', html)
-    assert 'href="/agenda" class="btn btn-primary' in html and "Ver agenda" in html
+    assert "Hoje você tem 2 consultas. A que está em andamento é a de Pedro Souza, e a próxima começa às 14:00." in html
+    assert '<a href="/agenda" class="inicio-prof-link">Ver agenda da semana</a>' in html
 
 
 def test_inicio_do_profissional_sem_consultas_hoje(client, db, fono):
     logar(client, fono.usuario.email)
     html = _html(client.get("/"))
-    assert re.search(r'<span[^>]*>0</span> consultas', html)
-    assert "Nenhum atendido marcado para hoje." in html
+    assert "Hoje você não tem consultas." in html
+    assert "Pedro Souza" not in html and html.count('<span class="linha-tempo-livre">Livre</span>') == len(HORARIOS_ATENDIMENTO)
 
 
 # --- Agrupamento de dias vazios (função pura) -------------------------------------------------------
