@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core import security
 from app.core.config import settings
 from app.core.fuso import FUSO_CLINICA, utc_para_local  # noqa: F401 — reexportados: routers e testes importam daqui
+from app.core.ids import inteiro_positivo
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -99,7 +100,8 @@ def get_usuario_opcional(request: Request, db: Session = Depends(get_db)) -> Usu
         payload = security.decodificar_token_acesso(token, agora_utc())
     except security.TokenInvalido:
         return None
-    return db.get(Usuario, int(payload["sub"]))
+    usuario_id = inteiro_positivo(str(payload["sub"]))
+    return db.get(Usuario, usuario_id) if usuario_id is not None else None
 
 
 def get_usuario_atual(usuario: Usuario | None = Depends(get_usuario_opcional)) -> Usuario:

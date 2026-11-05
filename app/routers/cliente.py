@@ -13,6 +13,7 @@ from app.core.config import (
     INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
     PRAZO_PAGAMENTO_HORAS,
 )
+from app.core.ids import inteiro_positivo, ler_inteiro
 from app.core.templating import moeda, templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -309,12 +310,14 @@ def simulacao(
 ):
     _profissional_ativo_ou_404(db, funcionario_id)
     try:
-        if not all(dia.isdigit() for dia in dias):
+        dias_lidos = [ler_inteiro(dia) for dia in dias]
+        if None in dias_lidos:
             raise plano_service.DiasSemanaInvalidos("Dia da semana inválido.")
-        if not frequencia.isdigit():
+        vezes = ler_inteiro(frequencia)
+        if vezes is None:
             raise plano_service.FrequenciaInvalida(contratacao_service.MSG_FREQUENCIA)
         sim = plano_service.simular_plano(
-            db, funcionario_id, [int(dia) for dia in dias], _ler_horario(horario), int(frequencia), duracao,
+            db, funcionario_id, dias_lidos, _ler_horario(horario), vezes, duracao,
             agora_local(),
         )
     except plano_service.PlanoInvalido as exc:
@@ -339,9 +342,10 @@ def simulacao(
 def _paciente_do_formulario(db: Session, paciente_id: str, usuario: Usuario):
     if not paciente_id.strip():
         return None
-    if not paciente_id.strip().isdigit():
+    numero = inteiro_positivo(paciente_id.strip())
+    if numero is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.")
-    return _buscar_paciente_ou_404(db, int(paciente_id), usuario)
+    return _buscar_paciente_ou_404(db, numero, usuario)
 
 
 @router.post("/contratar/{funcionario_id}")
@@ -460,7 +464,7 @@ def renovar_plano(
     db: Session = Depends(get_db),
 ):
     agora = agora_local()
-    escolhido = int(profissional) if profissional.isdigit() else None
+    escolhido = ler_inteiro(profissional)
     try:
         renovacao = contratacao_service.preparar_renovacao(db, usuario.id, plano_id, agora, escolhido)
     except contratacao_service.PlanoNaoEncontrado:

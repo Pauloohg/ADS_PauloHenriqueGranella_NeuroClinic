@@ -49,8 +49,12 @@ nacionais), Pytest.
 - Agenda de atendimentos por dia, semana ou período (até 92 dias), com o atendido (nome e idade), a
   especialidade e a observação do plano; só aparecem consultas já confirmadas (pagas).
 - Registro do atendimento depois que a sessão termina: o profissional anexa a avaliação em PDF (até
-  10 MB) ou marca que o atendido não compareceu. O registro é definitivo. A aba "A registrar" da
+  10 MB) ou marca que o atendido não compareceu. O registro é definitivo, por isso há uma confirmação antes de gravar (um checkbox no envio do PDF e uma tela de
+  confirmação no não comparecimento). A aba "A registrar" da
   agenda lista as consultas que esperam esse registro.
+- Meus atendidos: lista dos atendidos com consultas confirmadas com o profissional e, para cada um, o acompanhamento
+  (planos com progresso, consultas, avaliações que ele enviou). Mostra só o que é dele e nenhum dado do responsável
+  nem valores.
 
 **Admin**
 - Gestão de profissionais (cadastro, edição, desativação e reativação, com contato e formação
@@ -82,7 +86,7 @@ em `app/core/config.py`.
 | 4 | RF05 (confirmação e renovação) e RF06 (pagamento via AbacatePay) | Concluída |
 | 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Concluída |
 | 6 | RF07 (remarcação) | Concluída |
-| 7 | RF09 (avaliações) e RF10 (histórico) | Concluída |
+| 7 | RF09 (avaliações), RF10 (histórico) e acompanhamento dos atendidos pelo profissional | Concluída |
 | 8 | Testes finais, segurança, privacidade e apresentação | Pendente |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel

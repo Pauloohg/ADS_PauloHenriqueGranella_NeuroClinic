@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.fuso import utc_para_local
+from app.core.ids import inteiro_positivo, somente_digitos
 from app.models.cliente import Cliente
 from app.models.paciente import Paciente
 from app.models.plano import Plano
@@ -59,7 +60,7 @@ class ClienteDetalhe:
 
 
 def mascarar_cpf(cpf: str | None) -> str | None:
-    digitos = "".join(c for c in cpf or "" if c.isdigit())
+    digitos = somente_digitos(cpf)
     return f"***.***.***-{digitos[-2:]}" if len(digitos) == 11 else None
 
 
@@ -68,7 +69,7 @@ def calcular_idade(nascimento: date, hoje: date) -> int:
 
 
 def interpretar_pagina(texto: str | None) -> int:
-    return int(texto) if texto and texto.isdigit() and int(texto) > 0 else 1
+    return inteiro_positivo(texto) or 1
 
 
 def listar(db: Session, agora: datetime, busca: str = "", pagina: int = 1) -> PaginaClientes:

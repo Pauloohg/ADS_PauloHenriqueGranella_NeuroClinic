@@ -1,0 +1,83 @@
+{% extends "_interno.html" %}
+{% set r = resultado %}
+
+{% block title %}Meus atendidos — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Meus atendidos{% endblock %}
+{% block subtitulo_pagina %}Atendidos com consultas confirmadas com você, em ordem alfabética.{% endblock %}
+
+{% block conteudo %}
+<form method="get" action="/meus-atendidos" class="busca-atendidos mb-4" role="search">
+    <label for="q" class="form-label">Buscar pelo nome</label>
+    <div class="d-flex gap-2">
+        <input type="search" id="q" name="q" value="{{ r.busca }}" maxlength="100" class="form-control" placeholder="Nome do atendido">
+        <button type="submit" class="btn btn-outline-primary text-nowrap"><i class="bi bi-search me-1" aria-hidden="true"></i>Buscar</button>
+        {% if r.busca %}<a href="/meus-atendidos" class="btn btn-link">Limpar</a>{% endif %}
+    </div>
+</form>
+
+{% if r.atendidos %}
+<p class="small text-muted mb-2">
+    {{ r.total }} {{ "atendido" if r.total == 1 else "atendidos" }}{% if r.busca %} com “{{ r.busca }}” no nome{% endif %}.
+</p>
+<ul class="lista-consultas">
+    {% for a in r.atendidos %}
+    <li class="consulta-item atendido-item {{ a.especialidades.split(', ')[0] | classe_especialidade }}">
+        <div class="consulta-quando">
+            <a href="/meus-atendidos/{{ a.id }}" class="consulta-data atendido-nome">{{ a.nome }}</a>
+            <span class="text-muted small">{{ a.idade | idade }} · {{ a.especialidades }}</span>
+        </div>
+        <div class="consulta-dados">
+            <p class="historico-resumo mb-1">
+                <span><strong class="font-monospace-num">{{ a.realizadas }}</strong> {{ "realizada" if a.realizadas == 1 else "realizadas" }}</span>
+                <span><strong class="font-monospace-num">{{ a.agendadas_futuras }}</strong> {{ "agendada" if a.agendadas_futuras == 1 else "agendadas" }}</span>
+                {% if a.aguardando_registro %}
+                <span class="badge rounded-pill status-pendente">Aguardando registro: {{ a.aguardando_registro }}</span>
+                {% endif %}
+            </p>
+            <p class="small mb-0">
+                {% if a.proxima %}
+                <span class="text-muted">Próxima consulta:</span>
+                <span class="font-monospace-num">{{ a.proxima | data_br }} às {{ a.proxima.strftime('%H:%M') }}</span>
+                {% else %}
+                <span class="text-muted">Sem próxima consulta agendada.</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="consulta-acao">
+            <a href="/meus-atendidos/{{ a.id }}" class="btn btn-outline-primary btn-sm">Ver acompanhamento<span class="visually-hidden"> de {{ a.nome }}</span></a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+
+{% if r.total_paginas > 1 %}
+<nav class="paginacao mt-4" aria-label="Paginação dos atendidos">
+    {% if r.pagina > 1 %}
+    <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos?{{ {'q': r.busca, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+        <i class="bi bi-chevron-left me-1"></i>Anterior
+    </a>
+    {% else %}<span></span>{% endif %}
+    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    {% if r.pagina < r.total_paginas %}
+    <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos?{{ {'q': r.busca, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+        Próxima<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% else %}<span></span>{% endif %}
+</nav>
+{% endif %}
+
+{% elif r.busca %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-search"></i></div>
+    <h2 class="titulo-serifa h5">Nenhum atendido encontrado com “{{ r.busca }}”</h2>
+    <p class="text-muted">Confira a grafia ou busque por parte do nome.</p>
+    <a href="/meus-atendidos" class="btn btn-outline-primary">Ver todos os atendidos</a>
+</section>
+{% else %}
+<section class="cartao estado-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
+    <h2 class="titulo-serifa h5">Você ainda não tem atendidos com consultas confirmadas.</h2>
+    <p class="text-muted mb-0">Os atendidos aparecem aqui assim que um plano com você tem o pagamento confirmado.</p>
+</section>
+{% endif %}
+{% endblock %}

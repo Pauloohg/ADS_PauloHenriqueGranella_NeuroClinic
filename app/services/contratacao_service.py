@@ -5,6 +5,7 @@ from datetime import date, datetime, time
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
+from app.core.ids import ler_inteiro
 from app.core.templating import NOMES_DIAS
 from app.models.cliente import Cliente
 from app.models.especialidade import Especialidade
@@ -90,10 +91,10 @@ def prazo_previsto(criado_em_utc: datetime, data_primeira_sessao: date, agora: d
 def ler_celulas(celulas: list[str]) -> tuple[list[int], time]:
     pares = []
     for celula in celulas:
-        dia, _, hora = celula.partition("-")
-        if not (dia.isdigit() and hora.isdigit()):
+        dia, _, hora = (ler_inteiro(parte) for parte in celula.partition("-"))
+        if dia is None or hora is None:
             raise DiasSemanaInvalidos("Seleção de horário inválida. Escolha os horários na grade.")
-        pares.append((int(dia), int(hora)))
+        pares.append((dia, hora))
     if not pares:
         raise DiasSemanaInvalidos("Escolha os horários das sessões na grade.")
     horas = {hora for _, hora in pares}
@@ -106,9 +107,10 @@ def ler_celulas(celulas: list[str]) -> tuple[list[int], time]:
 
 
 def _ler_frequencia(frequencia: str) -> int:
-    if not frequencia.strip().isdigit() or int(frequencia) not in FREQUENCIAS:
+    vezes = ler_inteiro(frequencia.strip())
+    if vezes not in FREQUENCIAS:
         raise plano_service.FrequenciaInvalida(MSG_FREQUENCIA)
-    return int(frequencia)
+    return vezes
 
 
 def _validar_cpf_inline(db: Session, cliente: Cliente, cpf: str) -> str:

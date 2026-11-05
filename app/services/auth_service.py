@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core import security
 from app.core.config import settings
 from app.core.email import enviar_email
+from app.core.ids import inteiro_positivo
 from app.core.templating import templates
 from app.models.cliente import Cliente
 from app.models.usuario import TipoUsuario, Usuario
@@ -113,7 +114,8 @@ def solicitar_redefinicao_senha(
 
 def validar_token_redefinicao(db: Session, token: str, agora: datetime) -> Usuario:
     payload = security.decodificar_token_redefinicao(token, agora)
-    usuario = db.get(Usuario, int(payload["sub"]))
+    usuario_id = inteiro_positivo(str(payload["sub"]))
+    usuario = db.get(Usuario, usuario_id) if usuario_id is not None else None
     if usuario is None or payload.get("fp") != security.impressao_senha(usuario.senha_hash):
         raise security.TokenInvalido
     return usuario

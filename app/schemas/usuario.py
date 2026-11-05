@@ -2,6 +2,8 @@ import re
 
 from pydantic import BaseModel, EmailStr, Field, ValidationInfo, field_validator
 
+from app.core.ids import somente_digitos
+
 SENHA_MIN_CARACTERES = 8
 SENHA_MAX_BYTES = 72  # limite do bcrypt: bytes além do 72º são ignorados silenciosamente no hash
 
@@ -25,7 +27,7 @@ def normalizar_nome(nome: str) -> str:
 
 def validar_telefone(telefone: str) -> str:
     telefone = telefone.strip()
-    if not _TELEFONE_REGEX.match(telefone) or sum(c.isdigit() for c in telefone) < 8:
+    if not _TELEFONE_REGEX.match(telefone) or len(somente_digitos(telefone)) < 8:
         raise ValueError("Informe um telefone válido, com DDD.")
     return telefone
 

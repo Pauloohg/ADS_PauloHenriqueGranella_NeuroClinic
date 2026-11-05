@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import JANELA_REMARCACAO_DIAS
+from app.core.ids import inteiro_positivo
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -38,10 +39,11 @@ def _ler_data(texto: str | None) -> date | None:
 
 
 def _mensagem_da_lista(db: Session, usuario: Usuario, sessao_id: str | None, repetido: bool) -> str | None:
-    if not sessao_id or not sessao_id.isdigit():
+    numero = inteiro_positivo(sessao_id)
+    if numero is None:
         return None
     try:
-        consulta = remarcacao_service.buscar_sessao_do_cliente(db, usuario.id, int(sessao_id))
+        consulta = remarcacao_service.buscar_sessao_do_cliente(db, usuario.id, numero)
     except SessaoNaoEncontrada:
         return None
     historico = remarcacao_service.ultima_remarcacao(db, consulta.id)

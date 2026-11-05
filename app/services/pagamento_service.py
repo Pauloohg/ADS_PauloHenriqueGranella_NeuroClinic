@@ -21,6 +21,7 @@ from app.core.config import (
 )
 from app.core.email import enviar_email
 from app.core.fuso import utc_para_local
+from app.core.ids import somente_digitos
 from app.core.templating import moeda, templates
 from app.models.cliente import Cliente
 from app.models.especialidade import Especialidade
@@ -150,7 +151,7 @@ def boleto_oferecido(plano: Plano, agora: datetime) -> date | None:
 
 
 def formatar_celular(telefone: str | None) -> str:
-    digitos = "".join(c for c in telefone or "" if c.isdigit())
+    digitos = somente_digitos(telefone)
     if len(digitos) in (12, 13) and digitos.startswith("55"):
         digitos = digitos[2:]
     if len(digitos) == 11:
@@ -161,7 +162,7 @@ def formatar_celular(telefone: str | None) -> str:
 
 
 def dados_pagador(usuario: Usuario, cliente: Cliente) -> dict:
-    cpf = "".join(c for c in cliente.cpf or "" if c.isdigit())
+    cpf = somente_digitos(cliente.cpf)
     if len(cpf) != 11:
         raise CobrancaNaoGerada(MSG_CPF)
     return {"name": usuario.nome, "email": usuario.email, "taxId": cpf, "cellphone": formatar_celular(cliente.telefone)}

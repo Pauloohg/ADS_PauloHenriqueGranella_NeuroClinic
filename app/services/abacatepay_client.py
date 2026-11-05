@@ -8,6 +8,7 @@ from decimal import ROUND_HALF_UP, Decimal
 import httpx
 
 from app.core.config import ABACATEPAY_TIMEOUT_SEGUNDOS, settings
+from app.core.ids import somente_digitos
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def sanear_texto(texto: str | None, limite: int = LIMITE_TEXTO) -> str:
 
 
 def formatar_linha_digitavel(numero: str | None) -> str | None:
-    digitos = "".join(c for c in numero or "" if c.isdigit())
+    digitos = somente_digitos(numero)
     if len(digitos) != 47:
         return numero or None
     d = digitos

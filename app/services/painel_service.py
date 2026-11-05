@@ -19,7 +19,7 @@ from app.services.plano_service import condicao_plano_ativo
 TAMANHO_RANKING = 5
 ZERO = Decimal("0.00")
 CENTAVO = Decimal("0.01")
-_FORMATO_MES = re.compile(r"^(\d{4})-(\d{2})$")
+_FORMATO_MES = re.compile(r"^([0-9]{4})-([0-9]{2})$")
 
 
 @dataclass(frozen=True)

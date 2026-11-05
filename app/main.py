@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.templating import templates
-from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, webhooks
+from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, meus_atendidos, webhooks
 from app.routers.auth import NaoAutenticado, erros_por_campo
 
 if settings.DEBUG:
@@ -27,6 +27,7 @@ app.include_router(consultas.router)
 app.include_router(historico.router)
 app.include_router(admin.router)
 app.include_router(agenda.router)
+app.include_router(meus_atendidos.router)
 app.include_router(avaliacoes.router)
 app.include_router(webhooks.router)
 

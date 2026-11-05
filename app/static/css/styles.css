@@ -2054,3 +2054,39 @@
         width: 100%;
     }
 }
+
+/* --- Meus atendidos do Profissional (RF16 provisório) ------------------------------------------- */
+
+.atendido-nome {
+    color: var(--cor-texto-escuro);
+    text-decoration: none;
+}
+
+.atendido-nome:hover,
+.atendido-nome:focus {
+    text-decoration: underline;
+}
+
+.plano-atendido-dados {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 1rem;
+    font-size: 0.9rem;
+}
+
+.plano-atendido-dados dt {
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+
+.plano-atendido-dados dd {
+    margin: 0;
+}
+
+.plano-atendido .progress {
+    height: 0.6rem;
+}
+
+.plano-atendido .progress-bar {
+    background-color: var(--esp-cor, var(--bs-primary));
+}

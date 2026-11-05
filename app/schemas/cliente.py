@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.core.ids import somente_digitos
 from app.schemas.usuario import normalizar_nome, validar_telefone
 
 
@@ -16,7 +17,7 @@ def validar_cpf(cpf: str) -> str | None:
     cpf = cpf.strip()
     if not cpf:
         return None
-    digitos = "".join(c for c in cpf if c.isdigit())
+    digitos = somente_digitos(cpf)
     if (
         len(digitos) != 11
         or any(c not in "0123456789.- " for c in cpf)
