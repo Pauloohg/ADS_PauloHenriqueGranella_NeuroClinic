@@ -1,3 +1,5 @@
+from datetime import date
+
 INT4_MAX = 2_147_483_647
 DIGITOS_ASCII = frozenset("0123456789")
 
@@ -19,3 +21,19 @@ def ler_inteiro(texto: str | None, minimo: int = 0, maximo: int = INT4_MAX) -> i
 
 def inteiro_positivo(texto: str | None, maximo: int = INT4_MAX) -> int | None:
     return ler_inteiro(texto, 1, maximo)
+
+
+def ler_data_iso(texto: str | None) -> date | None:
+    # Só AAAA-MM-DD com dígitos ASCII: date.fromisoformat aceita também "20261102" e semanas ISO ("2026-W45-1")
+    if not isinstance(texto, str):
+        return None
+    partes = texto.strip().split("-")
+    if [len(parte) for parte in partes] != [4, 2, 2]:
+        return None
+    ano, mes, dia = (ler_inteiro(parte) for parte in partes)
+    if None in (ano, mes, dia):
+        return None
+    try:
+        return date(ano, mes, dia)
+    except ValueError:
+        return None

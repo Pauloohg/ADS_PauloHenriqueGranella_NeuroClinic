@@ -102,3 +102,57 @@ def test_borda_da_especialidade_aparece_no_bloco_em_andamento():
     fundo_bloco, _ = _cores_da_regra(".linha-tempo-agora")
     for especialidade in ("psicopedagogia", "fonoaudiologia", "psicologia"):
         assert razao_contraste(_variavel(f"cor-{especialidade}"), fundo_bloco) >= 1.5
+
+
+# --- Agenda do Profissional (refinamento da Semana 8) ----------------------------------------------
+
+def _propriedade(seletor: str, propriedade: str) -> str:
+    corpo = re.search(rf"(?m)^{re.escape(seletor)}\s*\{{([^}}]*)\}}", CSS).group(1)
+    return _cor(re.search(rf"(?<![\w-]){propriedade}:\s*([^;]+);", corpo).group(1))
+
+
+@pytest.mark.parametrize("seletor", [
+    ".agenda-selo-agendada",  # selo de contorno sobre o branco do cartão
+    ".agenda-atraso-destacado",  # "há N dias" a partir de 14 dias
+    ".agenda-faixa-livre",  # "12:00 às 14:00, sem atendimento"
+    ".agenda-aviso-feriado",
+    ".agenda-periodo-dia-hoje",
+    ".status-pendente",  # "Aguardando registro"
+    ".status-avaliacao",
+    ".status-nao-compareceu",
+    ".status-inativo",  # "Realizada" e "Feriado nacional"
+    ".status-remarcada",
+    ".status-ativo",  # "Em andamento" e "Hoje"
+])
+def test_combinacoes_da_agenda_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_contorno_do_selo_agendada_aparece_no_branco_e_no_creme():
+    contorno = _cor(re.search(r"var\(--[\w-]+\)", _propriedade(".agenda-selo-agendada", "border").split()[-1]).group(0))
+    for fundo in (BRANCO, CREME):
+        assert razao_contraste(contorno, fundo) >= 3
+
+
+@pytest.mark.parametrize("seletor, minimo", [
+    (".agenda-estado-em-andamento", 3),
+    (".agenda-estado-avaliacao-enviada", 3),
+    (".agenda-estado-nao-compareceu", 3),
+    # Âmbar 2,96:1; a borda só acompanha o selo com texto, então não carrega informação sozinha (WCAG 1.4.11)
+    (".agenda-estado-aguardando-registro", 2.9),
+])
+def test_borda_de_estado_aparece_no_branco(seletor, minimo):
+    assert razao_contraste(_propriedade(seletor, "border-left-color"), BRANCO) >= minimo
+
+
+def test_borda_padrao_agendada_aparece_no_branco():
+    borda = re.search(r"var\(--[\w-]+\)", _propriedade(".agenda-estado", "border-left")).group(0)
+    assert razao_contraste(_cor(borda), BRANCO) >= 3
+
+
+def test_bordas_de_estado_sao_diferentes_entre_si():
+    cores = [_propriedade(f".agenda-estado-{e}", "border-left-color")
+             for e in ("em-andamento", "aguardando-registro", "avaliacao-enviada", "nao-compareceu")]
+    cores.append(_cor(re.search(r"var\(--[\w-]+\)", _propriedade(".agenda-estado", "border-left")).group(0)))
+    assert len({c.upper() for c in cores}) == 5

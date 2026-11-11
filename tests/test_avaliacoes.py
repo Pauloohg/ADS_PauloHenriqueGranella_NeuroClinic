@@ -638,8 +638,8 @@ def test_aba_a_registrar_lista_so_as_elegiveis_da_mais_antiga_para_a_mais_recent
     resposta = logado_fono.get("/agenda", params={"visao": "registrar"})
     assert resposta.status_code == 200
     html = _html(resposta)
-    datas = re.findall(r'agenda-consulta-data">(\d\d/\d\d/\d{4})</span> (\d\d:\d\d)', html)
-    assert datas == [("14/10/2026", "09:00"), ("27/10/2026", "09:00"), ("28/10/2026", "14:00")]
+    datas = re.findall(r'<time class="agenda-registrar-data" datetime="([\d-]+)T(\d\d:\d\d)', html)
+    assert datas == [("2026-10-14", "09:00"), ("2026-10-27", "09:00"), ("2026-10-28", "14:00")]
     assert 'aria-current="page">A registrar' in html
     assert "3 consultas" in html
 
@@ -651,15 +651,15 @@ def test_aba_a_registrar_pagina_de_20_em_20(db, logado_fono, paciente, fono):
     pagina2 = _html(logado_fono.get("/agenda", params={"visao": "registrar", "pagina": "2"}))
     assert pagina1.count("Registrar atendimento<span") == 20
     assert pagina2.count("Registrar atendimento<span") == 5
-    assert "Página 1 de 2" in pagina1 and "01/09/2026" in pagina1 and "21/09/2026" not in pagina1
-    assert "21/09/2026" in pagina2 and "25/09/2026" in pagina2
+    assert "Página 1 de 2" in pagina1 and 'datetime="2026-09-01T' in pagina1 and 'datetime="2026-09-21T' not in pagina1
+    assert 'datetime="2026-09-21T' in pagina2 and 'datetime="2026-09-25T' in pagina2
     resultado = avaliacao_service.consultas_a_registrar(db, fono.usuario.id, AGORA, 99)
     assert resultado.pagina == 2 and len(resultado.consultas) == 5
 
 
 def test_aba_a_registrar_vazia(logado_fono):
     html = _html(logado_fono.get("/agenda", params={"visao": "registrar"}))
-    assert "Nenhuma consulta aguardando registro." in html
+    assert "Nenhuma consulta esperando registro." in html
 
 
 def test_aba_a_registrar_nao_altera_as_outras_visoes(db, logado_fono, paciente, fono):

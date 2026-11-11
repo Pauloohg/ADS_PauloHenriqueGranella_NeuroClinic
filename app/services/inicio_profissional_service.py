@@ -12,12 +12,17 @@ from app.models.paciente import Paciente
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.services.admin_clientes_service import calcular_idade
-from app.services.agenda_service import ConsultaAgenda, consultas_do_profissional
-from app.services.avaliacao_service import consulta_contar_a_registrar, termino
-from app.services.plano_service import DURACAO_SESSAO, feriados_do_ano
+from app.services.agenda_service import (
+    MSG_FIM_DE_SEMANA,
+    ConsultaAgenda,
+    consultas_do_profissional,
+    em_andamento,
+    faixas_sem_atendimento,
+)
+from app.services.avaliacao_service import consulta_contar_a_registrar
+from app.services.plano_service import feriados_do_ano
 
 LIMITE_PROXIMAS = 5
-MSG_FIM_DE_SEMANA = "Hoje não há atendimento: fim de semana."
 MSG_FERIADO = "Hoje é feriado nacional: {nome}."
 
 
@@ -55,10 +60,6 @@ class InicioProfissional:
 
 
 # --- Funções puras (RNF14: agora sempre por parâmetro) -------------------------------------------
-
-def em_andamento(sessao: ConsultaAgenda, agora: datetime) -> bool:
-    return sessao.inicio <= agora < termino(sessao.inicio)
-
 
 def titulo_do_dia(dia: date) -> str:
     nome = NOMES_DIAS[dia.weekday()] + ("-feira" if dia.weekday() < 5 else "")
@@ -128,11 +129,7 @@ def linha_do_tempo(
     itens = [(time(hora), 1, ItemLinhaDoTempo(time(hora), tuple(por_inicio.pop(time(hora), ())))) for hora in grade]
     # Sessão fora da grade (dado antigo) entra na posição do seu horário
     itens += [(inicio, 1, ItemLinhaDoTempo(inicio, tuple(lista))) for inicio, lista in por_inicio.items()]
-    for anterior, seguinte in zip(grade, grade[1:]):
-        fim_anterior = (datetime.combine(date.min, time(anterior)) + DURACAO_SESSAO).time()
-        if fim_anterior < time(seguinte):
-            texto = f"{fim_anterior:%H:%M} às {seguinte:02d}:00, sem atendimento"
-            itens.append((fim_anterior, 0, ItemLinhaDoTempo(None, intervalo=texto)))
+    itens += [(faixa.inicio, 0, ItemLinhaDoTempo(None, intervalo=faixa.texto)) for faixa in faixas_sem_atendimento(grade)]
     return [item for _, _, item in sorted(itens, key=lambda par: (par[0], par[1]))]
 
 

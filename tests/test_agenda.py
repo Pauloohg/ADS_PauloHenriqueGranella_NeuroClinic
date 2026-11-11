@@ -225,8 +225,8 @@ def test_pendente_pagamento_nao_aparece_e_agendada_e_realizada_sim(client, db, f
     html = _agenda(client)
     assert "Atendido Pago" in html and "Atendido Atendido" in html
     assert "Atendido Pendente" not in html
-    assert html.count('status-ativo">Agendada<') == 1
-    assert html.count('status-inativo">Realizada<') == 1
+    assert html.count('agenda-selo-agendada">Agendada<') == 1
+    assert html.count('status-inativo">Realizada<') == 1  # realizada sem avaliação (dado antigo)
     assert "2 consultas" in html
 
 
@@ -253,7 +253,7 @@ def test_consulta_mostra_horario_atendido_idade_especialidade_e_observacao(clien
     html = _agenda(client, visao="dia", data="2026-10-28")
     assert re.search(r"14:00.*?15:00", html)
     assert "Pedro Souza" in html and "7 anos" in html
-    assert 'chip-especialidade">Fonoaudiologia<' in html
+    assert "chip-especialidade" not in html and "esp-fonoaudiologia" not in html  # selo e borda de especialidade saíram
     assert "Observação do plano:" in html and "Prefere atividades com música." in html
 
 
@@ -293,9 +293,9 @@ def test_semana_agrupa_por_dia_e_destaca_hoje(client, db, fono, paciente):
     logar(client, fono.usuario.email)
     html = _agenda(client)
 
-    titulos = re.findall(r'agenda-dia-nome">(\w+)</span> <span class="font-monospace-num">([\d/]+)<', html)
-    assert titulos == [("Segunda", "26/10/2026"), ("Terça", "27/10/2026"), ("Quarta", "28/10/2026"),
-                       ("Quinta", "29/10/2026"), ("Sexta", "30/10/2026")]
+    titulos = re.findall(r'class="agenda-link-dia" href="/agenda\?visao=dia&amp;data=([\d-]+)">(\w+), ([\d/]+)<', html)
+    assert titulos == [("2026-10-26", "Segunda", "26/10"), ("2026-10-27", "Terça", "27/10"), ("2026-10-28", "Quarta", "28/10"),
+                       ("2026-10-29", "Quinta", "29/10"), ("2026-10-30", "Sexta", "30/10")]
     assert html.count("Sem consultas") == 3
     assert re.search(r'agenda-dia agenda-dia-hoje[^"]*" aria-labelledby="dia-2026-10-28"', html)
     assert html.count("agenda-dia-hoje") == 1
@@ -305,9 +305,10 @@ def test_feriado_nacional_aparece_no_dia(client, db, fono, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 11, 3, 9, 0), AGENDADA)])
     logar(client, fono.usuario.email)
     html = _agenda(client, visao="semana", data="2026-11-02")  # 02/11 Finados
-    assert re.search(r'id="dia-2026-11-02"> <span class="agenda-dia-nome">Segunda</span> <span[^>]*>02/11/2026</span> '
+    assert re.search(r'id="dia-2026-11-02"> <a[^>]*>Segunda, 02/11</a> '
                      r'<span class="badge rounded-pill status-inativo">Feriado nacional<', html)
     assert html.count("Feriado nacional") == 1
+    assert "Sem atendimento: Finados." in html
 
 
 def test_agenda_vazia_mostra_mensagem_clara(client, db, fono):
@@ -315,7 +316,7 @@ def test_agenda_vazia_mostra_mensagem_clara(client, db, fono):
     html = _agenda(client)
     assert "Nenhuma consulta nesta semana." in html
     assert "Sem consultas" not in html
-    assert "0 consultas" in html
+    assert '<p class="agenda-resumo">Nenhuma consulta.</p>' in html
 
 
 def test_visao_periodo_pela_rota(client, db, fono, paciente):
@@ -324,15 +325,16 @@ def test_visao_periodo_pela_rota(client, db, fono, paciente):
     html = _agenda(client, visao="periodo", inicio="2026-12-28", fim="2027-01-08")
     assert "28/12/2026 a 08/01/2027" in html
     assert "2 consultas" in html
-    assert "<details id=\"periodo\" class=\"cartao agenda-filtro mb-4\" open>" in html
+    assert '<form id="periodo" method="get" action="/agenda"' in html
 
 
 def test_periodo_acima_de_92_dias_mostra_mensagem_e_volta_para_a_semana_atual(client, db, fono):
     logar(client, fono.usuario.email)
     html = _agenda(client, visao="periodo", inicio="2026-10-01", fim="2027-01-01")
-    assert agenda_service.MSG_PERIODO_LONGO in html
-    assert "26/10/2026 a 30/10/2026" in html
+    assert "O período pode ter no máximo 92 dias. Escolha uma data até 31/12/2026." in html
     assert 'value="2026-10-01"' in html and 'value="2027-01-01"' in html  # o formulário volta preenchido
+    assert "agenda-periodo-lista" not in html and "26/10/2026 a 30/10/2026" not in html  # nenhuma lista
+    assert 'href="/agenda?visao=semana&amp;data=2026-10-28"' in html  # a aba Semana leva à semana atual
 
 
 @pytest.mark.parametrize("params, mensagem", [
@@ -346,8 +348,11 @@ def test_data_invalida_mostra_mensagem_sem_erro_tecnico(client, db, fono, params
     assert resposta.status_code == 200
     assert resposta.headers["content-type"].startswith("text/html")
     html = _html(resposta)
-    assert mensagem in html and "Mostrando a semana atual." in html
-    assert "26/10/2026 a 30/10/2026" in html
+    assert mensagem in html
+    if params["visao"] == "periodo":  # Semana 8: o Período com erro não mostra lista nenhuma
+        assert "Escolha um período" in html and "agenda-periodo-lista" not in html
+    else:
+        assert "Mostrando a semana atual." in html and "26/10/2026 a 30/10/2026" in html
 
 
 def test_navegacao_mantem_a_visao(client, db, fono):
@@ -474,24 +479,27 @@ def test_semana_mostra_dias_vazios_agrupados(client, db, fono, paciente):
     html = _agenda(client)
     assert re.search(r'id="dia-2026-10-27">.*?Sem consultas<', html)  # isolado entre consulta e hoje
     assert re.search(r'agenda-dia-hoje[^"]*" aria-labelledby="dia-2026-10-28"', html)
-    assert re.search(r'Sem consultas de <span[^>]*>29/10</span> a <span[^>]*>30/10</span>', html)
+    assert re.search(r'Sem consultas de Qui <span[^>]*>29/10</span> a Sex <span[^>]*>30/10</span>\.', html)
     assert 'id="dia-2026-10-29"' not in html and 'id="dia-2026-10-30"' not in html
 
 
 def test_grupo_na_virada_de_ano_mostra_o_ano(client, db, fono, paciente):
     criar_plano(db, paciente, fono, [(datetime(2028, 1, 5, 9, 0), AGENDADA)])  # 01/01/2028 é sábado: não é exibido
     logar(client, fono.usuario.email)
-    html = _agenda(client, visao="periodo", inicio="2027-12-29", fim="2028-01-05")
-    assert re.search(r'Sem consultas de <span[^>]*>29/12/2027</span> a <span[^>]*>04/01/2028</span>', html)
+    html = _agenda(client, visao="periodo", inicio="2027-12-27", fim="2028-01-05")
+    # Semana 8: o Período agrupa por semana, então o grupo que atravessa o ano é o da semana de 27/12 a 31/12
+    assert re.search(r'Sem consultas de Seg <span[^>]*>27/12</span> a Sex <span[^>]*>31/12</span>', html)
+    assert re.search(r'Sem consultas de Seg <span[^>]*>03/01</span> a Ter <span[^>]*>04/01</span>', html)
+    assert "Semana de 27/12 a 31/12" in html and "Semana de 03/01 a 05/01" in html
 
 
 def test_grupo_no_mesmo_ano_mostra_so_dia_e_mes(client, db, fono, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 12, 28, 9, 0), AGENDADA)])
     logar(client, fono.usuario.email)
     html = _agenda(client, visao="periodo", inicio="2026-12-28", fim="2027-01-08")
-    assert re.search(r'Sem consultas de <span[^>]*>29/12</span> a <span[^>]*>31/12</span>', html)
+    assert re.search(r'Sem consultas de Ter <span[^>]*>29/12</span> a Qui <span[^>]*>31/12</span>', html)
     assert 'id="dia-2027-01-01"' in html  # Confraternização Universal: feriado, fora do grupo
-    assert re.search(r'Sem consultas de <span[^>]*>04/01</span> a <span[^>]*>08/01</span>', html)
+    assert re.search(r'Sem consultas de Seg <span[^>]*>04/01</span> a Sex <span[^>]*>08/01</span>', html)
 
 
 # --- Visão de dia sem cabeçalho repetido ------------------------------------------------------------

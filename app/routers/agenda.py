@@ -47,26 +47,44 @@ def agenda(
     agora = agora_local()
     hoje = agora.date()
     a_registrar = visao == agenda_service.A_REGISTRAR
-    escolhida, erro = agenda_service.montar_visao(None if a_registrar else visao, data, inicio, fim, hoje)
+    escolhida, erro = agenda_service.escolher_visao(None if a_registrar else visao, data, inicio, fim, hoje)
+    erro_no_periodo = erro is not None and visao == agenda_service.PERIODO
     contexto = {
         "usuario": usuario,
         "visao": escolhida,
+        "visao_ativa": agenda_service.PERIODO if erro_no_periodo else escolhida.tipo,
         "hoje": hoje,
         "a_registrar": a_registrar,
-        "total_a_registrar": avaliacao_service.contar_a_registrar(db, usuario.id, agora),
         "sucesso": MENSAGENS_REGISTRO.get(registrado or ""),
         "erro": erro,
-        "erro_no_periodo": erro is not None and visao == agenda_service.PERIODO,
+        "erro_no_periodo": erro_no_periodo,
         "form": {"data": data or "", "inicio": inicio or "", "fim": fim or ""},
+        "atalhos": agenda_service.atalhos_do_periodo(hoje),
+        "limite_periodo_dias": agenda_service.LIMITE_PERIODO_DIAS,
     }
     if a_registrar:
-        contexto["pendentes"] = avaliacao_service.consultas_a_registrar(db, usuario.id, agora, interpretar_pagina(pagina))
+        contexto["visao_ativa"] = agenda_service.A_REGISTRAR
+        pendentes = avaliacao_service.consultas_a_registrar(db, usuario.id, agora, interpretar_pagina(pagina))
+        contexto.update({
+            "pendentes": pendentes,
+            "itens_a_registrar": agenda_service.pendentes_de_registro(pendentes.consultas, agora),
+            "total_a_registrar": pendentes.total,
+        })
+        return templates.TemplateResponse(request, TEMPLATE_AGENDA, contexto)
+
+    contexto["total_a_registrar"] = avaliacao_service.contar_a_registrar(db, usuario.id, agora)
+    if erro_no_periodo:
         return templates.TemplateResponse(request, TEMPLATE_AGENDA, contexto)
 
     consultas = agenda_service.consultas_do_profissional(db, usuario.id, escolhida.inicio, escolhida.fim, hoje, agora)
+    dias = agenda_service.agrupar_por_dia(escolhida, consultas)
     contexto.update({
-        "dias": agenda_service.agrupar_dias_vazios(agenda_service.agrupar_por_dia(escolhida, consultas), hoje),
+        "dias": dias,
+        "semanas": agenda_service.agrupar_por_semana(dias, hoje),
+        "turnos": agenda_service.separar_turnos(consultas),
         "total": len(consultas),
+        "resumo": agenda_service.resumo_das_consultas(consultas),
+        "sem_atendimento": agenda_service.motivo_sem_atendimento_no_dia(escolhida.inicio, hoje),
         "navegacao": agenda_service.navegacao(escolhida, hoje),
     })
     return templates.TemplateResponse(request, TEMPLATE_AGENDA, contexto)
