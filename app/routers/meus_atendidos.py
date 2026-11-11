@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.ids import inteiro_positivo
+from app.core.ids import inteiro_positivo, ler_opcao
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_por_tipo
 from app.services import meus_atendidos_service
 from app.services.admin_clientes_service import interpretar_pagina
-from app.services.meus_atendidos_service import AtendidoNaoEncontrado
+from app.services.meus_atendidos_service import FILTRO_TODOS, FILTROS, AtendidoNaoEncontrado
 
 somente_funcionario = get_usuario_por_tipo(TipoUsuario.FUNCIONARIO)
 
@@ -24,11 +24,13 @@ def lista(
     request: Request,
     q: str | None = None,
     pagina: str | None = None,
+    filtro: str | None = None,
     usuario: Usuario = Depends(somente_funcionario),
     db: Session = Depends(get_db),
 ):
     resultado = meus_atendidos_service.atendidos_do_profissional(
         db, usuario.id, agora_local(), interpretar_pagina(pagina), (q or "")[:TAMANHO_MAXIMO_BUSCA],
+        ler_opcao(filtro, FILTROS, FILTRO_TODOS),
     )
     return templates.TemplateResponse(request, TEMPLATE_LISTA, {"usuario": usuario, "resultado": resultado})
 

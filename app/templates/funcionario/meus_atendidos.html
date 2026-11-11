@@ -1,83 +1,107 @@
 {% extends "_interno.html" %}
 {% set r = resultado %}
+{% set base = {'q': r.busca} if r.busca else {} %}
+{% set base_filtro = dict(base, filtro='pendente') if r.filtro == 'pendente' else base %}
 
 {% block title %}Meus atendidos — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Meus atendidos{% endblock %}
-{% block subtitulo_pagina %}Atendidos com consultas confirmadas com você, em ordem alfabética.{% endblock %}
+{% block subtitulo_pagina %}Pessoas com consultas confirmadas com você.{% endblock %}
 
 {% block conteudo %}
-<form method="get" action="/meus-atendidos" class="busca-atendidos mb-4" role="search">
-    <label for="q" class="form-label">Buscar pelo nome</label>
-    <div class="d-flex gap-2">
-        <input type="search" id="q" name="q" value="{{ r.busca }}" maxlength="100" class="form-control" placeholder="Nome do atendido">
+{% macro url(parametros) %}/meus-atendidos{% if parametros %}?{{ parametros | urlencode }}{% endif %}{% endmacro %}
+
+{% if r.total_todos or r.busca %}
+<div class="meus-ferramentas">
+    <form method="get" action="/meus-atendidos" class="meus-busca" role="search">
+        <label for="q" class="visually-hidden">Buscar atendido pelo nome</label>
+        <input type="search" id="q" name="q" value="{{ r.busca }}" maxlength="100" class="form-control" placeholder="Buscar pelo nome">
+        {% if r.filtro == 'pendente' %}<input type="hidden" name="filtro" value="pendente">{% endif %}
         <button type="submit" class="btn btn-outline-primary text-nowrap"><i class="bi bi-search me-1" aria-hidden="true"></i>Buscar</button>
-        {% if r.busca %}<a href="/meus-atendidos" class="btn btn-link">Limpar</a>{% endif %}
-    </div>
-</form>
+    </form>
+    {% if r.total_todos %}
+    <nav class="meus-filtros" aria-label="Filtrar atendidos">
+        <a href="{{ url(base) }}" class="btn btn-sm rounded-pill {{ 'btn-primary' if r.filtro == 'todos' else 'btn-outline-primary' }}"
+           {% if r.filtro == 'todos' %}aria-current="page"{% endif %}>Todos <span class="font-monospace-num">{{ r.total_todos }}</span></a>
+        <a href="{{ url(dict(base, filtro='pendente')) }}" class="btn btn-sm rounded-pill {{ 'btn-primary' if r.filtro == 'pendente' else 'btn-outline-primary' }}"
+           {% if r.filtro == 'pendente' %}aria-current="page"{% endif %}>Com registro pendente <span class="font-monospace-num">{{ r.total_pendentes }}</span></a>
+    </nav>
+    {% endif %}
+    {% if r.atendidos %}<p class="meus-total">{{ r.total }} {{ "atendido" if r.total == 1 else "atendidos" }}</p>{% endif %}
+</div>
+{% endif %}
 
 {% if r.atendidos %}
-<p class="small text-muted mb-2">
-    {{ r.total }} {{ "atendido" if r.total == 1 else "atendidos" }}{% if r.busca %} com “{{ r.busca }}” no nome{% endif %}.
-</p>
-<ul class="lista-consultas">
-    {% for a in r.atendidos %}
-    <li class="consulta-item atendido-item {{ a.especialidades.split(', ')[0] | classe_especialidade }}">
-        <div class="consulta-quando">
-            <a href="/meus-atendidos/{{ a.id }}" class="consulta-data atendido-nome">{{ a.nome }}</a>
-            <span class="text-muted small">{{ a.idade | idade }} · {{ a.especialidades }}</span>
-        </div>
-        <div class="consulta-dados">
-            <p class="historico-resumo mb-1">
-                <span><strong class="font-monospace-num">{{ a.realizadas }}</strong> {{ "realizada" if a.realizadas == 1 else "realizadas" }}</span>
-                <span><strong class="font-monospace-num">{{ a.agendadas_futuras }}</strong> {{ "agendada" if a.agendadas_futuras == 1 else "agendadas" }}</span>
+<div class="meus-lista">
+    <div class="meus-linha meus-linha-cabecalho" aria-hidden="true">
+        <span>Atendido</span>
+        <span class="meus-num">Realizadas</span>
+        <span class="meus-num">Agendadas</span>
+        <span>Registro pendente</span>
+        <span>Próxima consulta</span>
+        <span></span>
+    </div>
+    <ul class="meus-linhas">
+        {% for a in r.atendidos %}
+        <li class="meus-linha {% if a.aguardando_registro %}meus-linha-pendente{% endif %}">
+            <div class="meus-nome">
+                <a href="/meus-atendidos/{{ a.id }}" class="meus-link">{{ a.nome }}</a>
+                <span class="meus-idade">{{ a.idade | idade }}</span>
+            </div>
+            <div class="meus-num"><span class="meus-rotulo">Realizadas</span> <span class="font-monospace-num">{{ a.realizadas }}</span></div>
+            <div class="meus-num"><span class="meus-rotulo">Agendadas</span> <span class="font-monospace-num">{{ a.agendadas_futuras }}</span></div>
+            <div class="meus-celula"><span class="meus-rotulo">Registro pendente</span>
                 {% if a.aguardando_registro %}
-                <span class="badge rounded-pill status-pendente">Aguardando registro: {{ a.aguardando_registro }}</span>
-                {% endif %}
-            </p>
-            <p class="small mb-0">
-                {% if a.proxima %}
-                <span class="text-muted">Próxima consulta:</span>
-                <span class="font-monospace-num">{{ a.proxima | data_br }} às {{ a.proxima.strftime('%H:%M') }}</span>
+                <a href="/agenda?visao=registrar" class="badge rounded-pill status-pendente meus-selo-link">{{ a.aguardando_registro }} {{ "consulta" if a.aguardando_registro == 1 else "consultas" }}<span class="visually-hidden"> aguardando registro de {{ a.nome }}: abrir a aba A registrar da agenda</span></a>
                 {% else %}
-                <span class="text-muted">Sem próxima consulta agendada.</span>
+                <span class="meus-nada">Nenhum</span>
                 {% endif %}
-            </p>
-        </div>
-        <div class="consulta-acao">
-            <a href="/meus-atendidos/{{ a.id }}" class="btn btn-outline-primary btn-sm">Ver acompanhamento<span class="visually-hidden"> de {{ a.nome }}</span></a>
-        </div>
-    </li>
-    {% endfor %}
-</ul>
+            </div>
+            <div class="meus-celula"><span class="meus-rotulo">Próxima consulta</span>
+                {% if a.proxima %}
+                <time datetime="{{ a.proxima.isoformat() }}">{{ a.proxima_texto }}</time>
+                {% else %}
+                <span class="meus-nada" aria-hidden="true">—</span><span class="visually-hidden">Sem próxima consulta agendada.</span>
+                {% endif %}
+            </div>
+            <span class="meus-seta" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
 
 {% if r.total_paginas > 1 %}
 <nav class="paginacao mt-4" aria-label="Paginação dos atendidos">
     {% if r.pagina > 1 %}
-    <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos?{{ {'q': r.busca, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url(dict(base_filtro, pagina=r.pagina - 1)) }}" rel="prev">
         <i class="bi bi-chevron-left me-1"></i>Anterior
     </a>
     {% else %}<span></span>{% endif %}
     <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
     {% if r.pagina < r.total_paginas %}
-    <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos?{{ {'q': r.busca, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url(dict(base_filtro, pagina=r.pagina + 1)) }}" rel="next">
         Próxima<i class="bi bi-chevron-right ms-1"></i>
     </a>
     {% else %}<span></span>{% endif %}
 </nav>
 {% endif %}
 
+{% elif r.total_todos %}
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum atendido com registro pendente{% if r.busca %} com “{{ r.busca }}”{% endif %}.</h2>
+    <p class="text-muted">As consultas que já terminaram estão todas registradas.</p>
+    <a href="{{ url(base) }}" class="btn btn-outline-primary btn-sm">Ver todos</a>
+</section>
 {% elif r.busca %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-search"></i></div>
-    <h2 class="titulo-serifa h5">Nenhum atendido encontrado com “{{ r.busca }}”</h2>
-    <p class="text-muted">Confira a grafia ou busque por parte do nome.</p>
-    <a href="/meus-atendidos" class="btn btn-outline-primary">Ver todos os atendidos</a>
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum atendido com “{{ r.busca }}”.</h2>
+    <p class="text-muted">Confira a grafia ou busque só por uma parte do nome.</p>
+    <a href="{{ url({'filtro': 'pendente'} if r.filtro == 'pendente' else {}) }}" class="btn btn-outline-primary btn-sm">Limpar busca</a>
 </section>
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
-    <h2 class="titulo-serifa h5">Você ainda não tem atendidos com consultas confirmadas.</h2>
-    <p class="text-muted mb-0">Os atendidos aparecem aqui assim que um plano com você tem o pagamento confirmado.</p>
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Você ainda não tem atendidos com consultas confirmadas.</h2>
+    <p class="text-muted">Os atendidos aparecem aqui depois que o pagamento de um plano com você é confirmado e as consultas entram na sua agenda.</p>
+    <a href="/agenda" class="btn btn-primary btn-sm">Ver agenda</a>
 </section>
 {% endif %}
 {% endblock %}

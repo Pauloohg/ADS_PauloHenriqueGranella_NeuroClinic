@@ -4,102 +4,118 @@
 {% set s = d.resumo %}
 
 {% block title %}{{ d.nome }} — Meus atendidos — NeuroClinic{% endblock %}
-{% block voltar %}{{ voltar("/meus-atendidos", "Voltar para Meus atendidos") }}{% endblock %}
+{% block voltar %}{{ voltar("/meus-atendidos", "Meus atendidos") }}{% endblock %}
 {% block titulo_pagina %}{{ d.nome }}{% endblock %}
-{% block subtitulo_pagina %}{{ d.idade | idade }} · acompanhamento das consultas com você{% endblock %}
+{% block subtitulo_pagina %}{{ d.idade | idade }}. Dados das consultas com você.{% endblock %}
 
 {% block conteudo %}
-<ul class="historico-resumo mb-4" aria-label="Resumo do acompanhamento">
-    <li><strong class="font-monospace-num">{{ s.realizadas }}</strong> {{ "realizada" if s.realizadas == 1 else "realizadas" }}</li>
-    <li><strong class="font-monospace-num">{{ s.agendadas_futuras }}</strong> {{ "agendada" if s.agendadas_futuras == 1 else "agendadas" }}</li>
-    <li><strong class="font-monospace-num">{{ s.aguardando_registro }}</strong> aguardando registro</li>
-    <li><strong class="font-monospace-num">{{ s.nao_comparecimentos }}</strong> {{ "não comparecimento" if s.nao_comparecimentos == 1 else "não comparecimentos" }}</li>
-    <li><strong class="font-monospace-num">{{ s.avaliacoes_enviadas }}</strong> {{ "avaliação enviada" if s.avaliacoes_enviadas == 1 else "avaliações enviadas" }}</li>
+
+{% macro consulta(c) %}
+{% set SELOS = {
+        'agendada': 'agenda-selo-agendada',
+        'em-andamento': 'status-ativo',
+        'aguardando-registro': 'status-pendente',
+        'avaliacao-enviada': 'status-avaliacao',
+        'nao-compareceu': 'status-nao-compareceu',
+        'realizada': 'status-inativo',
+} %}
+<li class="meus-consulta agenda-estado agenda-estado-{{ c.estado.chave }}">
+    <time class="meus-consulta-data" datetime="{{ c.inicio.isoformat() }}">{{ (c.inicio.weekday() | nome_dia)[:3] }}, <span class="font-monospace-num">{{ c.inicio | data_br }}</span></time>
+    <span class="meus-consulta-hora font-monospace-num">{{ c.inicio.strftime('%H:%M') }} – {{ c.fim.strftime('%H:%M') }}</span>
+    <span class="meus-consulta-selos">
+        <span class="badge rounded-pill {{ SELOS[c.estado.chave] }}">{{ c.estado.rotulo }}</span>
+        {% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
+        {% if c.atraso %}<span class="agenda-atraso {% if c.atraso_destacado %}agenda-atraso-destacado{% endif %}">{{ c.atraso }}</span>{% endif %}
+    </span>
+    <span class="meus-consulta-acao">
+        {% if c.pode_registrar %}
+        <a href="/agenda/sessoes/{{ c.id }}/registrar" class="btn btn-primary btn-sm"><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Registrar atendimento<span class="visually-hidden"> de {{ c.inicio | data_br }}</span></a>
+        {% elif c.estado.chave == 'avaliacao-enviada' %}
+        <a href="/avaliacoes/{{ c.avaliacao_id }}/arquivo" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Ver avaliação<span class="visually-hidden"> de {{ c.inicio | data_br }} (abre em nova aba)</span></a>
+        {% endif %}
+    </span>
+</li>
+{% endmacro %}
+
+{% macro grupo(id, titulo, consultas) %}
+<section class="meus-grupo" id="{{ id }}" aria-labelledby="titulo-{{ id }}">
+    <h3 class="meus-grupo-titulo" id="titulo-{{ id }}">{{ titulo }}</h3>
+    <ul class="meus-consultas">
+        {% for c in consultas %}{{ consulta(c) }}{% endfor %}
+    </ul>
+    {{ caller() if caller }}
+</section>
+{% endmacro %}
+
+<ul class="meus-resumo" aria-label="Resumo das consultas com você">
+    <li><strong class="font-monospace-num">{{ s.realizadas }}</strong> <span>{{ "consulta realizada" if s.realizadas == 1 else "consultas realizadas" }}</span></li>
+    <li><strong class="font-monospace-num">{{ s.agendadas_futuras }}</strong> <span>{{ "agendada à frente" if s.agendadas_futuras == 1 else "agendadas à frente" }}</span></li>
+    {% if s.aguardando_registro %}
+    <li class="meus-resumo-pendente"><strong class="font-monospace-num">{{ s.aguardando_registro }}</strong> <span>aguardando registro. <a href="#aguardando-registro">Ver abaixo</a></span></li>
+    {% else %}
+    <li><strong class="font-monospace-num">0</strong> <span>aguardando registro</span></li>
+    {% endif %}
+    <li>
+        {% if d.proxima %}
+        <strong class="meus-resumo-quando"><time datetime="{{ d.proxima.isoformat() }}">{{ d.proxima_texto }}</time></strong>
+        {% else %}
+        <strong class="meus-resumo-quando"><span aria-hidden="true">—</span><span class="visually-hidden">Sem</span></strong>
+        {% endif %}
+        <span>próxima consulta</span>
+    </li>
 </ul>
 
-<section class="mb-4" aria-labelledby="titulo-planos">
-    <h2 class="titulo-serifa h5 mb-3" id="titulo-planos">Planos com você</h2>
-    <div class="row g-3">
-        {% for p in d.planos %}
-        <div class="col-md-6">
-            <article class="cartao consulta-atual plano-atendido {{ p.especialidade | classe_especialidade }}" aria-label="Plano de {{ p.especialidade }}">
-                <p class="agenda-consulta-selos mb-2"><span class="chip-especialidade">{{ p.especialidade }}</span></p>
-                <dl class="plano-atendido-dados mb-3">
-                    <dt>Dias e horário</dt>
-                    <dd>{% for dia in p.dias_semana %}{{ dia | nome_dia }}{{ ", " if not loop.last }}{% endfor %} às <span class="font-monospace-num">{{ p.horario.strftime('%H:%M') }}</span></dd>
-                    <dt>Frequência</dt>
-                    <dd>{{ p.frequencia_semanal }}x por semana</dd>
-                    <dt>Duração</dt>
-                    <dd>{{ rotulos_duracao.get(p.duracao, p.duracao) }}</dd>
-                    <dt>Sessões</dt>
-                    <dd><span class="font-monospace-num">{{ p.primeira | data_br }}</span> a <span class="font-monospace-num">{{ p.ultima | data_br }}</span></dd>
-                    {% if p.observacao %}
-                    <dt>Observação</dt>
-                    <dd class="agenda-observacao-texto">{{ p.observacao }}</dd>
-                    {% endif %}
-                </dl>
-                <p class="small mb-1"><span class="font-monospace-num">{{ p.realizadas }}</span> de <span class="font-monospace-num">{{ p.total_sessoes }}</span> sessões realizadas</p>
-                <div class="progress" role="progressbar" aria-label="Sessões realizadas do plano de {{ p.especialidade }}"
-                     aria-valuenow="{{ p.realizadas }}" aria-valuemin="0" aria-valuemax="{{ p.total_sessoes }}">
-                    <div class="progress-bar" style="width: {{ p.percentual }}%"></div>
-                </div>
-            </article>
+<section aria-labelledby="titulo-planos">
+    <h2 class="titulo-serifa meus-secao-titulo" id="titulo-planos">Planos com você</h2>
+    {% for p in d.planos %}
+    <article class="cartao meus-plano" aria-label="Plano de {{ p.primeira | data_br }} a {{ p.ultima | data_br }}">
+        <div class="meus-plano-topo">
+            <span class="meus-plano-config">{{ p.configuracao }}</span>
+            <span class="meus-plano-periodo"><span class="font-monospace-num">{{ p.primeira | data_br }}</span> a <span class="font-monospace-num">{{ p.ultima | data_br }}</span></span>
         </div>
-        {% endfor %}
-    </div>
+        <div class="progress meus-plano-barra" role="progressbar" aria-label="Consultas realizadas do plano"
+             aria-valuenow="{{ p.realizadas }}" aria-valuemin="0" aria-valuemax="{{ p.total_sessoes }}">
+            <div class="progress-bar" style="width: {{ p.percentual }}%"></div>
+        </div>
+        <p class="meus-plano-progresso">
+            {{ p.realizadas }} de {{ p.total_sessoes }} {{ "consulta realizada" if p.total_sessoes == 1 else "consultas realizadas" }}.
+            {% if p.aguardando_registro %}<strong>{{ p.aguardando_registro }} aguardando registro.</strong>{% endif %}
+        </p>
+        {% if p.observacao %}
+        <p class="meus-plano-obs"><strong>Observação do plano:</strong> {{ p.observacao }}</p>
+        {% endif %}
+    </article>
+    {% endfor %}
 </section>
 
-<section aria-labelledby="titulo-consultas">
-    <h2 class="titulo-serifa h5 mb-3" id="titulo-consultas">Consultas com você</h2>
-    <ul class="lista-consultas">
-        {% for c in d.sessoes %}
-        <li class="consulta-item {{ c.especialidade | classe_especialidade }}">
-            <div class="consulta-quando">
-                <span class="consulta-data">{{ c.inicio.weekday() | nome_dia }}, <span class="font-monospace-num">{{ c.inicio | data_br }}</span></span>
-                <span class="font-monospace-num text-muted small">{{ c.inicio.strftime('%H:%M') }} – {{ c.fim.strftime('%H:%M') }}</span>
-            </div>
-            <div class="consulta-dados">
-                <p class="agenda-consulta-selos mb-0">
-                    <span class="chip-especialidade">{{ c.especialidade }}</span>
-                    {% if c.status.value == 'realizada' %}
-                    <span class="badge rounded-pill status-inativo">Realizada</span>
-                    {% if c.comparecimento == false %}
-                    <span class="badge rounded-pill status-nao-compareceu">Não compareceu</span>
-                    {% elif c.tem_arquivo %}
-                    <span class="badge rounded-pill status-avaliacao">Avaliação enviada</span>
-                    {% endif %}
-                    {% else %}
-                    <span class="badge rounded-pill status-ativo">Agendada</span>
-                    {% if c.pode_registrar %}<span class="badge rounded-pill status-pendente">Aguardando registro</span>{% endif %}
-                    {% endif %}
-                    {% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
-                </p>
-            </div>
-            <div class="consulta-acao">
-                {% if c.pode_registrar %}
-                <a href="/agenda/sessoes/{{ c.id }}/registrar" class="btn btn-primary btn-sm"><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Registrar<span class="visually-hidden"> a consulta de {{ c.inicio | data_br }}</span></a>
-                {% elif c.tem_arquivo and c.comparecimento %}
-                <a href="/avaliacoes/{{ c.avaliacao_id }}/arquivo" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Ver avaliação<span class="visually-hidden"> de {{ c.inicio | data_br }} (abre em nova aba)</span></a>
-                {% endif %}
-            </div>
-        </li>
-        {% endfor %}
-    </ul>
+{% set aguardando = d.sessoes | selectattr('estado.chave', 'equalto', 'aguardando-registro') | list %}
+{% set proximas = d.sessoes | selectattr('estado.chave', 'in', ['agendada', 'em-andamento']) | list %}
+{% set anteriores = d.sessoes | selectattr('status.value', 'equalto', 'realizada') | list | reverse | list %}
 
+<section aria-labelledby="titulo-consultas">
+    <h2 class="titulo-serifa meus-secao-titulo" id="titulo-consultas">Consultas com você</h2>
+    {% if aguardando %}{{ grupo('aguardando-registro', 'Aguardando registro, a mais antiga primeiro', aguardando) }}{% endif %}
+    {% if proximas %}{{ grupo('proximas', 'Próximas', proximas) }}{% endif %}
+    {% if anteriores %}
+    {% call grupo('anteriores', 'Anteriores', anteriores) %}
     {% if d.total_paginas > 1 %}
-    <nav class="paginacao mt-4" aria-label="Paginação das consultas">
+    <nav class="paginacao mt-3" aria-label="Paginação das consultas anteriores">
         {% if d.pagina > 1 %}
-        <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos/{{ d.id }}?pagina={{ d.pagina - 1 }}" rel="prev">
+        <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos/{{ d.id }}?pagina={{ d.pagina - 1 }}#anteriores" rel="prev">
             <i class="bi bi-chevron-left me-1"></i>Anterior
         </a>
         {% else %}<span></span>{% endif %}
         <span class="small text-muted">Página {{ d.pagina }} de {{ d.total_paginas }}</span>
         {% if d.pagina < d.total_paginas %}
-        <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos/{{ d.id }}?pagina={{ d.pagina + 1 }}" rel="next">
+        <a class="btn btn-outline-primary btn-sm" href="/meus-atendidos/{{ d.id }}?pagina={{ d.pagina + 1 }}#anteriores" rel="next">
             Próxima<i class="bi bi-chevron-right ms-1"></i>
         </a>
         {% else %}<span></span>{% endif %}
     </nav>
     {% endif %}
+    {% endcall %}
+    {% endif %}
 </section>
+
+<p class="meus-nota">Esta tela mostra só as consultas e os planos com você. Valores, pagamento e dados do responsável não aparecem.</p>
 {% endblock %}

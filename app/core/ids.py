@@ -37,3 +37,7 @@ def ler_data_iso(texto: str | None) -> date | None:
         return date(ano, mes, dia)
     except ValueError:
         return None
+
+
+def ler_opcao(texto: str | None, opcoes: tuple[str, ...], padrao: str) -> str:
+    return texto if isinstance(texto, str) and texto in opcoes else padrao

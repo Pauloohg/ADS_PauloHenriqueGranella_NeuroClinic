@@ -137,13 +137,20 @@ def cenario(db, fono, psico, pedro):
 
 
 def _itens(html: str) -> list[str]:
-    return re.findall(r'<li class="consulta-item.*?</li>\s*(?=<li class="consulta-item|</ul>)', html)
+    return re.findall(r'<li class="meus-consulta .*?</li>', html)
+
+
+def _linhas(html: str) -> list[str]:
+    return re.findall(r'<li class="meus-linha.*?</li>', html)
 
 
 def _item_do_dia(html: str, quando: datetime) -> str:
-    data = re.compile(rf'consulta-data">[^<]*<span class="font-monospace-num">{quando:%d/%m/%Y}<')
-    [item] = [i for i in _itens(html) if data.search(i)]
+    [item] = [i for i in _itens(html) if f'datetime="{quando.isoformat()}"' in i]
     return item
+
+
+def _cartoes(html: str) -> list[str]:
+    return re.findall(r'<article class="cartao meus-plano".*?</article>', html, re.S)
 
 
 # --- Acesso -----------------------------------------------------------------------------------
@@ -203,7 +210,7 @@ def test_mesmo_atendido_com_dois_profissionais_mostra_so_o_proprio(db, client, f
     assert f"/avaliacoes/{cenario['avaliacao_psico']}/arquivo" in html_psico
     assert f"/avaliacoes/{cenario['avaliacao_fono']}/arquivo" not in html_psico
     lista_psico = _texto(_html(client.get("/meus-atendidos")))
-    assert "1 realizada" in lista_psico and "0 agendadas" in lista_psico
+    assert "Realizadas 1" in lista_psico and "Agendadas 0" in lista_psico
 
 
 def test_so_pendente_nao_cria_vinculo_ate_ser_agendada(db, logado_fono, fono, cliente):
@@ -229,13 +236,13 @@ def test_quem_teve_sessao_continua_na_lista(db, logado_fono, fono, cliente):
 
 def test_lista_mostra_contagens_e_proxima_consulta(logado_fono, cenario, pedro):
     html = _html(logado_fono.get("/meus-atendidos"))
-    [item] = _itens(html)
+    [item] = _linhas(html)
     texto = _texto(item)
-    assert "Pedro Souza" in texto and "8 anos" not in texto and "7 anos" in texto and "Fonoaudiologia" in texto
-    assert "2 realizadas" in texto  # inclui o não comparecimento
-    assert "2 agendadas" in texto  # a remarcada e a futura; a encerrada conta como aguardando registro
-    assert "Aguardando registro: 1" in texto
-    assert "Próxima consulta: 04/11/2026 às 09:00" in texto
+    assert "Pedro Souza" in texto and "8 anos" not in texto and "7 anos" in texto and "Fonoaudiologia" not in texto
+    assert "Realizadas 2" in texto  # inclui o não comparecimento
+    assert "Agendadas 2" in texto  # a remarcada e a futura; a encerrada conta como aguardando registro
+    assert "Registro pendente 1 consulta aguardando registro" in texto
+    assert "Próxima consulta qua, 04/11, 09:00" in texto
     assert f'href="/meus-atendidos/{pedro.id}"' in item
 
 
@@ -246,11 +253,11 @@ def test_lista_sem_aguardando_registro_nao_mostra_o_selo(db, logado_fono, fono, 
 
 def test_detalhe_mostra_resumo(logado_fono, cenario, pedro):
     html = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}"))
-    resumo = _texto(re.search(r'<ul class="historico-resumo.*?</ul>', html).group(0))
-    for trecho in ("2 realizadas", "2 agendadas", "1 aguardando registro", "1 não comparecimento", "1 avaliação enviada"):
+    resumo = _texto(re.search(r'<ul class="meus-resumo.*?</ul>', html).group(0))
+    for trecho in ("2 consultas realizadas", "2 agendadas à frente", "1 aguardando registro", "qua, 04/11, 09:00 próxima consulta"):
         assert trecho in resumo
-    assert "Pedro Souza" in html and "7 anos" in html
-    assert 'href="/meus-atendidos"' in html and "Voltar para Meus atendidos" in html
+    assert "Pedro Souza" in html and "7 anos. Dados das consultas com você." in html
+    assert re.search(r'<a href="/meus-atendidos" class="pagina-voltar">.*?Meus atendidos</a>', html)
 
 
 def test_service_do_detalhe_ignora_pendente_e_outro_profissional(db, fono, cenario, pedro):
@@ -262,12 +269,11 @@ def test_service_do_detalhe_ignora_pendente_e_outro_profissional(db, fono, cenar
 
 def test_cartao_do_plano(logado_fono, cenario, pedro):
     html = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}"))
-    cartao = _texto(re.search(r'<article class="cartao consulta-atual plano-atendido.*?</article>', html).group(0))
-    assert "Fonoaudiologia" in cartao
-    assert "Terça, Quarta às 09:00" in cartao and "Segunda" not in cartao
-    assert "2x por semana" in cartao and "Mensal" in cartao
+    [cartao] = [_texto(c) for c in _cartoes(html)]
+    assert "Fonoaudiologia" not in cartao
+    assert "Mensal, 2 vezes por semana, terças e quartas às 09:00" in cartao and "segunda" not in cartao
     assert "14/10/2026 a 11/11/2026" in cartao
-    assert "2 de 5 sessões realizadas" in cartao
+    assert "2 de 5 consultas realizadas. 1 aguardando registro." in cartao
     assert 'aria-valuenow="2"' in html and 'aria-valuemax="5"' in html and "width: 40%" in html
 
 
@@ -283,13 +289,13 @@ def test_sessao_em_andamento_nao_e_aguardando_registro(db, logado_fono, fono, pe
 def test_selos_e_acoes_de_cada_consulta(db, logado_fono, cenario, pedro):
     html = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}"))
     com_avaliacao = _item_do_dia(html, COM_AVALIACAO)
-    assert "Realizada" in com_avaliacao and "Avaliação enviada" in com_avaliacao
+    assert "Avaliação enviada" in com_avaliacao and "Realizada<" not in com_avaliacao  # um selo de estado só
     assert f'href="/avaliacoes/{cenario["avaliacao_fono"]}/arquivo" target="_blank" rel="noopener"' in com_avaliacao
     falta = _item_do_dia(html, NAO_COMPARECEU)
     assert "Não compareceu" in falta and "/avaliacoes/" not in falta
     aguardando = _item_do_dia(html, AGUARDANDO)
     assert "Aguardando registro" in aguardando
-    assert f'href="/agenda/sessoes/{_sessao_id(db, AGUARDANDO)}/registrar"' in aguardando and "Registrar<" in aguardando
+    assert f'href="/agenda/sessoes/{_sessao_id(db, AGUARDANDO)}/registrar"' in aguardando and "Registrar atendimento<" in aguardando
     remarcada = _item_do_dia(html, REMARCADA)
     assert "Agendada" in remarcada and "Remarcada" in remarcada and "/registrar" not in remarcada
     assert html.count("/registrar") == 1 and html.count("Ver avaliação") == 1
@@ -297,8 +303,10 @@ def test_selos_e_acoes_de_cada_consulta(db, logado_fono, cenario, pedro):
 
 def test_ordem_das_consultas_da_mais_recente_para_a_mais_antiga(logado_fono, cenario, pedro):
     html = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}"))
-    datas = [datetime.strptime(d, "%d/%m/%Y") for d in re.findall(r'consulta-data">[^<]*<span class="font-monospace-num">([\d/]+)', html)]
-    assert datas == sorted(datas, reverse=True) and len(datas) == 5
+    anteriores = re.search(r'<section class="meus-grupo" id="anteriores".*?</section>', html).group(0)
+    datas = [datetime.fromisoformat(d) for d in re.findall(r'<time class="meus-consulta-data" datetime="([^"]+)"', anteriores)]
+    assert datas == sorted(datas, reverse=True) and datas == [NAO_COMPARECEU, COM_AVALIACAO]
+    assert len(_itens(html)) == 5
 
 
 def test_observacao_sai_escapada(logado_fono, cenario, pedro):
@@ -306,8 +314,8 @@ def test_observacao_sai_escapada(logado_fono, cenario, pedro):
     escapada = "&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; Trazer o caderno"
     assert "<script>alert(" not in html
     assert html.count(escapada) == 1  # uma vez só, no cartão do plano
-    cartao = re.search(r'<article class="cartao consulta-atual plano-atendido.*?</article>', html, re.S).group(0)
-    assert escapada in cartao and "<dt>Observação</dt>" in cartao
+    [cartao] = _cartoes(html)
+    assert escapada in cartao and "<strong>Observação do plano:</strong>" in cartao
 
 
 def test_observacao_fica_so_no_cartao_do_plano(logado_fono, cenario, pedro):
@@ -323,10 +331,10 @@ def test_cada_plano_mostra_a_propria_observacao_e_sem_observacao_nada_aparece(db
     criar_plano(db, pedro, fono, [(FUTURA, AGENDADA)])
     db.commit()
     html = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}"))
-    cartoes = re.findall(r'<article class="cartao consulta-atual plano-atendido.*?</article>', html)
+    cartoes = _cartoes(html)
     assert len(cartoes) == 2
     assert sum("Usar letra bastão" in c for c in cartoes) == 1
-    assert sum("<dt>Observação</dt>" in c for c in cartoes) == 1
+    assert sum("Observação do plano:" in c for c in cartoes) == 1
     assert html.count("Usar letra bastão") == 1
 
 
@@ -336,13 +344,18 @@ def test_lista_e_detalhe_nao_mostram_dados_pessoais_nem_valores(db, logado_fono,
     arquivo = db.get(Avaliacao, cenario["avaliacao_fono"]).arquivo_url
     proibidos = (
         "123.456.789-09", "12345678909", "99999-1234", cliente.email, "Maria Responsável", "Maria",
-        "29/10/2018", "2018-10-29", "987,65", "987.65", "R$", "Pix", "Boleto", "pagamento", "desconto",
+        "29/10/2018", "2018-10-29", "987,65", "987.65", "R$", "Pix", "Boleto", "desconto",
         arquivo, str(pasta_avaliacoes_temporaria), "dados/avaliacoes",
     )
     for url in ("/meus-atendidos", f"/meus-atendidos/{pedro.id}"):
         html = logado_fono.get(url).text
         for proibido in proibidos:
             assert proibido not in html, (url, proibido)
+    # "pagamento" só pode aparecer na nota de rodapé do detalhe, que diz justamente que ele não aparece
+    assert "pagamento" not in logado_fono.get("/meus-atendidos").text.lower()
+    detalhe = _html(logado_fono.get(f"/meus-atendidos/{pedro.id}")).lower()
+    nota = re.search(r'<p class="meus-nota">.*?</p>', detalhe).group(0)
+    assert detalhe.count("pagamento") == 1 and "pagamento" in nota
 
 
 # --- Lista: paginação, busca e estados vazios ----------------------------------------------------
@@ -356,7 +369,7 @@ def vinte_e_um(db, fono, cliente):
 
 
 def _nomes(html: str) -> list[str]:
-    return re.findall(r'class="consulta-data atendido-nome">([^<]+)</a>', html)
+    return re.findall(r'class="meus-link">([^<]+)</a>', html)
 
 
 def test_lista_pagina_de_20_em_20_em_ordem_de_nome(logado_fono, vinte_e_um):
@@ -393,7 +406,7 @@ def test_busca_trata_curingas_como_texto(db, logado_fono, fono, pedro):
 def test_busca_sem_resultado(db, logado_fono, fono, pedro):
     criar_plano(db, pedro, fono, [(FUTURA, AGENDADA)])
     html = _html(logado_fono.get("/meus-atendidos", params={"q": "Zuleica"}))
-    assert "Nenhum atendido encontrado com “Zuleica”" in html
+    assert "Nenhum atendido com “Zuleica”." in html and ">Limpar busca</a>" in html
     assert "Você ainda não tem atendidos" not in html
 
 
@@ -421,7 +434,7 @@ def test_detalhe_pagina_de_20_em_20(logado_fono, vinte_e_uma_sessoes, valor, pag
     assert resposta.status_code == 200
     html = _html(resposta)
     assert f"Página {pagina_esperada} de 2" in html and len(_itens(html)) == itens
-    assert "21 realizadas" in _texto(html)
+    assert "21 consultas realizadas" in _texto(html)
     if pagina_esperada == 2:
         [item] = _itens(html)
         assert "01/06/2026" in item
@@ -460,9 +473,10 @@ def test_lista_usa_uma_consulta_sql(db, fono, cliente, cenario, muitos):
     comandos = _contar_comandos(db, lambda: resultado.update(
         pagina=meus_atendidos_service.atendidos_do_profissional(db, funcionario_id, AGORA)
     ))
-    assert len(comandos) == 1
+    # Semana 8: as contagens dos chips do filtro valem para todos os atendidos, então são 2 comandos (nunca N+1)
+    assert len(comandos) == 2
     assert len(resultado["pagina"].atendidos) == (20 if muitos else 1)
-    assert "GROUP BY" in comandos[0] and "OVER" in comandos[0]
+    assert all("GROUP BY" in comando for comando in comandos)
 
 
 @pytest.mark.parametrize("muitos", [False, True])
@@ -490,7 +504,7 @@ def test_integracao_contratar_pagar_aparecer_e_registrar(db, client, fono, clien
     resultado = pagamento_service.confirmar_pagamento(db, db.get(Plano, plano.id), pagamento, AGORA, AGORA_UTC)
     assert resultado.situacao == "confirmado"
     lista = _texto(_html(client.get("/meus-atendidos")))
-    assert "Pedro Souza" in lista and "0 realizadas" in lista and "Aguardando registro: 1" in lista
+    assert "Pedro Souza" in lista and "Realizadas 0" in lista and "Registro pendente 1 consulta aguardando registro" in lista
     detalhe = _html(client.get(f"/meus-atendidos/{pedro.id}"))
     assert "Aguardando registro" in _item_do_dia(detalhe, AGUARDANDO)
 
@@ -500,8 +514,8 @@ def test_integracao_contratar_pagar_aparecer_e_registrar(db, client, fono, clien
     )
     assert resposta.status_code == 303
     lista = _texto(_html(client.get("/meus-atendidos")))
-    assert "1 realizada" in lista and "Aguardando registro" not in lista
+    assert "Realizadas 1" in lista and "aguardando registro" not in lista.lower() and "Registro pendente Nenhum" in lista
     detalhe = _html(client.get(f"/meus-atendidos/{pedro.id}"))
     item = _item_do_dia(detalhe, AGUARDANDO)
     assert "Avaliação enviada" in item and "Ver avaliação" in item and "Aguardando registro" not in item
-    assert "1 avaliação enviada" in _texto(detalhe)
+    assert "1 consulta realizada" in _texto(detalhe) and 'id="aguardando-registro"' not in detalhe

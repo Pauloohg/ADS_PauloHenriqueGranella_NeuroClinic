@@ -2706,3 +2706,381 @@
         width: 100%;
     }
 }
+
+/* --- Meus atendidos e detalhe do atendido: refinamento da Semana 8 (RF16 provisório) -------------- */
+
+.meus-ferramentas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.meus-busca {
+    display: flex;
+    gap: 0.5rem;
+    flex: 0 1 26rem;
+    min-width: 0;
+}
+
+.meus-busca .form-control {
+    min-width: 0;
+}
+
+.meus-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.meus-total {
+    margin: 0 0 0 auto;
+    font-size: 0.95rem;
+    color: var(--bs-secondary-color);
+}
+
+.meus-lista {
+    background-color: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+    overflow: hidden;
+}
+
+.meus-linhas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.meus-linha {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(12rem, 2fr) 6rem 6rem minmax(9rem, 1.2fr) minmax(10rem, 1.4fr) 1.5rem;
+    align-items: center;
+    gap: 0.25rem 1.25rem;
+    padding: 0.85rem 1.25rem 0.85rem 1rem;
+    border-left: 4px solid transparent;
+    border-top: 1px solid var(--bs-border-color);
+    overflow-wrap: anywhere;
+}
+
+.meus-linha-cabecalho {
+    border-top: 0;
+    padding-block: 0.7rem;
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* A borda âmbar só acompanha o selo "N consultas", que tem texto; nunca é o único sinal */
+.meus-linha-pendente {
+    border-left-color: var(--cor-psicopedagogia);
+}
+
+.meus-linhas .meus-linha:hover {
+    background-color: var(--cor-fundo-creme);
+}
+
+.meus-num {
+    text-align: right;
+}
+
+.meus-link {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    text-decoration: none;
+}
+
+/* Link esticado: a linha inteira leva ao detalhe; o selo "N consultas" fica acima dele (z-index) */
+.meus-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.meus-link:hover {
+    text-decoration: underline;
+}
+
+.meus-link:focus-visible {
+    outline: none;
+}
+
+.meus-link:focus-visible::after {
+    outline: 3px solid var(--bs-primary);
+    outline-offset: -3px;
+}
+
+.meus-idade {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+.meus-selo-link {
+    position: relative;
+    z-index: 1;
+    text-decoration: none;
+}
+
+.meus-selo-link:hover,
+.meus-selo-link:focus-visible {
+    color: #6B4A10;
+    text-decoration: underline;
+}
+
+.meus-nada {
+    color: var(--bs-secondary-color);
+}
+
+.meus-seta {
+    justify-self: end;
+    color: var(--bs-secondary-color);
+}
+
+/* Rótulo de cada coluna: só para leitor de tela no desktop, visível no cartão do celular */
+.meus-rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* Detalhe */
+.meus-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    background-color: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+    overflow: hidden;
+}
+
+.meus-resumo > li {
+    flex: 1 1 10rem;
+    padding: 0.85rem 1.35rem;
+    border-left: 1px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    font-size: 0.92rem;
+}
+
+.meus-resumo > li:first-child {
+    border-left: 0;
+}
+
+.meus-resumo strong {
+    display: block;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--cor-texto-escuro);
+}
+
+.meus-resumo .meus-resumo-quando {
+    font-size: 1.1rem;
+    line-height: 1.75;
+}
+
+.meus-resumo .meus-resumo-pendente {
+    background-color: #FBEFD5;
+    color: #6B4A10;
+}
+
+.meus-resumo-pendente a {
+    color: #6B4A10;
+    font-weight: 600;
+}
+
+.meus-secao-titulo {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.75rem;
+}
+
+.meus-plano {
+    padding: 1.1rem 1.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.meus-plano-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+}
+
+.meus-plano-config {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.meus-plano-periodo,
+.meus-plano-progresso {
+    font-size: 0.93rem;
+    color: var(--bs-secondary-color);
+}
+
+.meus-plano-barra {
+    height: 0.5rem;
+    max-width: 22rem;
+    margin: 0.75rem 0 0.3rem;
+}
+
+.meus-plano-progresso {
+    margin: 0;
+}
+
+.meus-plano-barra .progress-bar {
+    background-color: var(--bs-primary);
+}
+
+.meus-plano-progresso strong {
+    color: #6B4A10;
+}
+
+.meus-plano-obs {
+    margin: 0.75rem 0 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--bs-border-color);
+    max-width: 68ch;
+    font-size: 0.95rem;
+    color: var(--cor-texto-escuro);
+    overflow-wrap: anywhere;
+}
+
+.meus-grupo {
+    margin-top: 1.25rem;
+}
+
+.meus-grupo-titulo {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    margin: 0 0 0.4rem;
+}
+
+.meus-consultas {
+    list-style: none;
+    margin: 0;
+    padding: 0.25rem 1.25rem;
+    background-color: #fff;
+    border-radius: 1rem;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.meus-consulta {
+    display: grid;
+    grid-template-columns: 8.5rem 8rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem 1rem;
+    padding: 0.7rem 0 0.7rem 0.9rem;
+}
+
+.meus-consulta + .meus-consulta {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.meus-consulta-data {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.meus-consulta-hora {
+    color: var(--bs-secondary-color);
+}
+
+.meus-consulta-selos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+}
+
+.meus-nota {
+    margin: 2rem 0 0;
+    max-width: 68ch;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+@media (max-width: 767.98px) {
+    .meus-total {
+        margin-left: 0;
+        flex-basis: 100%;
+    }
+
+    .meus-busca {
+        flex: 1 1 100%;
+    }
+
+    .meus-linha-cabecalho {
+        display: none;
+    }
+
+    .meus-linha {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 1.25rem;
+        gap: 0.4rem 0.75rem;
+        padding: 0.85rem 0.85rem 0.85rem 0.75rem;
+    }
+
+    .meus-linhas .meus-linha:first-child {
+        border-top: 0;
+    }
+
+    .meus-nome {
+        grid-column: 1 / 3;
+    }
+
+    .meus-seta {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .meus-num {
+        text-align: left;
+    }
+
+    .meus-celula {
+        grid-column: 1 / -1;
+    }
+
+    .meus-rotulo {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
+        margin-right: 0.35rem;
+        font-size: 0.9rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .meus-rotulo::after {
+        content: ":";
+    }
+
+    .meus-resumo > li {
+        flex-basis: 50%;
+        border-left: 0;
+        border-top: 1px solid var(--bs-border-color);
+    }
+
+    .meus-resumo > li:nth-child(-n+2) {
+        border-top: 0;
+    }
+
+    .meus-consulta {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.25rem;
+    }
+}

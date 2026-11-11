@@ -156,3 +156,42 @@ def test_bordas_de_estado_sao_diferentes_entre_si():
              for e in ("em-andamento", "aguardando-registro", "avaliacao-enviada", "nao-compareceu")]
     cores.append(_cor(re.search(r"var\(--[\w-]+\)", _propriedade(".agenda-estado", "border-left")).group(0)))
     assert len({c.upper() for c in cores}) == 5
+
+
+# --- Meus atendidos e detalhe do atendido (refinamento da Semana 8) -----------------------------------
+
+@pytest.mark.parametrize("seletor", [
+    ".meus-linha-cabecalho",  # cabeçalho das colunas sobre o creme
+    ".meus-resumo .meus-resumo-pendente",  # "N aguardando registro" na faixa-resumo
+    ".status-pendente",  # selo "N consultas" da coluna Registro pendente
+])
+def test_combinacoes_de_meus_atendidos_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_link_ver_abaixo_e_destaque_do_plano_tem_contraste_de_4_5():
+    fundo_pendente, _ = _cores_da_regra(".meus-resumo .meus-resumo-pendente")
+    assert razao_contraste(_propriedade(".meus-resumo-pendente a", "color"), fundo_pendente) >= 4.5
+    assert razao_contraste(_propriedade(".meus-plano-progresso strong", "color"), BRANCO) >= 4.5
+
+
+def test_selo_link_em_foco_ou_hover_continua_legivel():
+    corpo = re.search(r"(?m)^\.meus-selo-link:hover,\s*\.meus-selo-link:focus-visible\s*\{([^}]*)\}", CSS).group(1)
+    texto = _cor(re.search(r"(?<!-)color:\s*([^;]+);", corpo).group(1))
+    fundo, _ = _cores_da_regra(".status-pendente")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+@pytest.mark.parametrize("fundo", [BRANCO, CREME])  # creme = linha com o mouse em cima
+def test_nome_do_atendido_e_foco_do_link_esticado(fundo):
+    assert razao_contraste(_propriedade(".meus-link", "color"), fundo) >= 4.5
+    contorno = re.search(r"var\(--[\w-]+\)", _propriedade(".meus-link:focus-visible::after", "outline")).group(0)
+    assert razao_contraste(_cor(contorno), fundo) >= 3
+
+
+def test_borda_ambar_da_linha_pendente():
+    borda = _propriedade(".meus-linha-pendente", "border-left-color")
+    assert borda.upper() == _propriedade(".agenda-estado-aguardando-registro", "border-left-color").upper()
+    # Mesma exceção da Agenda (2,96:1): a borda só acompanha o selo "N consultas", que tem texto
+    assert razao_contraste(borda, BRANCO) >= 2.9
