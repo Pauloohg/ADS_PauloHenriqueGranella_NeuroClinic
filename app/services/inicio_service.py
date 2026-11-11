@@ -1,19 +1,20 @@
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.templating import NOMES_DIAS
+from app.core.templating import NOMES_DIAS, NOMES_MESES, moeda
 from app.models.especialidade import Especialidade
 from app.models.funcionario import Funcionario
 from app.models.paciente import Paciente
 from app.models.pagamento import FormaPagamento, Pagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
-from app.models.usuario import Usuario
-from app.services.plano_service import ocupa_horario, plano_encerrado, prazo_pagamento
+from app.models.usuario import TipoUsuario, Usuario
+from app.services.plano_service import condicao_plano_ativo, ocupa_horario, plano_encerrado, prazo_pagamento
 
 ATIVO = "ativo"
 AGUARDANDO_PAGAMENTO = "aguardando_pagamento"
@@ -178,9 +179,68 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
     return sorted(resumos, key=lambda r: (ORDEM_SITUACAO[r.situacao], r.plano.data_inicio, r.plano.id))
 
 
-def contar_funcionarios_ativos(db: Session) -> int:
-    return db.scalar(select(func.count()).select_from(Funcionario).where(Funcionario.ativo.is_(True)))
+# --- Início do Administrador (refinamento da Semana 8) ---------------------------------------------
+
+@dataclass(frozen=True)
+class Cadastros:
+    clientes: int
+    clientes_com_plano_ativo: int
+    profissionais_ativos: int
+    profissionais_desativados: int
+    especialidades: int
+    menor_valor: Decimal | None
+    maior_valor: Decimal | None
 
 
-def contar_especialidades(db: Session) -> int:
-    return db.scalar(select(func.count()).select_from(Especialidade))
+def _plural(quantidade: int, singular: str, plural: str) -> str:
+    return f"{quantidade} {singular if quantidade == 1 else plural}"
+
+
+def titulo_do_mes(mes: date) -> str:
+    return f"{NOMES_MESES[mes.month - 1].capitalize()} até hoje"
+
+
+def texto_clientes(c: Cadastros) -> str:
+    if c.clientes == 0:
+        return "Nenhum cadastrado"
+    return f"{_plural(c.clientes, 'cadastrado', 'cadastrados')}, {c.clientes_com_plano_ativo} com plano ativo"
+
+
+def texto_profissionais(c: Cadastros) -> str:
+    if c.profissionais_ativos + c.profissionais_desativados == 0:
+        return "Nenhum cadastrado"
+    return (f"{_plural(c.profissionais_ativos, 'ativo', 'ativos')} e "
+            f"{_plural(c.profissionais_desativados, 'desativado', 'desativados')}")
+
+
+def texto_especialidades(c: Cadastros) -> str:
+    if c.especialidades == 0:
+        return "Nenhuma cadastrada"
+    quantidade = _plural(c.especialidades, "cadastrada", "cadastradas")
+    if c.menor_valor == c.maior_valor:
+        return f"{quantidade}, sessão de {moeda(c.menor_valor)}"
+    return f"{quantidade}, sessões de {moeda(c.menor_valor)} a {moeda(c.maior_valor)}"
+
+
+def resumo_dos_cadastros(db: Session, agora: datetime) -> Cadastros:
+    def contar(*filtros, modelo=Usuario):
+        return select(func.count()).select_from(modelo).where(*filtros).scalar_subquery()
+
+    com_plano_ativo = (
+        select(func.count(func.distinct(Paciente.cliente_id)))
+        .select_from(Plano)
+        .join(Paciente, Paciente.id == Plano.paciente_id)
+        .where(condicao_plano_ativo(agora))
+        .scalar_subquery()
+    )
+    linha = db.execute(select(
+        contar(Usuario.tipo == TipoUsuario.CLIENTE),
+        com_plano_ativo,
+        contar(Funcionario.ativo.is_(True), modelo=Funcionario),
+        contar(Funcionario.ativo.is_(False), modelo=Funcionario),
+        contar(modelo=Especialidade),
+        select(func.min(Especialidade.valor_sessao)).scalar_subquery(),
+        select(func.max(Especialidade.valor_sessao)).scalar_subquery(),
+    )).one()
+    *numeros, menor, maior = linha
+    return Cadastros(*(int(n or 0) for n in numeros), menor, maior)

@@ -1,18 +1,35 @@
 {% extends "inicio/_saudacao.html" %}
-{% from "inicio/_atalhos.html" import atalho %}
 
-{% block subtitulo_pagina %}Gerencie a equipe e as especialidades da clínica.{% endblock %}
+{% block subtitulo_pagina %}Como o mês está andando e os cadastros da clínica.{% endblock %}
 
 {% block conteudo %}
-<div class="row g-3 g-lg-4">
-    <div class="col-12 col-md-6 col-xl-4">
-        {{ atalho("/admin/funcionarios", "bi-person-badge", "Profissionais", "profissional ativo" if total_funcionarios_ativos == 1 else "profissionais ativos", total_funcionarios_ativos) }}
-    </div>
-    <div class="col-12 col-md-6 col-xl-4">
-        {{ atalho("/admin/especialidades", "bi-tags", "Especialidades", "especialidade cadastrada" if total_especialidades == 1 else "especialidades cadastradas", total_especialidades) }}
-    </div>
-    <div class="col-12 col-md-6 col-xl-4">
-        {{ atalho("/conta/alterar-senha", "bi-key", "Alterar senha", "Altere a sua senha de acesso.") }}
-    </div>
+<div class="admin-inicio">
+    <section class="cartao admin-inicio-mes" aria-labelledby="titulo-mes">
+        <header class="admin-inicio-mes-topo">
+            <h2 class="titulo-serifa admin-inicio-titulo" id="titulo-mes">{{ titulo_do_mes }}</h2>
+            <a href="/admin/painel" class="admin-inicio-link">Abrir painel gerencial</a>
+        </header>
+        <ul class="admin-inicio-numeros">
+            <li><strong class="font-monospace-num">{{ mes.receita | moeda }}</strong> <span>receita confirmada</span></li>
+            <li><strong class="font-monospace-num">{{ mes.planos_contratados }}</strong> <span>{{ "plano contratado" if mes.planos_contratados == 1 else "planos contratados" }}</span></li>
+            <li><strong class="font-monospace-num">{{ mes.novos_clientes }}</strong> <span>{{ "cliente novo" if mes.novos_clientes == 1 else "clientes novos" }}</span></li>
+        </ul>
+        <p class="admin-inicio-nota">Receita é o valor cobrado dos pagamentos confirmados no mês, já com desconto.</p>
+    </section>
+
+    <section class="admin-inicio-cadastros" aria-labelledby="titulo-cadastros">
+        <h2 class="titulo-serifa admin-inicio-titulo" id="titulo-cadastros">Cadastros</h2>
+        <ul class="admin-inicio-lista">
+            {% for href, icone, titulo, texto in cadastros %}
+            <li>
+                <a href="{{ href }}" class="admin-inicio-item">
+                    <span class="admin-inicio-icone" aria-hidden="true"><i class="bi {{ icone }}"></i></span>
+                    <span class="admin-inicio-texto"><strong>{{ titulo }}</strong> <span>{{ texto }}</span></span>
+                    <i class="bi bi-chevron-right admin-inicio-seta" aria-hidden="true"></i>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
 </div>
 {% endblock %}

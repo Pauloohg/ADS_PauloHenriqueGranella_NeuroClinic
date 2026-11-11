@@ -195,3 +195,19 @@ def test_borda_ambar_da_linha_pendente():
     assert borda.upper() == _propriedade(".agenda-estado-aguardando-registro", "border-left-color").upper()
     # Mesma exceção da Agenda (2,96:1): a borda só acompanha o selo "N consultas", que tem texto
     assert razao_contraste(borda, BRANCO) >= 2.9
+
+
+# --- Início do Administrador (refinamento da Semana 8) ------------------------------------------------
+
+def test_icone_dos_cadastros_tem_contraste():
+    fundo, texto = _cores_da_regra(".admin-inicio-icone")
+    assert razao_contraste(texto, fundo) >= 4.5  # ícone acompanha texto, mas fica legível como se fosse texto
+
+
+def test_link_do_painel_e_numeros_da_faixa_no_branco():
+    assert razao_contraste(_propriedade(".admin-inicio-link", "color"), BRANCO) >= 4.5
+    assert razao_contraste(_propriedade(".admin-inicio-numeros strong", "color"), BRANCO) >= 4.5
+
+
+def test_titulo_dos_cadastros_no_creme():
+    assert razao_contraste(_propriedade(".admin-inicio-item", "color"), CREME) >= 4.5

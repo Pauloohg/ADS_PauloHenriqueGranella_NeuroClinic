@@ -481,6 +481,6 @@ def test_inicio_do_cliente_e_do_admin_nao_usam_o_layout_novo(db, client, relogio
     client.cookies.clear()
     logar(client, criar_admin(db).email)
     html_admin = _html(client.get("/"))
-    assert "profissionais ativos" in html_admin
+    assert 'id="titulo-cadastros"' in html_admin and "<strong>Profissionais</strong>" in html_admin
     for html in (html_cliente, html_admin):
         assert "inicio-prof" not in html and "linha-tempo" not in html and "esperando registro" not in html

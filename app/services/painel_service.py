@@ -50,6 +50,13 @@ class LinhaEspecialidade:
 
 
 @dataclass(frozen=True)
+class ResumoDoMes:
+    receita: Decimal
+    planos_contratados: int
+    novos_clientes: int
+
+
+@dataclass(frozen=True)
 class Painel:
     mes: date
     mes_anterior: date
@@ -128,6 +135,11 @@ def _novos_clientes(db: Session, mes: date) -> int:
     )
 
 
+def resumo_do_mes(db: Session, mes: date) -> ResumoDoMes:
+    planos, receita = _contratos(db, mes)
+    return ResumoDoMes(receita, planos, _novos_clientes(db, mes))
+
+
 def _ranking(db: Session, mes: date) -> list[LinhaRanking]:
     quantidade = func.count(Plano.id)
     consulta = (
@@ -190,18 +202,18 @@ def montar_painel(db: Session, mes: date, agora: datetime, mes_ajustado: bool = 
     atual = agora.date().replace(day=1)
     anterior = mes - relativedelta(months=1)
     seguinte = mes + relativedelta(months=1)
-    planos, receita = _contratos(db, mes)
+    resumo = resumo_do_mes(db, mes)
     _, receita_anterior = _contratos(db, anterior)
     return Painel(
         mes=mes,
         mes_anterior=anterior,
         mes_seguinte=seguinte if seguinte <= atual else None,
         mes_ajustado=mes_ajustado,
-        receita=receita,
+        receita=resumo.receita,
         receita_anterior=receita_anterior,
-        variacao=calcular_variacao(receita, receita_anterior),
-        planos_contratados=planos,
-        novos_clientes=_novos_clientes(db, mes),
+        variacao=calcular_variacao(resumo.receita, receita_anterior),
+        planos_contratados=resumo.planos_contratados,
+        novos_clientes=resumo.novos_clientes,
         total_clientes=db.scalar(select(func.count()).select_from(Usuario).where(Usuario.tipo == TipoUsuario.CLIENTE)),
         planos_ativos=db.scalar(select(func.count()).select_from(Plano).where(condicao_plano_ativo(agora))),
         funcionarios_ativos=db.scalar(select(func.count()).select_from(Funcionario).where(Funcionario.ativo.is_(True))),

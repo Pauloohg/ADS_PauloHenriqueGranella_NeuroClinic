@@ -5,7 +5,7 @@ from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_opcional
-from app.services import inicio_profissional_service, inicio_service, paciente_service, plano_service
+from app.services import inicio_profissional_service, inicio_service, paciente_service, painel_service, plano_service
 
 router = APIRouter(tags=["inicio"])
 
@@ -34,9 +34,16 @@ def _contexto_funcionario(db: Session, usuario: Usuario, agora) -> dict:
 
 
 def _contexto_admin(db: Session, usuario: Usuario, agora) -> dict:
+    mes, _ = painel_service.resolver_mes(None, agora)
+    cadastros = inicio_service.resumo_dos_cadastros(db, agora)
     return {
-        "total_funcionarios_ativos": inicio_service.contar_funcionarios_ativos(db),
-        "total_especialidades": inicio_service.contar_especialidades(db),
+        "titulo_do_mes": inicio_service.titulo_do_mes(mes),
+        "mes": painel_service.resumo_do_mes(db, mes),
+        "cadastros": [
+            ("/admin/clientes", "bi-people", "Clientes", inicio_service.texto_clientes(cadastros)),
+            ("/admin/funcionarios", "bi-person-badge", "Profissionais", inicio_service.texto_profissionais(cadastros)),
+            ("/admin/especialidades", "bi-tags", "Especialidades", inicio_service.texto_especialidades(cadastros)),
+        ],
     }
 
 
