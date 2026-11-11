@@ -3,72 +3,56 @@
 
 {% block title %}Profissionais — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Profissionais{% endblock %}
-{% block subtitulo_pagina %}Equipe que atende na clínica.{% endblock %}
+{% block subtitulo_pagina %}{% if tem_profissional %}{{ resumo }}, agrupados por especialidade.{% else %}Quem atende na clínica.{% endif %}{% endblock %}
 {% block acoes_pagina %}
-<a href="/admin/funcionarios/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo profissional</a>
+{% if tem_profissional %}<a href="/admin/funcionarios/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo profissional</a>{% endif %}
 {% endblock %}
 
 {% block conteudo %}
 {{ alertas(sucesso, erro) }}
-{% if funcionarios %}
-<section class="cartao cartao-tabela">
-    <div class="table-responsive">
-        <table class="table tabela align-middle mb-0">
-            <thead>
-                <tr>
-                    <th scope="col">Nome</th>
-                    <th scope="col">Especialidade</th>
-                    <th scope="col">Status</th>
-                    <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in funcionarios %}
-                <tr class="{% if not item.funcionario.ativo %}linha-inativa{% endif %}">
-                    <td>
-                        <span class="fw-medium d-block">{{ item.usuario.nome }}</span>
-                        <span class="small text-muted">{{ item.usuario.email }}</span>
-                    </td>
-                    <td><span class="chip-especialidade {{ item.especialidade.nome | classe_especialidade }}">{{ item.especialidade.nome }}</span></td>
-                    <td>
-                        {% if item.funcionario.ativo %}
-                        <span class="badge rounded-pill status-ativo">Ativo</span>
-                        {% else %}
-                        <span class="badge rounded-pill status-inativo">Inativo</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        <div class="d-inline-flex flex-wrap justify-content-end gap-2">
-                            <a href="/admin/funcionarios/{{ item.usuario.id }}/editar" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-pencil me-1"></i>Editar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
-                            </a>
-                            {% if item.funcionario.ativo %}
-                            <form method="post" action="/admin/funcionarios/{{ item.usuario.id }}/desativar" class="m-0">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-person-dash me-1"></i>Desativar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
-                                </button>
-                            </form>
-                            {% else %}
-                            <form method="post" action="/admin/funcionarios/{{ item.usuario.id }}/reativar" class="m-0">
-                                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-person-check me-1"></i>Reativar<span class="visually-hidden"> {{ item.usuario.nome }}</span>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{% if tem_profissional %}
+{% for g in grupos %}
+<section class="prof-grupo {{ g.nome | classe_especialidade or 'esp-neutra' }}" aria-labelledby="grupo-{{ g.id }}">
+    <header class="prof-grupo-topo">
+        <h2 class="titulo-serifa prof-grupo-titulo" id="grupo-{{ g.id }}">{{ g.nome }}</h2>
+        <span class="prof-grupo-qtd">{{ g.ativos }} {{ "ativo" if g.ativos == 1 else "ativos" }}{% if g.desativados %}, {{ g.desativados }} {{ "desativado" if g.desativados == 1 else "desativados" }}{% endif %}</span>
+    </header>
+    {% if not g.ativos %}
+    <p class="prof-sem-ativo">Sem profissional ativo. Quem tenta contratar essa especialidade vê “{{ msg_sem_profissionais }}”.</p>
+    {% endif %}
+    {% if g.profissionais %}
+    <ul class="prof-linhas">
+        {% for p in g.profissionais %}
+        <li class="prof-linha {% if not p.ativo %}prof-linha-desativada{% endif %}">
+            <div class="prof-nome">
+                <strong>{{ p.nome }}</strong>{% if not p.ativo %} <span class="badge rounded-pill prof-selo-desativado">Desativado</span>{% endif %}
+                <span class="prof-email">{{ p.email }}</span>
+            </div>
+            <span class="prof-futuras"><span class="font-monospace-num">{{ p.consultas_futuras }}</span> {{ "consulta futura" if p.consultas_futuras == 1 else "consultas futuras" }}</span>
+            <div class="prof-acoes">
+                <a href="/admin/funcionarios/{{ p.id }}/editar" class="btn btn-outline-primary btn-sm">Editar<span class="visually-hidden"> {{ p.nome }}</span></a>
+                {% if not p.ativo %}
+                <form method="post" action="/admin/funcionarios/{{ p.id }}/reativar" class="m-0">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Reativar<span class="visually-hidden"> {{ p.nome }}</span></button>
+                </form>
+                {% elif p.consultas_futuras %}
+                <a class="prof-desativar prof-desativar-bloqueado" role="link" aria-disabled="true" aria-describedby="regra-desativar">Desativar<span class="visually-hidden"> {{ p.nome }}: indisponível, tem consultas futuras</span></a>
+                {% else %}
+                <a href="/admin/funcionarios/{{ p.id }}/desativar" class="prof-desativar">Desativar<span class="visually-hidden"> {{ p.nome }}</span></a>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 </section>
+{% endfor %}
+<p class="prof-nota" id="regra-desativar">Só é possível desativar quem não tem consultas futuras, agendadas ou aguardando pagamento. A lista mostra quantas cada profissional tem.</p>
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-person-badge"></i></div>
-    <h2 class="titulo-serifa h5">Nenhum profissional cadastrado</h2>
-    <p class="text-muted">Cadastre os profissionais para que eles possam ser escolhidos na contratação de planos.</p>
-    <a href="/admin/funcionarios/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar profissional</a>
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum profissional cadastrado</h2>
+    <p class="text-muted">Cadastre o primeiro para que os clientes possam contratar planos. Antes, confira se a especialidade do profissional já existe.</p>
+    <a href="/admin/funcionarios/novo" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Cadastrar profissional</a>
 </section>
 {% endif %}
 {% endblock %}

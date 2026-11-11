@@ -211,3 +211,35 @@ def test_link_do_painel_e_numeros_da_faixa_no_branco():
 
 def test_titulo_dos_cadastros_no_creme():
     assert razao_contraste(_propriedade(".admin-inicio-item", "color"), CREME) >= 4.5
+
+
+# --- Profissionais do Admin (refinamento da Semana 8) --------------------------------------------------
+
+@pytest.mark.parametrize("seletor", [
+    ".prof-sem-ativo",  # "Sem profissional ativo." no grupo e na confirmação
+    ".prof-trava",  # explicação da especialidade travada (RN07)
+    ".prof-selo-desativado",
+])
+def test_combinacoes_de_profissionais_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_tom_neutro_de_especialidade():
+    fundo, texto = _propriedade(".esp-neutra", "--esp-fundo"), _propriedade(".esp-neutra", "--esp-texto")
+    assert razao_contraste(texto, fundo) >= 4.5  # chip: texto escuro sobre o cinza-esverdeado
+    assert razao_contraste(_propriedade(".esp-neutra", "--esp-cor"), BRANCO) >= 3  # borda do grupo
+
+
+def test_link_desativar_vermelho_e_bloqueado():
+    assert razao_contraste(_propriedade(".prof-desativar", "color"), BRANCO) >= 4.5
+    # Bloqueado é componente inativo (WCAG 1.4.3 o dispensa); mesmo assim fica acima de 3:1 e a regra está em texto
+    assert razao_contraste(_propriedade(".prof-desativar-bloqueado", "color"), BRANCO) >= 3
+
+
+def test_fundo_da_linha_desativada_e_seletor_travado_com_texto_escuro():
+    assert razao_contraste(_propriedade(".prof-nome strong", "color"), _propriedade(".prof-linha-desativada", "background-color")) >= 4.5
+    corpo = re.search(r"(?m)^\.prof-form \.form-select:disabled\s*\{([^}]*)\}", CSS).group(1)
+    fundo = _cor(re.search(r"background-color:\s*([^;]+);", corpo).group(1))
+    texto = _cor(re.search(r"(?<!-)color:\s*([^;]+);", corpo).group(1))
+    assert razao_contraste(texto, fundo) >= 4.5

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
 from app.core import security
@@ -75,16 +75,6 @@ def _aplicar_contato(funcionario: Funcionario, dados: ContatoProfissional) -> No
         setattr(funcionario, campo, getattr(dados, campo))
 
 
-def listar(db: Session) -> list[FuncionarioResumo]:
-    consulta = (
-        select(Usuario, Funcionario, Especialidade)
-        .join(Funcionario, Funcionario.usuario_id == Usuario.id)
-        .join(Especialidade, Especialidade.id == Funcionario.especialidade_id)
-        .order_by(Funcionario.ativo.desc(), Usuario.nome)
-    )
-    return [FuncionarioResumo(*linha) for linha in db.execute(consulta)]
-
-
 def listar_ativos_da_especialidade(db: Session, especialidade_id: int) -> list[Usuario]:
     consulta = (
         select(Usuario)
@@ -143,6 +133,11 @@ def atualizar(db: Session, funcionario_id: int, dados: FuncionarioEdicao, agora:
     return buscar(db, funcionario_id)
 
 
+def condicoes_sessao_futura(agora: datetime, status: tuple[StatusSessao, ...] = STATUS_QUE_PRENDEM):
+    # RN05 e RN07: a desativação, a troca de especialidade e as contagens das telas usam SÓ este filtro
+    return (Sessao.status.in_(status), Sessao.data_hora >= agora)
+
+
 def possui_sessoes_futuras(
     db: Session, funcionario_id: int, agora: datetime, status: tuple[StatusSessao, ...]
 ) -> bool:
@@ -151,10 +146,79 @@ def possui_sessoes_futuras(
             exists()
             .where(Sessao.plano_id == Plano.id)
             .where(Plano.funcionario_id == funcionario_id)
-            .where(Sessao.status.in_(status))
-            .where(Sessao.data_hora >= agora)
+            .where(*condicoes_sessao_futura(agora, status))
         )
     )
+
+
+def _futuras_por_profissional(agora: datetime):
+    return (
+        select(Plano.funcionario_id, func.count(Sessao.id).label("futuras"))
+        .join(Sessao, Sessao.plano_id == Plano.id)
+        .where(*condicoes_sessao_futura(agora))
+        .group_by(Plano.funcionario_id)
+        .subquery()
+    )
+
+
+def contar_sessoes_futuras(db: Session, funcionario_id: int, agora: datetime) -> int:
+    return db.scalar(
+        select(func.count(Sessao.id))
+        .join(Plano, Plano.id == Sessao.plano_id)
+        .where(Plano.funcionario_id == funcionario_id, *condicoes_sessao_futura(agora))
+    )
+
+
+def contar_ativos_da_especialidade(db: Session, especialidade_id: int) -> int:
+    return db.scalar(
+        select(func.count()).select_from(Funcionario)
+        .where(Funcionario.especialidade_id == especialidade_id, Funcionario.ativo.is_(True))
+    )
+
+
+@dataclass(frozen=True)
+class ProfissionalNaLista:
+    id: int
+    nome: str
+    email: str
+    ativo: bool
+    consultas_futuras: int
+
+
+@dataclass(frozen=True)
+class GrupoDeEspecialidade:
+    id: int
+    nome: str
+    profissionais: list[ProfissionalNaLista]
+
+    @property
+    def ativos(self) -> int:
+        return sum(1 for p in self.profissionais if p.ativo)
+
+    @property
+    def desativados(self) -> int:
+        return len(self.profissionais) - self.ativos
+
+
+def listar_por_especialidade(db: Session, agora: datetime) -> list[GrupoDeEspecialidade]:
+    futuras = _futuras_por_profissional(agora)
+    linhas = db.execute(
+        select(
+            Especialidade.id, Especialidade.nome, Usuario.id, Usuario.nome, Usuario.email, Funcionario.ativo,
+            func.coalesce(futuras.c.futuras, 0),
+        )
+        .select_from(Especialidade)
+        .outerjoin(Funcionario, Funcionario.especialidade_id == Especialidade.id)
+        .outerjoin(Usuario, Usuario.id == Funcionario.usuario_id)
+        .outerjoin(futuras, futuras.c.funcionario_id == Funcionario.usuario_id)
+        .order_by(Especialidade.nome, Especialidade.id, Funcionario.ativo.desc(), Usuario.nome, Usuario.id)
+    ).all()
+    grupos: dict[int, GrupoDeEspecialidade] = {}
+    for esp_id, esp_nome, usuario_id, nome, email, ativo, n in linhas:
+        grupo = grupos.setdefault(esp_id, GrupoDeEspecialidade(esp_id, esp_nome, []))
+        if usuario_id is not None:
+            grupo.profissionais.append(ProfissionalNaLista(usuario_id, nome, email, bool(ativo), int(n)))
+    return list(grupos.values())
 
 
 def desativar(db: Session, funcionario_id: int, agora: datetime) -> FuncionarioResumo:

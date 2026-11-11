@@ -1,0 +1,38 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import voltar %}
+{% set nome = profissional.usuario.nome %}
+{% set especialidade = profissional.especialidade.nome %}
+
+{% block title %}Desativar {{ nome }} — NeuroClinic{% endblock %}
+{% block voltar %}{{ voltar("/admin/funcionarios", "Profissionais") }}{% endblock %}
+{% block titulo_pagina %}Desativar {{ nome }}?{% endblock %}
+{% block subtitulo_pagina %}Confira o que muda antes de confirmar. Nada foi alterado ainda.{% endblock %}
+
+{% block conteudo %}
+<section class="cartao prof-confirmar" aria-labelledby="titulo-efeitos">
+    <div class="prof-confirmar-quem">
+        <div>
+            <strong class="prof-confirmar-nome">{{ nome }}</strong>
+            <span class="prof-email">{{ profissional.usuario.email }} · 0 consultas futuras</span>
+        </div>
+        <span class="chip-especialidade {{ especialidade | classe_especialidade or 'esp-neutra' }}">{{ especialidade }}</span>
+    </div>
+
+    <h2 class="titulo-serifa prof-confirmar-titulo" id="titulo-efeitos">O que acontece</h2>
+    <ul class="prof-confirmar-efeitos">
+        <li>{{ nome }} deixa de aparecer para quem vai contratar um plano.</li>
+        <li>Planos encerrados e o histórico de consultas continuam como estão.</li>
+        <li>{{ nome }} ainda consegue entrar no sistema e ver a própria agenda.</li>
+        <li>Você pode reativar quando quiser, na lista de Profissionais.</li>
+    </ul>
+
+    {% if ultimo_ativo %}
+    <p class="prof-sem-ativo prof-confirmar-ultimo"><strong>{{ especialidade }} fica sem profissional ativo.</strong> Enquanto isso, quem tenta contratar essa especialidade vê “{{ msg_sem_profissionais }}”.</p>
+    {% endif %}
+
+    <form method="post" action="/admin/funcionarios/{{ profissional.usuario.id }}/desativar" class="prof-confirmar-acoes">
+        <button type="submit" class="btn btn-danger">Desativar {{ nome }}</button>
+        <a href="/admin/funcionarios" class="btn btn-link text-decoration-none">Cancelar</a>
+    </form>
+</section>
+{% endblock %}

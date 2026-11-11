@@ -40,6 +40,9 @@ def classe_especialidade(nome: str) -> str:
     return f"esp-{chave}" if chave in CLASSES_ESPECIALIDADE else ""
 
 
+# Estado vazio do RF04 (o que o Cliente vê); a lista de Profissionais do Admin cita a mesma frase
+MSG_SEM_PROFISSIONAIS = "Sem profissionais disponíveis no momento"
+
 NOMES_DIAS = ("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
 ROTULOS_DURACAO = {
     "quinzenal": "Quinzenal (2 semanas)",
@@ -116,4 +119,5 @@ templates.env.filters["mes_iso"] = mes_iso
 templates.env.filters["percentual"] = percentual
 templates.env.filters["idade"] = idade
 templates.env.globals["rotulos_duracao"] = ROTULOS_DURACAO
+templates.env.globals["msg_sem_profissionais"] = MSG_SEM_PROFISSIONAIS
 templates.env.globals["descontos_por_duracao"] = DESCONTO_POR_DURACAO

@@ -6,13 +6,16 @@ from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.core.ids import inteiro_positivo
 from app.core.templating import templates, valor_formulario
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
 from app.schemas.especialidade import EspecialidadeCadastro, EspecialidadeValor
 from app.schemas.funcionario import CAMPOS_CONTATO, FuncionarioCadastro, FuncionarioEdicao
-from app.services import admin_clientes_service, auth_service, especialidade_service, funcionario_service, painel_service
+from app.services import (
+    admin_clientes_service, auth_service, especialidade_service, funcionario_service, inicio_service, painel_service,
+)
 
 somente_admin = get_usuario_por_tipo(TipoUsuario.ADMIN)
 
@@ -21,6 +24,7 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(soment
 
 TEMPLATE_FUNCIONARIOS = "admin/funcionarios.html"
 TEMPLATE_FUNCIONARIO_FORM = "admin/funcionario_form.html"
+TEMPLATE_FUNCIONARIO_DESATIVAR = "admin/funcionario_desativar.html"
 TEMPLATE_ESPECIALIDADES = "admin/especialidades.html"
 TEMPLATE_ESPECIALIDADE_FORM = "admin/especialidade_form.html"
 TEMPLATE_CLIENTES = "admin/clientes.html"
@@ -41,6 +45,13 @@ MENSAGENS_FUNCIONARIOS = {
     "desativado": "Profissional desativado.",
     "reativado": "Profissional reativado.",
 }
+ERROS_FUNCIONARIOS = {"sessoes-futuras": MSG_FUNCIONARIO_COM_SESSOES}
+# Ordem dos campos no formulário: o resumo de erros no topo segue a mesma ordem
+ROTULOS_CAMPOS_FUNCIONARIO = {
+    "nome": "Nome completo", "email": "E-mail de acesso", "especialidade_id": "Especialidade",
+    "senha": "Senha provisória", "formacao": "Formação", "registro_profissional": "Registro profissional",
+    "apresentacao": "Apresentação", "telefone_contato": "Telefone de contato", "email_contato": "E-mail de contato",
+}
 MENSAGENS_ESPECIALIDADES = {
     "cadastrada": "Especialidade cadastrada.",
     "atualizada": "Valor da sessão atualizado. Planos já contratados mantêm o valor anterior.",
@@ -57,21 +68,44 @@ def _nao_encontrado(mensagem: str) -> HTTPException:
 
 # --- RF11: funcionários --------------------------------------------------------------------------
 
+def _erro_por_parametro(request: Request, grupos) -> str | None:
+    modelo = ERROS_FUNCIONARIOS.get(request.query_params.get("erro"))
+    escolhido = inteiro_positivo(request.query_params.get("profissional"))
+    nomes = {p.id: p.nome for g in grupos for p in g.profissionais}
+    return modelo.format(nome=nomes[escolhido]) if modelo and escolhido in nomes else None
+
+
 def _lista_funcionarios(request: Request, usuario: Usuario, db: Session, erro: str | None = None, status_code=200):
+    grupos = funcionario_service.listar_por_especialidade(db, agora_local())
+    ativos = sum(g.ativos for g in grupos)
+    desativados = sum(g.desativados for g in grupos)
     contexto = {
         "usuario": usuario,
-        "funcionarios": funcionario_service.listar(db),
+        "grupos": grupos,
+        "tem_profissional": bool(ativos + desativados),
+        "resumo": inicio_service.texto_profissionais(inicio_service.Cadastros(0, 0, ativos, desativados, 0, None, None)),
         "sucesso": MENSAGENS_FUNCIONARIOS.get(request.query_params.get("ok")),
-        "erro": erro,
+        "erro": erro or _erro_por_parametro(request, grupos),
     }
     return templates.TemplateResponse(request, TEMPLATE_FUNCIONARIOS, contexto, status_code=status_code)
+
+
+def titulo_do_resumo_de_erros(quantidade: int, editando: bool) -> str:
+    campos = "1 campo" if quantidade == 1 else f"{quantidade} campos"
+    return f"Revise {campos} antes de {'salvar' if editando else 'cadastrar'}."
 
 
 def _form_funcionario(request, usuario, db, dados, erros, funcionario=None, status_code=200, erro=None):
     contexto = {
         "usuario": usuario, "dados": dados, "erros": erros, "funcionario": funcionario, "erro": erro,
         "especialidades": especialidade_service.listar(db),
+        "rotulos": ROTULOS_CAMPOS_FUNCIONARIO,
+        "titulo_erros": titulo_do_resumo_de_erros(len(erros), bool(funcionario)) if erros else None,
     }
+    if funcionario:
+        # O cartão mostra o que está SALVO: `funcionario` é lido do banco antes de qualquer alteração
+        contexto["perfil"] = funcionario_service.perfil_publico(funcionario.usuario, funcionario.funcionario)
+        contexto["consultas_futuras"] = funcionario_service.contar_sessoes_futuras(db, funcionario.usuario.id, agora_local())
     return templates.TemplateResponse(request, TEMPLATE_FUNCIONARIO_FORM, contexto, status_code=status_code)
 
 
@@ -170,6 +204,24 @@ def editar_funcionario(
     else:
         return _redirecionar("/admin/funcionarios?ok=atualizado")
     return _form_funcionario(request, usuario, db, dados_form, erros, resumo, status.HTTP_400_BAD_REQUEST)
+
+
+@router.get("/funcionarios/{funcionario_id}/desativar")
+def confirmar_desativacao(
+    request: Request, funcionario_id: str, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
+):
+    numero = inteiro_positivo(funcionario_id)
+    resumo = _buscar_funcionario_ou_404(db, numero) if numero else None
+    if resumo is None or not resumo.funcionario.ativo:
+        raise _nao_encontrado("Profissional não encontrado.")
+    if funcionario_service.contar_sessoes_futuras(db, numero, agora_local()):
+        return _redirecionar(f"/admin/funcionarios?erro=sessoes-futuras&profissional={numero}")
+    contexto = {
+        "usuario": usuario,
+        "profissional": resumo,
+        "ultimo_ativo": funcionario_service.contar_ativos_da_especialidade(db, resumo.especialidade.id) == 1,
+    }
+    return templates.TemplateResponse(request, TEMPLATE_FUNCIONARIO_DESATIVAR, contexto)
 
 
 @router.post("/funcionarios/{funcionario_id}/desativar")

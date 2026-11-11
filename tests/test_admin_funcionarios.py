@@ -168,7 +168,7 @@ def test_lista_mostra_nome_especialidade_e_status(client, db, fono, admin_logado
 
     html = client.get("/admin/funcionarios").text
     assert "Bruna Ativa" in html and "Davi Inativo" in html and "Fonoaudiologia" in html
-    assert ">Ativo<" in html and ">Inativo<" in html
+    assert ">Desativado<" in html and ">Ativo<" not in html and ">Inativo<" not in html  # só o desativado tem selo
     assert f"/admin/funcionarios/{ativo.usuario.id}/desativar" in html
     assert f"/admin/funcionarios/{inativo.usuario.id}/reativar" in html
 

@@ -3224,3 +3224,321 @@
         border-top: 0;
     }
 }
+
+/* --- Profissionais do Admin: refinamento da Semana 8 (RF11, RN05, RN07) ------------------------------ */
+
+/* Especialidade cadastrada pelo Admin fora das três com cor própria: tom neutro cinza-esverdeado */
+.esp-neutra {
+    --esp-cor: var(--cor-borda-campo);
+    --esp-texto: var(--cor-texto-escuro);
+    --esp-fundo: var(--cor-aviso-salvia-fundo);
+}
+
+.prof-grupo {
+    background-color: #fff;
+    border-radius: 1rem;
+    border-left: 5px solid var(--esp-cor, var(--cor-borda-campo));
+    box-shadow: var(--bs-box-shadow-sm);
+    overflow: hidden;
+    margin-bottom: 1.1rem;
+}
+
+.prof-grupo-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    padding: 0.9rem 1.25rem 0.6rem;
+}
+
+.prof-grupo-titulo {
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+.prof-grupo-qtd {
+    font-size: 0.92rem;
+    color: var(--bs-secondary-color);
+}
+
+.prof-sem-ativo {
+    margin: 0 1.25rem 0.75rem;
+    padding: 0.5rem 0.9rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+    font-size: 0.93rem;
+}
+
+.prof-linhas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.prof-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 2.4fr) 10rem minmax(12rem, 1.3fr);
+    align-items: center;
+    gap: 0.4rem 1.25rem;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.prof-linha-desativada {
+    background-color: var(--cor-fundo-creme);
+}
+
+.prof-nome strong {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.prof-linha-desativada .prof-nome strong {
+    color: var(--bs-secondary-color);
+}
+
+.prof-email {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+    overflow-wrap: anywhere;
+}
+
+.prof-selo-desativado {
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
+    margin-left: 0.35rem;
+    vertical-align: 1px;
+}
+
+.prof-futuras {
+    font-size: 0.92rem;
+    color: var(--cor-texto-escuro);
+    white-space: nowrap;
+}
+
+.prof-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem 1rem;
+}
+
+/* "Desativar" só fica vermelho quando é possível; bloqueado, cinza sem sublinhado (a regra está na nota) */
+.prof-desativar {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--cor-erro);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.prof-desativar-bloqueado {
+    color: var(--cor-borda-campo);
+    font-weight: 400;
+    text-decoration: none;
+    cursor: not-allowed;
+}
+
+.prof-desativar-bloqueado:hover {
+    color: var(--cor-borda-campo);
+}
+
+.prof-nota {
+    margin: 0.25rem 0.25rem 0;
+    font-size: 0.92rem;
+    color: var(--bs-secondary-color);
+    max-width: 70ch;
+}
+
+/* Confirmação de desativação */
+.prof-confirmar {
+    max-width: 40rem;
+    padding: 1.6rem 1.75rem;
+}
+
+.prof-confirmar-quem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.prof-confirmar-nome {
+    display: block;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.prof-confirmar-titulo {
+    font-size: 1.1rem;
+    margin: 1.25rem 0 0.5rem;
+}
+
+.prof-confirmar-efeitos {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+    color: var(--cor-texto-escuro);
+}
+
+.prof-confirmar-efeitos li + li {
+    margin-top: 0.35rem;
+}
+
+.prof-confirmar .prof-confirmar-ultimo {
+    margin: 0 0 1rem;
+}
+
+.prof-confirmar-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+/* Formulário Novo/Editar: Acesso | Perfil; a prévia fica sob o Acesso no desktop e depois dos campos no celular */
+.prof-form {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    grid-template-areas:
+        "acesso perfil"
+        "previa perfil"
+        "botoes botoes";
+    align-items: start;
+    gap: 1.5rem;
+    max-width: 70rem;
+}
+
+.prof-form-acesso {
+    grid-area: acesso;
+}
+
+.prof-form-perfil {
+    grid-area: perfil;
+}
+
+.prof-form-previa {
+    grid-area: previa;
+}
+
+.prof-form-botoes {
+    grid-area: botoes;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.prof-form-parte {
+    padding: 1.4rem 1.5rem;
+}
+
+.prof-form-titulo {
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.prof-form-nota {
+    margin: 0.25rem 0 1.1rem;
+    font-size: 0.93rem;
+    color: var(--bs-secondary-color);
+}
+
+.prof-campo + .prof-campo {
+    margin-top: 1rem;
+}
+
+.prof-campo .form-label {
+    font-weight: 600;
+}
+
+.prof-campo-erro,
+.prof-campo-ajuda {
+    margin: 0.3rem 0 0;
+}
+
+.prof-campo-erro {
+    font-weight: 600;
+}
+
+.prof-campo-fixo {
+    margin: 0;
+    color: var(--cor-texto-escuro);
+    overflow-wrap: anywhere;
+}
+
+.prof-trava {
+    margin: 0.4rem 0 0;
+    padding: 0.45rem 0.75rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+    font-size: 0.9rem;
+}
+
+.prof-form .form-select:disabled {
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
+}
+
+.prof-form-erros {
+    max-width: 70rem;
+}
+
+.prof-form-erros-titulo {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+}
+
+.prof-form-erros ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.prof-form-previa .cartao-profissional {
+    box-shadow: none;
+    border: 1px solid var(--bs-border-color);
+}
+
+@media (max-width: 767.98px) {
+    .prof-linha {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 0.85rem 1rem;
+    }
+
+    .prof-nome {
+        grid-column: 1 / -1;
+    }
+
+    .prof-acoes {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+    }
+
+    .prof-confirmar {
+        padding: 1.25rem 1.1rem;
+    }
+
+    .prof-form {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "acesso"
+            "perfil"
+            "previa"
+            "botoes";
+    }
+
+    .prof-form-parte {
+        padding: 1.2rem 1.1rem;
+    }
+}

@@ -121,7 +121,8 @@ def test_formulario_do_admin_tem_os_cinco_campos_opcionais(client, fono, admin_l
     html = _html(client.get("/admin/funcionarios/novo"))
     for campo in CONTATO:
         assert f'name="{campo}"' in html, campo
-    assert "Contato e formação" in html and html.count("(opcional)") >= 5
+    assert "Perfil que o cliente vê" in html and "Todos os campos desta parte são opcionais." in html
+    assert "(opcional)" not in html  # a frase vale para a parte inteira
 
 
 def test_cadastro_sem_os_campos_opcionais_grava_vazio(client, db, fono, admin_logado):
@@ -173,7 +174,7 @@ def test_erro_de_validacao_reexibe_o_formulario(client, db, fono, admin_logado, 
     html = _html(resposta)
     assert resposta.status_code == 400
     assert mensagem in html
-    assert 'value="Fonoaudiologia"' in html  # não perde o que já foi digitado
+    assert ">Fonoaudiologia</textarea>" in html  # não perde o que já foi digitado (Formação virou textarea)
     assert db.query(Funcionario).count() == 0
 
 
