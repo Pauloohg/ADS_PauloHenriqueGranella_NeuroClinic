@@ -3087,10 +3087,6 @@
 
 /* --- Início do Administrador: refinamento da Semana 8 ---------------------------------------------- */
 
-.admin-inicio {
-    max-width: 56rem;
-}
-
 .admin-inicio-titulo {
     font-size: 1.25rem;
     margin: 0;
@@ -4530,4 +4526,81 @@
         align-items: center;
         text-align: left;
     }
+}
+
+
+/* --- Atendidos do Cliente: refinamento da Semana 8 (RF03) --------------------------------------------- */
+
+.atd-lista {
+    display: grid;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.atd-cartao {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding: 1.1rem 1.35rem;
+}
+
+.atd-dados {
+    min-width: 0;
+}
+
+.atd-nome {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--cor-texto-escuro);
+    overflow-wrap: anywhere;
+}
+
+.atd-idade {
+    margin: 0.15rem 0 0.5rem;
+    font-size: 0.95rem;
+    color: var(--cor-texto-escuro);
+}
+
+.atd-selos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+}
+
+.atd-sem-plano {
+    font-size: 0.93rem;
+    color: #5C5A55;
+}
+
+.atd-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.atd-form {
+    max-width: 30rem;
+}
+
+.atd-form-aviso {
+    margin: 1rem 0 0;
+    padding: 0.55rem 0.85rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 6px;
+    background-color: #FBEFD5;
+    color: #4F3607;
+    font-size: 0.93rem;
+}
+
+.atd-form-nota {
+    margin: 1.1rem 0 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: 0.9rem;
+    color: var(--cor-texto-escuro);
 }

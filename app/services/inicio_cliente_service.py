@@ -1,16 +1,21 @@
+from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import exists, select
+from sqlalchemy import case, exists, func, select
 from sqlalchemy.orm import Session
 
 from app.core.templating import NOMES_DIAS, NOMES_MESES, juntar_nomes, tempo_curto
 from app.models.paciente import Paciente
-from app.models.pagamento import FormaPagamento
-from app.models.sessao import StatusSessao
+from app.models.pagamento import FormaPagamento, Pagamento
+from app.models.plano import Plano
+from app.models.sessao import Sessao, StatusSessao
+from app.services.admin_clientes_service import calcular_idade
 from app.services import inicio_service, plano_service
 from app.services.contratacao_service import prazo_previsto
-from app.services.inicio_service import AGUARDANDO_PAGAMENTO, ENCERRADO, PrimeirosPassos, ProximaSessao, ResumoPlano
+from app.services.inicio_service import (
+    AGUARDANDO_PAGAMENTO, ATIVO, ENCERRADO, PrimeirosPassos, ProximaSessao, ResumoPlano, situacao_plano,
+)
 from app.services.remarcacao_service import motivo_bloqueio
 
 LIMITE_PRAZO_COM_HORA = timedelta(hours=24)
@@ -121,3 +126,60 @@ def montar_inicio(db: Session, cliente_id: int, agora: datetime) -> InicioClient
         r.plano.id: configuracao_curta(r.plano.frequencia_semanal, r.plano.dias_semana, r.plano.horario) for r in planos
     }
     return InicioCliente(tem_atendido, passos, pagamentos, proxima, pode_remarcar, grupos, encerrados, configuracoes)
+
+
+# --- Atendidos do Cliente (RF03): selos de plano por atendido ----------------------------------------
+
+@dataclass(frozen=True)
+class AtendidoNaLista:
+    id: int
+    nome: str
+    idade: int
+    nascimento: date
+    selos: list[tuple[str, str]]
+
+
+SELOS = (
+    (ATIVO, "plano ativo", "planos ativos", "status-ativo"),
+    (AGUARDANDO_PAGAMENTO, "aguardando pagamento", "aguardando pagamento", "status-pendente"),
+    (ENCERRADO, "plano encerrado", "planos encerrados", "status-inativo"),
+)
+
+
+def texto_selos(contagem: Counter) -> list[tuple[str, str]]:
+    return [
+        (f"{contagem[chave]} {singular if contagem[chave] == 1 else plural}", classe)
+        for chave, singular, plural, classe in SELOS if contagem[chave]
+    ]
+
+
+def situacoes_por_atendido(db: Session, cliente_id: int, agora: datetime) -> dict[int, Counter]:
+    pendentes = func.coalesce(func.sum(case((Sessao.status == StatusSessao.PENDENTE_PAGAMENTO, 1), else_=0)), 0)
+    linhas = db.execute(
+        select(Plano.paciente_id, Plano.data_fim, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento, pendentes)
+        .join(Paciente, Paciente.id == Plano.paciente_id)
+        .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
+        .outerjoin(Sessao, Sessao.plano_id == Plano.id)
+        .where(Paciente.cliente_id == cliente_id)
+        .group_by(Plano.id, Plano.paciente_id, Plano.data_fim, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento)
+    ).all()
+    contagens: dict[int, Counter] = {}
+    for paciente_id, data_fim, criado_em, data_inicio, forma, n_pendentes in linhas:
+        # Mesma classificação do Início (situacao_plano): pendente vencido (RN09) volta None e não ganha selo
+        situacao = situacao_plano(data_fim, Counter({StatusSessao.PENDENTE_PAGAMENTO: n_pendentes}), criado_em, agora, data_inicio, forma)
+        if situacao is not None:
+            contagens.setdefault(paciente_id, Counter())[situacao] += 1
+    return contagens
+
+
+def atendidos_com_planos(db: Session, cliente_id: int, agora: datetime) -> list[AtendidoNaLista]:
+    pacientes = db.execute(
+        select(Paciente.id, Paciente.nome, Paciente.data_nascimento)
+        .where(Paciente.cliente_id == cliente_id)
+        .order_by(Paciente.nome, Paciente.id)
+    ).all()
+    contagens = situacoes_por_atendido(db, cliente_id, agora) if pacientes else {}
+    return [
+        AtendidoNaLista(id_, nome, calcular_idade(nascimento, agora.date()), nascimento, texto_selos(contagens.get(id_, Counter())))
+        for id_, nome, nascimento in pacientes
+    ]

@@ -5,47 +5,35 @@
 {% block titulo_pagina %}Atendidos{% endblock %}
 {% block subtitulo_pagina %}Pessoas atendidas pela clínica sob a sua responsabilidade.{% endblock %}
 {% block acoes_pagina %}
-<a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo atendido</a>
+{% if atendidos %}<a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Novo atendido</a>{% endif %}
 {% endblock %}
 
 {% block conteudo %}
 {{ alertas(sucesso) }}
-{% if pacientes %}
-<section class="cartao cartao-tabela">
-    <div class="table-responsive">
-        <table class="table tabela align-middle mb-0">
-            <thead>
-                <tr>
-                    <th scope="col">Nome</th>
-                    <th scope="col">Data de nascimento</th>
-                    <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for paciente in pacientes %}
-                <tr>
-                    <td class="fw-medium">{{ paciente.nome }}</td>
-                    <td>{{ paciente.data_nascimento.strftime("%d/%m/%Y") }}</td>
-                    <td class="text-end text-nowrap">
-                        <a href="/historico?atendido={{ paciente.id }}" class="btn btn-outline-primary btn-sm me-1">
-                            <i class="bi bi-clock-history me-1"></i>Histórico<span class="visually-hidden"> de {{ paciente.nome }}</span>
-                        </a>
-                        <a href="/pacientes/{{ paciente.id }}/editar" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-pencil me-1"></i>Editar<span class="visually-hidden"> {{ paciente.nome }}</span>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
+{% if atendidos %}
+<ul class="atd-lista">
+    {% for a in atendidos %}
+    <li class="cartao atd-cartao">
+        <div class="atd-dados">
+            <h2 class="titulo-serifa atd-nome">{{ a.nome }}</h2>
+            <p class="atd-idade">{{ a.idade | idade }} (nascimento: <span class="font-monospace-num">{{ a.nascimento | data_br }}</span>)</p>
+            <p class="atd-selos">
+                {% for texto, classe in a.selos %}<span class="badge rounded-pill {{ classe }}">{{ texto }}</span>{% else %}<span class="atd-sem-plano">Ainda sem plano.</span>{% endfor %}
+            </p>
+        </div>
+        <div class="atd-acoes">
+            {% if not a.selos %}<a href="/especialidades" class="btn btn-primary btn-sm">Contratar plano</a>{% endif %}
+            <a href="/historico?atendido={{ a.id }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Histórico<span class="visually-hidden"> de {{ a.nome }}</span></a>
+            <a href="/pacientes/{{ a.id }}/editar" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar<span class="visually-hidden"> {{ a.nome }}</span></a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
-    <h2 class="titulo-serifa h5">Nenhum atendido cadastrado</h2>
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum atendido cadastrado</h2>
     <p class="text-muted">Cadastre a pessoa que será atendida para poder contratar um plano para ela.</p>
-    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar atendido</a>
+    <a href="/pacientes/novo" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Cadastrar atendido</a>
 </section>
 {% endif %}
 {% endblock %}

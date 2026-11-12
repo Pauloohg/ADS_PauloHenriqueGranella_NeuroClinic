@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.core.ids import inteiro_positivo
-from app.core.templating import templates, valor_formulario
+from app.core.templating import templates, titulo_do_resumo_de_erros, valor_formulario
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
@@ -89,11 +89,6 @@ def _lista_funcionarios(request: Request, usuario: Usuario, db: Session, erro: s
         "erro": erro or _erro_por_parametro(request, grupos),
     }
     return templates.TemplateResponse(request, TEMPLATE_FUNCIONARIOS, contexto, status_code=status_code)
-
-
-def titulo_do_resumo_de_erros(quantidade: int, editando: bool) -> str:
-    campos = "1 campo" if quantidade == 1 else f"{quantidade} campos"
-    return f"Revise {campos} antes de {'salvar' if editando else 'cadastrar'}."
 
 
 def _form_funcionario(request, usuario, db, dados, erros, funcionario=None, status_code=200, erro=None):

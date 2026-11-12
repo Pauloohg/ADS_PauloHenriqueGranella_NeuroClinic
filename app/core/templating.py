@@ -27,6 +27,11 @@ def moeda(valor: Decimal) -> str:
     return "R$ " + f"{valor:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def titulo_do_resumo_de_erros(quantidade: int, editando: bool) -> str:
+    campos = "1 campo" if quantidade == 1 else f"{quantidade} campos"
+    return f"Revise {campos} antes de {'salvar' if editando else 'cadastrar'}."
+
+
 def moeda_fixa(valor: Decimal) -> str:
     return moeda(valor).replace(" ", " ")  # "R$" nunca fica sozinho no fim da linha
 

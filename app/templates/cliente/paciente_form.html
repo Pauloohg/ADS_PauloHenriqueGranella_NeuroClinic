@@ -1,5 +1,5 @@
 {% extends "_interno.html" %}
-{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% from "_formulario.html" import alertas, voltar %}
 {% set editando = paciente is defined and paciente %}
 
 {% block title %}{{ "Editar atendido" if editando else "Novo atendido" }} — NeuroClinic{% endblock %}
@@ -7,16 +7,43 @@
 {% block titulo_pagina %}{{ "Editar atendido" if editando else "Novo atendido" }}{% endblock %}
 {% block subtitulo_pagina %}{{ "Corrija o nome ou a data de nascimento." if editando else "Informe os dados da pessoa que será atendida." }}{% endblock %}
 
+{% macro campo(nome, rotulo, tipo="text", ajuda="", atributos={}) %}
+{% set erro = erros.get(nome) %}
+{% set descricao = ([nome ~ "-erro"] if erro else []) + ([nome ~ "-ajuda"] if ajuda else []) %}
+<div class="prof-campo">
+    <label for="{{ nome }}" class="form-label">{{ rotulo }}</label>
+    <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}" required autocomplete="off"
+           value="{{ (dados or {}).get(nome, '') }}" class="form-control {% if erro %}is-invalid{% endif %}"
+           {% if erro %}aria-invalid="true"{% endif %} {% if descricao %}aria-describedby="{{ descricao | join(' ') }}"{% endif %}{{ atributos | xmlattr }}>
+    {% if erro %}<p class="invalid-feedback d-block prof-campo-erro" id="{{ nome }}-erro"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ erro }}</p>{% endif %}
+    {% if ajuda %}<p class="form-text prof-campo-ajuda" id="{{ nome }}-ajuda">{{ ajuda }}</p>{% endif %}
+</div>
+{% endmacro %}
+
 {% block conteudo %}
-<section class="cartao cartao-formulario">
+<section class="cartao atd-form">
+    {% if titulo_erros %}
+    <div class="alert alert-danger prof-form-erros" role="alert">
+        <p class="prof-form-erros-titulo"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ titulo_erros }}</p>
+        <ul>
+            {% for nome, rotulo in rotulos.items() if nome in erros %}
+            <li><a href="#{{ nome }}">{{ rotulo }}</a>: {{ erros[nome] }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     {{ alertas(erro=erro) }}
     <form method="post" action="{{ request.url.path }}" novalidate>
-        {{ campo("nome", "Nome completo da pessoa atendida", autocomplete="off") }}
-        {{ campo("data_nascimento", "Data de nascimento", tipo="date", atributos={"max": hoje} if hoje is defined else {}) }}
-        <div class="d-flex gap-2">
+        {{ campo("nome", "Nome completo da pessoa atendida", atributos={"maxlength": 255}) }}
+        {{ campo("data_nascimento", "Data de nascimento", tipo="date", ajuda="A idade é calculada a partir da data de nascimento.", atributos={"max": hoje} if hoje is defined else {}) }}
+        {% if editando %}
+        <p class="atd-form-aviso">Mudar o nome vale também para os planos já contratados.</p>
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
             <button type="submit" class="btn btn-primary">{{ "Salvar alterações" if editando else "Cadastrar atendido" }}</button>
             <a href="/pacientes" class="btn btn-link text-decoration-none">Cancelar</a>
         </div>
+        <p class="atd-form-nota">O profissional vê só o nome e a idade, nunca a data de nascimento.</p>
     </form>
 </section>
 {% endblock %}

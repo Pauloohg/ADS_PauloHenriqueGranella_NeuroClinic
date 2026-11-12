@@ -337,3 +337,15 @@ def test_textos_da_home_do_cliente_no_branco(seletor):
 
 def test_resumo_dos_encerrados_no_creme():
     assert razao_contraste(_propriedade(".ini-encerrados summary", "color"), CREME) >= 4.5
+
+
+# --- Atendidos do Cliente (refinamento da Semana 8) -----------------------------------------------------
+
+def test_aviso_de_nome_na_edicao():
+    fundo, texto = _cores_da_regra(".atd-form-aviso")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".atd-nome", ".atd-idade", ".atd-sem-plano", ".atd-form-nota"])
+def test_textos_dos_atendidos_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5

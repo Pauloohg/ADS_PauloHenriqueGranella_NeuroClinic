@@ -14,7 +14,7 @@ from app.core.config import (
     PRAZO_PAGAMENTO_HORAS,
 )
 from app.core.ids import inteiro_positivo, ler_inteiro
-from app.core.templating import moeda, templates
+from app.core.templating import moeda, templates, titulo_do_resumo_de_erros
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
@@ -25,6 +25,7 @@ from app.services import (
     contratacao_service,
     especialidade_service,
     funcionario_service,
+    inicio_cliente_service,
     paciente_service,
     pagamento_service,
     plano_service,
@@ -56,6 +57,8 @@ MSGS_DADO_EM_USO = {
     "email": "Este e-mail já está em uso por outra conta.",
     "cpf": "Este CPF já está cadastrado em outra conta.",
 }
+# Ordem dos campos no formulário: o resumo de erros no topo segue a mesma ordem
+ROTULOS_CAMPOS_PACIENTE = {"nome": "Nome completo", "data_nascimento": "Data de nascimento"}
 MENSAGENS_PACIENTES = {
     "cadastrado": "Atendido cadastrado com sucesso.",
     "atualizado": "Dados do atendido atualizados.",
@@ -119,6 +122,8 @@ def _form_paciente(request: Request, usuario: Usuario, dados: dict, erros: dict,
     contexto = {
         "usuario": usuario, "dados": dados, "erros": erros, "paciente": paciente,
         "hoje": agora_local().date().isoformat(),
+        "rotulos": ROTULOS_CAMPOS_PACIENTE,
+        "titulo_erros": titulo_do_resumo_de_erros(len(erros), paciente is not None) if erros else None,
     }
     return templates.TemplateResponse(request, TEMPLATE_PACIENTE_FORM, contexto, status_code=status_code)
 
@@ -145,7 +150,7 @@ def _salvar_paciente(request, usuario, db, nome, data_nascimento, paciente=None)
 def listar_pacientes(request: Request, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
     contexto = {
         "usuario": usuario,
-        "pacientes": paciente_service.listar_do_cliente(db, usuario.id),
+        "atendidos": inicio_cliente_service.atendidos_com_planos(db, usuario.id, agora_local()),
         "sucesso": MENSAGENS_PACIENTES.get(request.query_params.get("ok")),
     }
     return templates.TemplateResponse(request, TEMPLATE_PACIENTES, contexto)
@@ -169,9 +174,12 @@ def cadastrar_paciente(
 
 @router.get("/pacientes/{paciente_id}/editar")
 def editar_paciente_form(
-    request: Request, paciente_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
+    request: Request, paciente_id: str, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
 ):
-    paciente = _buscar_paciente_ou_404(db, paciente_id, usuario)
+    numero = inteiro_positivo(paciente_id)
+    if numero is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.")
+    paciente = _buscar_paciente_ou_404(db, numero, usuario)
     dados = {"nome": paciente.nome, "data_nascimento": paciente.data_nascimento.isoformat()}
     return _form_paciente(request, usuario, dados, {}, paciente)
 
