@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.ids import inteiro_positivo
 from app.models.paciente import Paciente
 from app.schemas.paciente import PacienteDados
 
@@ -35,6 +36,13 @@ def buscar_do_cliente(db: Session, paciente_id: int, cliente_id: int) -> Pacient
     if paciente is None or paciente.cliente_id != cliente_id:
         raise PacienteNaoEncontrado
     return paciente
+
+
+def buscar_pelo_parametro(db: Session, texto: str, cliente_id: int) -> Paciente:
+    numero = inteiro_positivo(texto)
+    if numero is None:
+        raise PacienteNaoEncontrado
+    return buscar_do_cliente(db, numero, cliente_id)
 
 
 def cadastrar(db: Session, cliente_id: int, dados: PacienteDados, hoje: date) -> Paciente:

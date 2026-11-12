@@ -4604,3 +4604,88 @@
     font-size: 0.9rem;
     color: var(--cor-texto-escuro);
 }
+
+
+/* --- Contratação, passo 1 (especialidade e profissional): refinamento da Semana 8 (RF04) --------------- */
+
+.contr-plano {
+    margin: 0 0 1.25rem;
+    font-size: 0.93rem;
+    color: var(--cor-texto-escuro);
+}
+
+.contr-sem-atendido {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1.1rem;
+    border-left: 5px solid var(--cor-psicopedagogia);
+    border-radius: 0.75rem;
+    background-color: #FBEFD5;
+    color: #4F3607;
+    font-weight: 600;
+}
+
+.contr-grade {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 1rem;
+    align-items: start;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.contr-grade-dois {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+
+.contr-esp {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    height: 100%;
+    padding: 1.2rem 1.35rem;
+    border-top: 4px solid var(--esp-cor, var(--cor-borda-campo));
+}
+
+.contr-esp-valor {
+    margin: 0.6rem 0 0;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.contr-esp-valor small {
+    font-family: var(--bs-body-font-family);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+
+.contr-esp-qtd {
+    margin: 0 0 0.6rem;
+    font-size: 0.93rem;
+    color: var(--cor-texto-escuro);
+}
+
+/* Sem profissional ativo: apagado e tracejado, mas a frase continua legível (não depende da cor) */
+.contr-esp-sem {
+    background-color: var(--cor-fundo-creme);
+    border: 2px dashed var(--cor-borda-campo);
+    box-shadow: none;
+}
+
+.contr-esp-aviso {
+    margin-top: auto;
+    font-weight: 600;
+    color: #5C5A55;
+}
+
+.contr-grade-dois .cartao-profissional {
+    border-top: 4px solid var(--esp-cor, var(--cor-borda-campo));
+}

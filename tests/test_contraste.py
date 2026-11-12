@@ -349,3 +349,27 @@ def test_aviso_de_nome_na_edicao():
 @pytest.mark.parametrize("seletor", [".atd-nome", ".atd-idade", ".atd-sem-plano", ".atd-form-nota"])
 def test_textos_dos_atendidos_no_branco(seletor):
     assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+# --- Contratação, passo 1 (refinamento da Semana 8) ------------------------------------------------------
+
+def test_aviso_de_sem_atendido_ambar():
+    fundo, texto = _cores_da_regra(".contr-sem-atendido")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_especialidade_sem_profissional_legivel_no_creme():
+    fundo = _propriedade(".contr-esp-sem", "background-color")
+    assert razao_contraste(_propriedade(".contr-esp-aviso", "color"), fundo) >= 4.5
+    corpo = re.search(r"(?m)^\.contr-esp-sem\s*\{([^}]*)\}", CSS).group(1)
+    borda = re.search(r"border:\s*\d+px dashed (var\(--[\w-]+\)|#[0-9A-Fa-f]{6});", corpo).group(1)
+    assert razao_contraste(_cor(borda), fundo) >= 3  # o tracejado se distingue do fundo
+
+
+@pytest.mark.parametrize("seletor", [".contr-esp-valor", ".contr-esp-qtd"])
+def test_valor_e_quantidade_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_explicacao_do_plano_no_creme():
+    assert razao_contraste(_propriedade(".contr-plano", "color"), CREME) >= 4.5

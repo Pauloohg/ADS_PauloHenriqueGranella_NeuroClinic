@@ -22,7 +22,7 @@
             </p>
         </div>
         <div class="atd-acoes">
-            {% if not a.selos %}<a href="/especialidades" class="btn btn-primary btn-sm">Contratar plano</a>{% endif %}
+            {% if not a.selos %}<a href="/especialidades?atendido={{ a.id }}" class="btn btn-primary btn-sm">Contratar plano<span class="visually-hidden"> para {{ a.nome }}</span></a>{% endif %}
             <a href="/historico?atendido={{ a.id }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>Histórico<span class="visually-hidden"> de {{ a.nome }}</span></a>
             <a href="/pacientes/{{ a.id }}/editar" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar<span class="visually-hidden"> {{ a.nome }}</span></a>
         </div>

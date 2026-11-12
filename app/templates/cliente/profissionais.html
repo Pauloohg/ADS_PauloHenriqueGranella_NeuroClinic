@@ -2,19 +2,20 @@
 {% from "_formulario.html" import voltar %}
 {% from "cliente/_etapas_contratacao.html" import etapas, aviso_sem_atendido %}
 {% from "cliente/_perfil_profissional.html" import cartao_profissional %}
+{% set sufixo = "?atendido=" ~ atendido.id if atendido else "" %}
 
 {% block title %}{{ especialidade.nome }} — NeuroClinic{% endblock %}
-{% block voltar %}{{ voltar("/especialidades", "Especialidades") }}{% endblock %}
+{% block voltar %}{{ voltar("/especialidades" ~ sufixo, "Especialidades") }}{% endblock %}
 {% block titulo_pagina %}{{ especialidade.nome }}{% endblock %}
-{% block subtitulo_pagina %}Profissionais que atendem nesta especialidade. Valor da sessão: <span class="font-monospace-num">{{ especialidade.valor_sessao | moeda }}</span>.{% endblock %}
+{% block subtitulo_pagina %}Escolha com quem fazer o plano{% if atendido %} de {{ atendido.nome }}{% endif %}. Valor da sessão: <span class="font-monospace-num">{{ especialidade.valor_sessao | moeda }}</span>.{% endblock %}
 
 {% block conteudo %}
 {{ etapas(1) }}
 {% if not tem_atendido %}{{ aviso_sem_atendido() }}{% endif %}
 {% if profissionais %}
-<div class="row g-3 g-lg-4 align-items-start {{ especialidade.nome | classe_especialidade }}">
+<div class="contr-grade contr-grade-dois {{ especialidade.nome | classe_especialidade or 'esp-neutra' }}">
     {% for perfil in profissionais %}
-    <div class="col-12 col-md-6">{{ cartao_profissional(perfil) }}</div>
+    {{ cartao_profissional(perfil, atendido=atendido) }}
     {% endfor %}
 </div>
 {% else %}
@@ -22,7 +23,7 @@
     <div class="icone-destaque mb-3"><i class="bi bi-person-vcard"></i></div>
     <h2 class="titulo-serifa h5">Nenhum profissional disponível no momento</h2>
     <p class="text-muted">Ainda não há profissionais atendendo em {{ especialidade.nome }}. Confira as outras especialidades.</p>
-    <a href="/especialidades" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Ver especialidades</a>
+    <a href="/especialidades{{ sufixo }}" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Ver especialidades</a>
 </section>
 {% endif %}
 {% endblock %}

@@ -16,9 +16,13 @@
 </aside>
 {% endmacro %}
 
+{% macro explicacao_plano_curta() %}
+<p class="contr-plano"><i class="bi bi-info-circle me-1" aria-hidden="true"></i><strong>O que é um plano?</strong> Um acompanhamento recorrente que você contrata uma vez: as sessões são criadas automaticamente nos dias e horários escolhidos, durante o período do plano.</p>
+{% endmacro %}
+
 {% macro aviso_sem_atendido() %}
-<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="note">
-    <span class="me-auto"><i class="bi bi-person-plus me-1"></i>Antes de contratar, cadastre a pessoa que será atendida.</span>
+<div class="contr-sem-atendido" role="note">
+    <span><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Antes de contratar, cadastre a pessoa que será atendida.</span>
     <a href="/pacientes/novo" class="btn btn-primary btn-sm">Cadastrar atendido</a>
 </div>
 {% endmacro %}

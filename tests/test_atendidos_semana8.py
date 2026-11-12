@@ -72,7 +72,7 @@ def test_texto_dos_selos(contagem, esperado):
 def test_selos_por_atendido(client, db, carla, maria):
     pedro = criar_paciente(db, maria.id, nome="Pedro Souza")
     ana = criar_paciente(db, maria.id, nome="Ana Souza")
-    criar_paciente(db, maria.id, nome="Laura Souza")
+    laura = criar_paciente(db, maria.id, nome="Laura Souza")
     criar_plano(db, pedro, carla, [(datetime(2026, 11, 17, 9, 0), AGENDADA)])  # ativo
     criar_plano(db, pedro, carla, [(datetime(2026, 11, 20, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)  # aguardando
     criar_plano(db, ana, carla, [(datetime(2026, 11, 21, 9, 0), PENDENTE)], criado_em=CRIADO_NO_PRAZO)
@@ -87,7 +87,7 @@ def test_selos_por_atendido(client, db, carla, maria):
     assert "plano ativo" not in ana_html
     laura_html = _cartao(html, "Laura Souza")
     assert '<span class="atd-sem-plano">Ainda sem plano.</span>' in laura_html
-    assert '<a href="/especialidades" class="btn btn-primary btn-sm">Contratar plano</a>' in laura_html  # sem parâmetro
+    assert f'<a href="/especialidades?atendido={laura.id}" class="btn btn-primary btn-sm">Contratar plano<span class="visually-hidden"> para Laura Souza</span></a>' in laura_html
     assert "Contratar plano" not in pedro_html and "Contratar plano" not in ana_html
 
 

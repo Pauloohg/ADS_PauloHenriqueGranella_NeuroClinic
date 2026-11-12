@@ -199,13 +199,25 @@ def editar_paciente(
 
 # --- RF04: especialidades e profissionais --------------------------------------------------------
 
+def _atendido_da_url(request: Request, db: Session, usuario: Usuario):
+    # Só pré-seleciona: o POST da contratação continua lendo e conferindo o atendido do formulário
+    texto = request.query_params.get("atendido")
+    if texto is None:
+        return None
+    try:
+        return paciente_service.buscar_pelo_parametro(db, texto, usuario.id)
+    except paciente_service.PacienteNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.") from None
+
+
 @router.get("/especialidades")
 def listar_especialidades(request: Request, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
+    atendido = _atendido_da_url(request, db, usuario)
     contexto = {
         "usuario": usuario,
-        "especialidades": especialidade_service.listar(db),
-        "com_profissional": funcionario_service.especialidades_com_profissional_ativo(db),
-        "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
+        "especialidades": funcionario_service.listar_especialidades_com_ativos(db),
+        "tem_atendido": atendido is not None or bool(paciente_service.listar_do_cliente(db, usuario.id)),
+        "atendido": atendido,
     }
     return templates.TemplateResponse(request, TEMPLATE_ESPECIALIDADES, contexto)
 
@@ -214,6 +226,7 @@ def listar_especialidades(request: Request, usuario: Usuario = Depends(somente_c
 def listar_profissionais(
     request: Request, especialidade_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
 ):
+    atendido = _atendido_da_url(request, db, usuario)
     try:
         especialidade = especialidade_service.buscar(db, especialidade_id)
     except especialidade_service.EspecialidadeNaoEncontrada:
@@ -222,7 +235,8 @@ def listar_profissionais(
         "usuario": usuario,
         "especialidade": especialidade,
         "profissionais": funcionario_service.perfis_ativos_da_especialidade(db, especialidade_id),
-        "tem_atendido": bool(paciente_service.listar_do_cliente(db, usuario.id)),
+        "tem_atendido": atendido is not None or bool(paciente_service.listar_do_cliente(db, usuario.id)),
+        "atendido": atendido,
     }
     return templates.TemplateResponse(request, TEMPLATE_PROFISSIONAIS, contexto)
 
@@ -277,9 +291,10 @@ def contratar_form(
     db: Session = Depends(get_db),
 ):
     profissional = _profissional_ativo_ou_404(db, funcionario_id)
+    atendido = _atendido_da_url(request, db, usuario)
     dados = {
-        "paciente_id": paciente_id, "frequencia_semanal": frequencia_semanal, "duracao": duracao,
-        "celulas": celula, "observacao": observacao,
+        "paciente_id": paciente_id or (str(atendido.id) if atendido else ""), "frequencia_semanal": frequencia_semanal,
+        "duracao": duracao, "celulas": celula, "observacao": observacao,
     }
     return _tela_contratacao(request, usuario, db, profissional, dados)
 

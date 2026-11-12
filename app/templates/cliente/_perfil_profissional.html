@@ -8,7 +8,7 @@
 {% endif %}
 {% endmacro %}
 
-{% macro cartao_profissional(perfil, com_botao=True) %}
+{% macro cartao_profissional(perfil, com_botao=True, atendido=None) %}
 <article class="cartao cartao-profissional" aria-labelledby="profissional-{{ perfil.id }}">
     <header class="d-flex align-items-start gap-3">
         <span class="avatar-iniciais" aria-hidden="true">{{ perfil.nome | iniciais }}</span>
@@ -21,8 +21,8 @@
     {% if perfil.apresentacao %}<p class="perfil-apresentacao">{{ perfil.apresentacao }}</p>{% endif %}
     {{ contato(perfil) }}
     {% if com_botao %}
-    <a href="/contratar/{{ perfil.id }}" class="btn btn-primary btn-sm align-self-center mt-1">
-        Contratar<span class="visually-hidden"> plano com {{ perfil.nome }}</span>
+    <a href="/contratar/{{ perfil.id }}{% if atendido %}?atendido={{ atendido.id }}{% endif %}" class="btn btn-primary btn-sm align-self-start mt-1">
+        Contratar com {{ perfil.nome | primeiro_nome }}<span class="visually-hidden"> ({{ perfil.nome }})</span>
     </a>
     {% endif %}
 </article>
