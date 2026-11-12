@@ -352,8 +352,8 @@ def test_selos_pague_ate_usam_o_vencimento_do_boleto(client, db, monkeypatch, ca
 
     inicio = _html(client.get("/"))
     assert "Pague até 06/08/2026 (vencimento do boleto)." in inicio
-    assert "Pague até 04/08/2026 às 13:00 · restam 3h." in inicio
-    assert inicio.count(">Aguardando pagamento</span>") == 2
+    assert "Pague até 13:00 (restam 3h)." in inicio
+    assert "Planos aguardando pagamento" in inicio and inicio.count(">Pagar agora<") == 2
 
     pagina = _html(client.get(f"/planos/{plano_boleto.id}"))
     assert "Pague até <strong>06/08/2026 às 23:59</strong>" in pagina

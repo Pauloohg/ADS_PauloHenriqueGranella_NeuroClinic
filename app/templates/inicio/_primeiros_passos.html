@@ -1,9 +1,8 @@
 {% set passos = primeiros_passos %}
-{% set url_pagar = "/planos/" ~ passos.plano_aguardando_id ~ "/pagamento" if passos.plano_aguardando_id else None %}
 {% set itens = [
     ("Cadastrar o atendido", "Informe o nome e a data de nascimento da pessoa que será atendida.", "/pacientes/novo", "Cadastrar atendido", "bi-person-plus"),
-    ("Contratar um plano", "Escolha a especialidade, o profissional, os dias e o horário das sessões.", "/especialidades", "Contratar plano", "bi-calendar-plus"),
-    ("Pagar", "Pague com Pix ou boleto dentro do prazo para confirmar as sessões.", url_pagar, "Pagar agora", "bi-credit-card"),
+    ("Contratar um plano", "Escolha a especialidade, o profissional, os dias e o horário das sessões, pelo botão Contratar plano.", None, None, None),
+    ("Pagar", "Pague com Pix ou boleto dentro do prazo para confirmar as sessões.", None, None, None),
     ("Acompanhar as sessões", "Com o pagamento confirmado, a próxima sessão e o andamento do plano aparecem aqui.", None, None, None),
 ] %}
 <section class="cartao primeiros-passos" aria-labelledby="titulo-primeiros-passos">

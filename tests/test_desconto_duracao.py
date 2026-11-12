@@ -174,7 +174,8 @@ def test_plano_antigo_com_desconto_zero_nao_mostra_linha_de_desconto(client, db,
 
 def test_plano_com_desconto_aparece_no_card_na_pagina_e_no_pagamento(client, db, carla, pedro, maria_logada):
     plano = _plano_com_desconto(db, pedro, carla)
-    assert "R$ 712,50 <span class=\"text-muted small\">(com 5% de desconto)</span>" in _html(client.get("/"))
+    criar_plano(db, pedro, carla, [(datetime(2026, 8, 4, 9, 0), StatusSessao.AGENDADA)])  # plano pago: a lista aparece
+    assert "R$ 712,50</strong> <span>com 5% de desconto</span>" in _html(client.get("/"))
     for url in (f"/planos/{plano.id}", f"/planos/{plano.id}/pagamento"):
         html = _html(client.get(url))
         assert "Valor cheio</dt><dd class=\"font-monospace-num\">R$ 750,00" in html, url

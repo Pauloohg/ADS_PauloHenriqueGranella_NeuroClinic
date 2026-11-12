@@ -317,3 +317,23 @@ def test_barras_da_comparacao_se_destacam_do_trilho_e_do_branco(seletor):
     barra = _propriedade(seletor, "background-color")
     assert razao_contraste(barra, _propriedade(".painel-trilho", "background-color")) >= 3
     assert razao_contraste(barra, BRANCO) >= 3
+
+
+# --- Início do Cliente (refinamento da Semana 8) --------------------------------------------------------
+
+def test_bloco_de_pagamento_ambar():
+    fundo, texto = _cores_da_regra(".ini-pagar")
+    assert razao_contraste(texto, fundo) >= 4.5
+    assert razao_contraste(_propriedade(".ini-pagar-titulo", "color"), fundo) >= 4.5
+    assert razao_contraste(_propriedade(".ini-pagar-prazo", "color"), fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [
+    ".ini-proxima-quando", ".ini-proxima-data", ".ini-plano-config", ".ini-plano-valor strong", ".ini-plano-topo",
+])
+def test_textos_da_home_do_cliente_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_resumo_dos_encerrados_no_creme():
+    assert razao_contraste(_propriedade(".ini-encerrados summary", "color"), CREME) >= 4.5

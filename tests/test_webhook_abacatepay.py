@@ -317,15 +317,15 @@ def test_pagamento_de_plano_ja_removido_pela_limpeza_registra_estorno(client, db
 def test_apos_o_webhook_o_inicio_mostra_o_plano_ativo(client, db, plano, pagamento, maria, emails):
     logar(client, maria.email)
     antes = " ".join(client.get("/").text.split())
-    assert "Aguardando pagamento" in antes and "Pagar agora" in antes
+    assert "Plano aguardando pagamento" in antes and "Pagar agora" in antes
 
     enviar(client)
 
     depois = " ".join(client.get("/").text.split())
     assert 'status-ativo">Ativo' in depois
-    assert "Aguardando pagamento" not in depois and "Pagar agora" not in depois
+    assert "aguardando pagamento" not in depois.lower() and "Pagar agora" not in depois
     assert "0 de 5 sessões realizadas" in depois
-    assert "Segunda 03/08, às 14:00" in depois
+    assert "Segunda, 3 de agosto, às 14:00" in depois
 
 
 def test_apos_o_webhook_a_pagina_do_plano_mostra_forma_e_data(client, db, plano, pagamento, maria, emails):

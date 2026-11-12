@@ -5,7 +5,9 @@ from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_opcional
-from app.services import inicio_profissional_service, inicio_service, paciente_service, painel_service, plano_service
+from app.services import (
+    inicio_cliente_service, inicio_profissional_service, inicio_service, painel_service, plano_service,
+)
 
 router = APIRouter(tags=["inicio"])
 
@@ -18,14 +20,13 @@ TEMPLATES_POR_TIPO = {
 
 def _contexto_cliente(db: Session, usuario: Usuario, agora) -> dict:
     plano_service.remover_planos_vencidos(db, agora)
-    proxima = inicio_service.proxima_sessao(db, usuario.id, agora)
-    planos = inicio_service.planos_do_cliente(db, usuario.id, agora)
-    tem_atendido = bool(paciente_service.listar_do_cliente(db, usuario.id))
+    inicio = inicio_cliente_service.montar_inicio(db, usuario.id, agora)
+    proxima = inicio.proxima
     return {
-        "proxima_sessao": proxima,
-        "quando_proxima_sessao": inicio_service.quando_sessao(proxima.data_hora, agora) if proxima else None,
-        "planos": planos,
-        "primeiros_passos": inicio_service.primeiros_passos(tem_atendido, planos),
+        "inicio": inicio,
+        "primeiros_passos": inicio.primeiros_passos,
+        "quando_proxima": inicio_cliente_service.quando_em_dias(proxima.data_hora, agora) if proxima else None,
+        "data_proxima": inicio_cliente_service.data_por_extenso(proxima.data_hora) if proxima else None,
     }
 
 

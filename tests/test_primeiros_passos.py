@@ -99,7 +99,8 @@ def test_com_atendido_o_proximo_passo_e_contratar(client, db, maria_logada):
     html = _html(client.get("/"))
     assert 'class="passo passo-concluido"' in _passos(html) and "(concluído)" in _passos(html)
     atual = _passo_atual(html)
-    assert "Contratar um plano" in atual and 'href="/especialidades"' in atual
+    assert "Contratar um plano" in atual and "<a " not in atual  # o botão é o único "Contratar plano", no topo
+    assert html.count('href="/especialidades" class="btn btn-primary"') == 1
 
 
 def test_com_plano_aguardando_o_proximo_passo_e_pagar(client, db, carla, maria_logada):
@@ -108,7 +109,9 @@ def test_com_plano_aguardando_o_proximo_passo_e_pagar(client, db, carla, maria_l
     html = _html(client.get("/"))
     assert _passos(html).count('class="passo passo-concluido"') == 2
     atual = _passo_atual(html)
-    assert "Pagar" in atual and f'href="/planos/{plano.id}/pagamento"' in atual
+    assert "Pagar" in atual and "<a " not in atual  # "Pagar agora" fica só no bloco âmbar
+    bloco = re.search(r'<section class="ini-pagar".*?</section>', html).group(0)
+    assert f'href="/planos/{plano.id}/pagamento"' in bloco
 
 
 def test_com_plano_pago_a_home_volta_ao_normal(client, db, carla, maria_logada):

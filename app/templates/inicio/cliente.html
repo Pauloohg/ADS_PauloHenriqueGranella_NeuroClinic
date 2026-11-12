@@ -1,115 +1,107 @@
 {% extends "inicio/_saudacao.html" %}
-{% from "inicio/_atalhos.html" import atalho %}
-{% from "cliente/_valores_plano.html" import nota_desconto %}
+{% set i = inicio %}
 
 {% block subtitulo_pagina %}Acompanhe as sessões e os planos de atendimento dos seus atendidos.{% endblock %}
+{% block acoes_pagina %}
+{% if i.tem_atendido %}<a href="/especialidades" class="btn btn-primary"><i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>Contratar plano</a>{% endif %}
+{% endblock %}
 
-{% block conteudo %}
-{% if primeiros_passos %}
-<div class="mb-4 mb-lg-5">{% include "inicio/_primeiros_passos.html" %}</div>
-{% endif %}
-<div class="row g-3 g-lg-4 mb-4 mb-lg-5">
-    <div class="col-12 col-lg-8">
-        {% if proxima_sessao %}
-        {% set sessao = proxima_sessao %}
-        <section class="cartao cartao-proxima-sessao {{ sessao.especialidade | classe_especialidade }}" aria-labelledby="titulo-proxima-sessao">
-            <h2 id="titulo-proxima-sessao" class="cartao-especialidade-rotulo mt-0">Próxima sessão</h2>
-            <p class="proxima-sessao-quando">{{ quando_proxima_sessao }}</p>
-            <dl class="lista-dados">
-                <dt>Pessoa atendida</dt>
-                <dd>{{ sessao.paciente }}</dd>
-                <dt>Especialidade</dt>
-                <dd><span class="chip-especialidade">{{ sessao.especialidade }}</span></dd>
-                <dt>Profissional</dt>
-                <dd>{{ sessao.profissional }}</dd>
-            </dl>
-        </section>
-        {% else %}
-        <section class="cartao estado-vazio h-100" aria-labelledby="titulo-proxima-sessao">
-            <div class="icone-destaque mb-3"><i class="bi bi-calendar-event"></i></div>
-            <h2 id="titulo-proxima-sessao" class="titulo-serifa h5">Nenhuma sessão agendada</h2>
-            <p class="text-muted">Quando um plano estiver confirmado, a próxima sessão aparece aqui.</p>
-            <a href="/especialidades" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Contratar plano</a>
-        </section>
+{% macro selo(situacao) %}
+{% if situacao == "aguardando_pagamento" %}<span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+{% elif situacao == "encerrado" %}<span class="badge rounded-pill status-inativo">Encerrado</span>
+{% else %}<span class="badge rounded-pill status-ativo">Ativo</span>{% endif %}
+{% endmacro %}
+
+{% macro cartao_plano(r, com_atendido=False) %}
+{% set plano = r.plano %}
+<article class="ini-plano {{ r.especialidade | classe_especialidade or 'esp-neutra' }}" aria-label="Plano de {{ r.especialidade }} de {{ r.paciente }}">
+    <div class="ini-plano-corpo">
+        <div class="ini-plano-topo">
+            {% if com_atendido %}<strong class="ini-plano-atendido">{{ r.paciente }}</strong>{% endif %}
+            <span class="chip-especialidade">{{ r.especialidade }}</span>
+            <span>com {{ r.profissional }}</span>
+            {{ selo(r.situacao) }}
+        </div>
+        <p class="ini-plano-config">{{ inicio.configuracoes[plano.id] }}</p>
+        <p class="ini-plano-suave font-monospace-num">{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</p>
+        {% if r.situacao == "ativo" %}
+        <p class="ini-plano-suave" id="progresso-{{ plano.id }}">{{ r.realizadas }} de {{ r.total_sessoes }} sessões realizadas</p>
+        <div class="progress meus-plano-barra ini-plano-barra" role="progressbar" aria-labelledby="progresso-{{ plano.id }}"
+             aria-valuenow="{{ r.realizadas }}" aria-valuemin="0" aria-valuemax="{{ r.total_sessoes }}">
+            <div class="progress-bar" style="width: {{ (100 * r.realizadas / r.total_sessoes) | round(1) if r.total_sessoes else 0 }}%"></div>
+        </div>
         {% endif %}
     </div>
-    <div class="col-12 col-lg-4">
-        <nav class="d-grid gap-3" aria-label="Atalhos">
-            {{ atalho("/pacientes", "bi-people", "Atendidos", "Cadastre e edite os atendidos.") }}
-            {{ atalho("/especialidades", "bi-calendar-plus", "Contratar plano", "Escolha a especialidade e o profissional.") }}
-            {{ atalho("/perfil", "bi-person", "Meu perfil", "Seus dados de contato e CPF.") }}
-        </nav>
+    <div class="ini-plano-lado">
+        <div class="ini-plano-valor">
+            <strong class="font-monospace-num">{{ plano.valor_total | moeda }}</strong>
+            {% if plano.desconto_percentual %}<span>com {{ plano.desconto_percentual }}% de desconto</span>{% endif %}
+        </div>
+        {% if r.situacao == "encerrado" %}
+        <a href="/planos/{{ plano.id }}/renovar" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Renovar</a>
+        {% endif %}
+        <a href="/planos/{{ plano.id }}" class="ini-plano-ver">Ver plano<span class="visually-hidden"> de {{ r.especialidade }} de {{ r.paciente }}</span></a>
     </div>
-</div>
+</article>
+{% endmacro %}
+
+{% block conteudo %}
+{% if i.primeiros_passos %}
+<div class="mb-4">{% include "inicio/_primeiros_passos.html" %}</div>
+{% endif %}
+
+{% if i.pagamentos %}
+<section class="ini-pagar" aria-labelledby="titulo-pagar">
+    <h2 class="ini-pagar-titulo" id="titulo-pagar">{{ "Plano aguardando pagamento" if i.pagamentos | length == 1 else "Planos aguardando pagamento" }}</h2>
+    <ul class="ini-pagar-lista">
+        {% for p in i.pagamentos %}
+        <li>
+            <div>
+                <strong>{{ p.resumo.paciente }}, {{ p.resumo.especialidade }}</strong>
+                <span class="ini-pagar-prazo">{{ p.texto }}.</span>
+            </div>
+            <a href="/planos/{{ p.resumo.plano.id }}/pagamento" class="btn btn-primary btn-sm"><i class="bi bi-credit-card me-1" aria-hidden="true"></i>Pagar agora<span class="visually-hidden"> o plano de {{ p.resumo.especialidade }} de {{ p.resumo.paciente }}</span></a>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if not i.primeiros_passos %}
+{% set s = i.proxima %}
+{% if s %}
+<section class="cartao ini-proxima {{ s.especialidade | classe_especialidade or 'esp-neutra' }}" aria-labelledby="titulo-proxima">
+    <div>
+        <h2 class="ini-proxima-quando" id="titulo-proxima">Próxima sessão, {{ quando_proxima }}</h2>
+        <p class="ini-proxima-data"><time datetime="{{ s.data_hora.isoformat() }}">{{ data_proxima }}</time></p>
+        <p class="ini-proxima-quem"><strong>{{ s.paciente }}</strong> <span class="chip-especialidade">{{ s.especialidade }}</span> <span>com {{ s.profissional }}</span></p>
+    </div>
+    <div class="ini-proxima-acoes">
+        {% if i.pode_remarcar %}<a href="/consultas/{{ s.id }}/remarcar" class="btn btn-outline-primary btn-sm">Remarcar</a>{% endif %}
+        <a href="/consultas" class="btn btn-outline-primary btn-sm">Ver consultas</a>
+    </div>
+</section>
+{% else %}
+<section class="cartao ini-sem-sessao" aria-labelledby="titulo-proxima">
+    <h2 class="ini-proxima-quando" id="titulo-proxima">Nenhuma sessão agendada</h2>
+    <p class="text-muted mb-0">As consultas já realizadas continuam em Consultas e no Histórico.</p>
+</section>
+{% endif %}
 
 <section aria-labelledby="titulo-planos">
     <h2 id="titulo-planos" class="titulo-serifa h4 mb-3">Planos de atendimento</h2>
-    {% if planos %}
-    <div class="row g-3 g-lg-4">
-        {% for resumo in planos %}
-        {% set plano = resumo.plano %}
-        <div class="col-12 col-xl-6">
-            <article class="cartao cartao-plano-resumo {{ resumo.especialidade | classe_especialidade }}">
-                <header class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-                    <div>
-                        <h3 class="titulo-serifa h5 mb-1">{{ resumo.paciente }}</h3>
-                        <span class="chip-especialidade">{{ resumo.especialidade }}</span>
-                    </div>
-                    {% if resumo.situacao == "aguardando_pagamento" %}
-                    <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
-                    {% elif resumo.situacao == "encerrado" %}
-                    <span class="badge rounded-pill status-inativo">Encerrado</span>
-                    {% else %}
-                    <span class="badge rounded-pill status-ativo">Ativo</span>
-                    {% endif %}
-                </header>
-                <dl class="lista-dados">
-                    <dt>Profissional</dt>
-                    <dd>{{ resumo.profissional }}</dd>
-                    <dt>Dias e horário</dt>
-                    <dd>{{ plano.dias_semana | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }}</dd>
-                    <dt>Período</dt>
-                    <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
-                    <dt>Valor total</dt>
-                    <dd class="font-monospace-num">{{ plano.valor_total | moeda }}{{ nota_desconto(plano.desconto_percentual) }}</dd>
-                </dl>
-                {% if resumo.situacao == "ativo" %}
-                <div class="progresso-plano">
-                    <p id="progresso-{{ plano.id }}" class="small mb-1">{{ resumo.realizadas }} de {{ resumo.total_sessoes }} sessões realizadas</p>
-                    <div class="progress" role="progressbar" aria-labelledby="progresso-{{ plano.id }}"
-                         aria-valuenow="{{ resumo.realizadas }}" aria-valuemin="0" aria-valuemax="{{ resumo.total_sessoes }}">
-                        <div class="progress-bar" style="width: {{ (100 * resumo.realizadas / resumo.total_sessoes) | round(1) if resumo.total_sessoes else 0 }}%"></div>
-                    </div>
-                </div>
-                {% elif resumo.situacao == "aguardando_pagamento" %}
-                <p class="aviso-pagamento small mb-0">
-                    {% if resumo.boleto %}
-                    <i class="bi bi-hourglass-split me-1"></i>Pague até {{ resumo.prazo_pagamento | data_br }} (vencimento do boleto).
-                    {% else %}
-                    <i class="bi bi-hourglass-split me-1"></i>Pague até {{ resumo.prazo_pagamento | data_br }} às {{ resumo.prazo_pagamento.strftime("%H:%M") }} · restam {{ resumo.tempo_restante | tempo_curto }}.
-                    {% endif %}
-                </p>
-                {% endif %}
-                <footer class="rodape-plano">
-                    <a href="/planos/{{ plano.id }}" class="small">Ver plano<i class="bi bi-chevron-right ms-1"></i></a>
-                    {% if resumo.situacao == "aguardando_pagamento" %}
-                    <a href="/planos/{{ plano.id }}/pagamento" class="btn btn-primary btn-sm"><i class="bi bi-credit-card me-1"></i>Pagar agora</a>
-                    {% endif %}
-                    {% if resumo.situacao == "encerrado" %}
-                    <a href="/planos/{{ plano.id }}/renovar" class="btn btn-primary btn-sm"><i class="bi bi-arrow-repeat me-1"></i>Renovar</a>
-                    {% endif %}
-                </footer>
-            </article>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="cartao estado-vazio">
-        <div class="icone-destaque mb-3"><i class="bi bi-journal-text"></i></div>
-        <p class="titulo-serifa h5">Nenhum plano contratado</p>
-        <p class="text-muted">Contrate um plano para um dos seus atendidos e acompanhe tudo por aqui.</p>
-        <a href="/especialidades" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Contratar plano</a>
-    </div>
+    {% for g in i.grupos %}
+    <section class="ini-atendido" aria-labelledby="atendido-{{ loop.index }}">
+        <h3 class="titulo-serifa ini-atendido-nome" id="atendido-{{ loop.index }}">{{ g.nome }}</h3>
+        {% for r in g.planos %}{{ cartao_plano(r) }}{% endfor %}
+    </section>
+    {% endfor %}
+    {% if i.encerrados %}
+    <details class="ini-encerrados">
+        <summary>{{ "1 plano encerrado" if i.encerrados | length == 1 else i.encerrados | length ~ " planos encerrados" }}</summary>
+        {% for r in i.encerrados %}{{ cartao_plano(r, com_atendido=True) }}{% endfor %}
+    </details>
     {% endif %}
 </section>
+{% endif %}
 {% endblock %}

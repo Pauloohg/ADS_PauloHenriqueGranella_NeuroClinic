@@ -28,6 +28,7 @@ class ProximaSessao:
     paciente: str
     especialidade: str
     profissional: str
+    id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,7 @@ def _consulta_planos_do_cliente(*colunas):
 def proxima_sessao(db: Session, cliente_id: int, agora: datetime) -> ProximaSessao | None:
     consulta = (
         _consulta_planos_do_cliente(Sessao.data_hora)
+        .add_columns(Sessao.id)
         .join(Sessao, Sessao.plano_id == Plano.id)
         .where(Paciente.cliente_id == cliente_id)
         .where(Sessao.status == StatusSessao.AGENDADA)
@@ -143,11 +145,17 @@ def tempo_restante_pagamento(
 
 
 def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[ResumoPlano]:
-    linhas = db.execute(_consulta_planos_do_cliente(Plano).where(Paciente.cliente_id == cliente_id)).all()
+    linhas = db.execute(
+        _consulta_planos_do_cliente(Plano)
+        .add_columns(Pagamento.forma_pagamento)
+        .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
+        .where(Paciente.cliente_id == cliente_id)
+    ).all()
     if not linhas:
         return []
 
     contagens: dict[int, Counter] = {plano.id: Counter() for plano, *_ in linhas}
+    formas = {plano.id: forma for plano, *_, forma in linhas}
     consulta_sessoes = (
         select(Sessao.plano_id, Sessao.status, func.count())
         .where(Sessao.plano_id.in_(contagens))
@@ -155,12 +163,9 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
     )
     for plano_id, status, quantidade in db.execute(consulta_sessoes):
         contagens[plano_id][status] = quantidade
-    formas = dict(db.execute(
-        select(Pagamento.plano_id, Pagamento.forma_pagamento).where(Pagamento.plano_id.in_(contagens))
-    ).all())
 
     resumos = []
-    for plano, paciente, especialidade, profissional in linhas:
+    for plano, paciente, especialidade, profissional, _ in linhas:
         status_sessoes = contagens[plano.id]
         forma = formas.get(plano.id)
         situacao = situacao_plano(plano.data_fim, status_sessoes, plano.criado_em, agora, plano.data_inicio, forma)

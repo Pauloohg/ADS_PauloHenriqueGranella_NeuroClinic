@@ -58,7 +58,7 @@ ROTULOS_DURACAO = {
 }
 
 
-def _juntar(nomes: list[str]) -> str:
+def juntar_nomes(nomes: list[str]) -> str:
     return nomes[0] if len(nomes) == 1 else ", ".join(nomes[:-1]) + " e " + nomes[-1]
 
 
@@ -67,7 +67,7 @@ def descrever_configuracao(duracao: str, frequencia: int, dias: list[int], horar
     vezes = "1 vez por semana" if frequencia == 1 else f"{frequencia} vezes por semana"
     partes = [duracao.capitalize(), vezes]
     if dias:
-        partes.append(f"{_juntar([NOMES_DIAS[d].lower() + 's' for d in sorted(dias)])} às {horario:%H:%M}")
+        partes.append(f"{juntar_nomes([NOMES_DIAS[d].lower() + 's' for d in sorted(dias)])} às {horario:%H:%M}")
     return ", ".join(partes)
 
 

@@ -216,9 +216,9 @@ def test_inicio_do_cliente_vazio(client, db, cliente):
     assert resposta.status_code == 200
     html = _html(resposta)
     assert "Bom dia, Maria" in html
-    assert "Nenhuma sessão agendada" in html
-    assert "Nenhum plano contratado" in html
-    assert html.count('href="/especialidades" class="btn btn-primary"') == 2
+    assert "Primeiros passos" in html  # recém-cadastrado: só os passos, sem blocos vazios
+    assert "Nenhuma sessão agendada" not in html and "Planos de atendimento" not in html
+    assert html.count('href="/especialidades" class="btn btn-primary"') == 0  # sem atendido, sem o botão do topo
     assert 'href="/admin/funcionarios"' not in html
 
 
@@ -235,22 +235,23 @@ def test_inicio_do_cliente_com_dados(client, db, fono, cliente, paciente):
 
     html = _html(client.get("/"))
 
-    assert "Amanhã, quarta 11/03, às 14:00" in html
+    assert "Próxima sessão, amanhã" in html and "Quarta, 11 de março, às 14:00" in html
     assert "1 de 3 sessões realizadas" in html
     assert "R$ 450,00" in html
-    assert "Terça, Quarta, às 14:00" in html
+    assert "Terças e quartas às 14:00, 2 vezes por semana" in html
     assert "03/03/2026 a 18/03/2026" in html
     assert html.count(">Ativo</span>") == 1
     assert html.count(">Aguardando pagamento</span>") == 1
     assert html.count(">Encerrado</span>") == 1
     assert "restam 3h" in html
-    assert "Segunda, às 08:00" not in html  # plano com pagamento vencido (RN09)
+    assert "Segundas às 08:00" not in html  # plano com pagamento vencido (RN09)
 
 
 def test_inicio_do_cliente_mostra_data_quando_nao_e_hoje_nem_amanha(client, db, fono, cliente, paciente):
     criar_plano(db, paciente, fono, [(datetime(2026, 3, 13, 15, 0), AGENDADA)])
     logar(client, cliente.email)
-    assert "Sexta 13/03, às 15:00" in _html(client.get("/"))
+    html = _html(client.get("/"))
+    assert "Próxima sessão, em 3 dias" in html and "Sexta, 13 de março, às 15:00" in html
 
 
 def test_inicio_do_cliente_nao_mostra_dados_de_outro_cliente(client, db, fono, cliente):
@@ -260,8 +261,8 @@ def test_inicio_do_cliente_nao_mostra_dados_de_outro_cliente(client, db, fono, c
 
     html = _html(client.get("/"))
     assert "Paciente Alheio" not in html
-    assert "Nenhuma sessão agendada" in html
-    assert "Nenhum plano contratado" in html
+    assert "Primeiros passos" in html  # o Cliente logado não tem atendido nem plano
+    assert "Próxima sessão" not in html and "Planos de atendimento" not in html
 
 
 def test_inicio_do_cliente_nao_adianta_funcionalidades_futuras(client, db, fono, cliente, paciente):
@@ -272,9 +273,10 @@ def test_inicio_do_cliente_nao_adianta_funcionalidades_futuras(client, db, fono,
 
     # Só o conteúdo da home: desde o RF10 o link "Histórico" faz parte da navbar do Cliente
     html = re.search(r"<main.*?</main>", _html(client.get("/")), re.S).group(0).lower()
-    for texto in ["remarcar", "histórico", "minha agenda"]:
+    for texto in ["histórico", "minha agenda"]:
         assert texto not in html, texto
-    assert html.count("pagar agora") == 1  # RF06 (Semana 4B): só no card do plano aguardando pagamento
+    assert html.count("pagar agora") == 1  # só no bloco de planos aguardando pagamento
+    assert html.count(">remarcar</a>") == 1  # RF07 já existe: a próxima sessão leva à remarcação
 
 
 def test_inicio_do_funcionario(client, db, fono):
