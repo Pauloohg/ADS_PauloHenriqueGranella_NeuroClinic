@@ -257,22 +257,24 @@ def test_tela_com_dados(admin_logado, db, fono, paciente):
 
     assert "Indicadores de outubro de 2026" in html
     assert "R$ 1.620,00" in html
-    assert "+R$ 420,00 (+35,0%)" in html
+    assert "Setembro inteiro: R$ 1.200,00." in html and "35,0%" not in html  # mês em andamento: sem porcentagem
     assert "Carlos Fono" in html
     assert 'href="/admin/painel?mes=2026-09"' in html
     assert "?mes=2026-11" not in html  # sem link para o mês futuro
-    assert "Ainda não há pagamentos confirmados neste mês" not in html
+    assert "Nenhum pagamento confirmado neste mês." not in html
     assert html.count("<script") == 1  # só o bundle do Bootstrap, sem JavaScript novo
 
 
 def test_tela_com_mes_anterior_zerado_mostra_traco(admin_logado, db, fono, paciente):
     _contratar(db, paciente, fono, "1620.00", MEIO_DE_OUTUBRO_UTC)
-    assert "+R$ 1.620,00 (—)" in _html(admin_logado.get("/admin/painel"))
+    html = _html(admin_logado.get("/admin/painel"))
+    assert "Setembro inteiro: R$ 0,00." in html
+    assert "%" not in html[html.index('id="titulo-receita"'):html.index('id="titulo-visao-geral"')]
 
 
 def test_tela_vazia(admin_logado, db, fono):
     html = _html(admin_logado.get("/admin/painel?mes=2026-09"))
-    assert "Ainda não há pagamentos confirmados neste mês" in html
+    assert "Nenhum pagamento confirmado neste mês." in html
     assert "R$ 0,00" in html
     assert "Indicadores de setembro de 2026" in html
     assert 'href="/admin/painel?mes=2026-10"' in html
@@ -303,25 +305,25 @@ def test_painel_sem_login_redireciona(client):
 
 def test_mes_atual_e_rotulado_como_em_andamento_ate_hoje(admin_logado, db):
     html = _html(admin_logado.get("/admin/painel"))
-    assert "Mês em andamento (até 15/10)" in html
+    assert "Mês em andamento, até 15/10" in html
     assert "Mês em andamento" not in _html(admin_logado.get("/admin/painel?mes=2026-09"))
 
 
 def test_comparacao_do_mes_atual_diz_mes_anterior_inteiro(admin_logado, db, fono, paciente):
     _contratar(db, paciente, fono, "1200.00", datetime(2026, 9, 10, 15, 0))
-    assert "em relação a setembro inteiro (R$ 1.200,00)" in _html(admin_logado.get("/admin/painel"))
+    assert "Setembro inteiro: R$ 1.200,00." in _html(admin_logado.get("/admin/painel"))
 
     setembro = _html(admin_logado.get("/admin/painel?mes=2026-09"))
-    assert "em relação a agosto (R$ 0,00)" in setembro and "inteiro" not in setembro
+    assert "Nenhum pagamento confirmado em agosto." in setembro and "inteiro" not in setembro
 
 
 def test_botao_do_mes_seguinte_mostra_o_nome_do_mes(admin_logado, db):
     atual = _html(admin_logado.get("/admin/painel"))
-    assert 'aria-disabled="true" title="Mês ainda não chegou">Novembro<' in atual
+    assert 'aria-disabled="true" title="Mês ainda não chegou">Novembro<span aria-hidden="true"> ›</span>' in atual
     assert "?mes=2026-11" not in atual and ">Próximo<" not in atual
 
     setembro = _html(admin_logado.get("/admin/painel?mes=2026-09"))
-    assert 'href="/admin/painel?mes=2026-10" class="btn btn-outline-primary btn-sm" rel="next"> Outubro<' in setembro
+    assert 'href="/admin/painel?mes=2026-10" class="btn btn-outline-primary btn-sm" rel="next">Outubro<span aria-hidden="true"> ›</span>' in setembro
     assert 'aria-disabled="true"' not in setembro
 
 

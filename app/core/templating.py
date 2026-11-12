@@ -27,6 +27,10 @@ def moeda(valor: Decimal) -> str:
     return "R$ " + f"{valor:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def moeda_fixa(valor: Decimal) -> str:
+    return moeda(valor).replace(" ", " ")  # "R$" nunca fica sozinho no fim da linha
+
+
 def valor_formulario(valor: Decimal) -> str:
     return f"{valor:.2f}".replace(".", ",")
 
@@ -123,6 +127,7 @@ templates.env.globals["ano_atual"] = ano_atual
 templates.env.globals["clinica"] = DADOS_CLINICA
 templates.env.filters["moeda"] = moeda
 templates.env.filters["valor_formulario"] = valor_formulario
+templates.env.filters["moeda_fixa"] = moeda_fixa
 templates.env.filters["classe_especialidade"] = classe_especialidade
 templates.env.filters["iniciais"] = iniciais
 templates.env.filters["primeiro_nome"] = primeiro_nome

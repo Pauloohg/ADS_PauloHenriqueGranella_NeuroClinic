@@ -291,3 +291,29 @@ def test_textos_do_cartao_de_plano_no_branco(seletor):
 
 def test_resumo_de_encerrados_no_creme():
     assert razao_contraste(_propriedade(".cli-encerrados summary", "color"), CREME) >= 4.5
+
+
+# --- Painel gerencial do Admin (refinamento da Semana 8) ----------------------------------------------
+
+def test_aviso_de_mes_em_andamento():
+    fundo, texto = _cores_da_regra(".painel-andamento")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [
+    ".painel-receita-valor", ".painel-comparacao-texto", ".painel-comparacao-valor", ".painel-menor strong",
+    ".painel-celula-valor", ".painel-posicao", ".painel-ranking-numeros strong",
+])
+def test_numeros_e_textos_do_painel_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_mes_atual_da_navegacao_no_creme():
+    assert razao_contraste(_propriedade(".painel-mes-atual", "color"), CREME) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".painel-barra-mes", ".painel-barra-anterior"])
+def test_barras_da_comparacao_se_destacam_do_trilho_e_do_branco(seletor):
+    barra = _propriedade(seletor, "background-color")
+    assert razao_contraste(barra, _propriedade(".painel-trilho", "background-color")) >= 3
+    assert razao_contraste(barra, BRANCO) >= 3

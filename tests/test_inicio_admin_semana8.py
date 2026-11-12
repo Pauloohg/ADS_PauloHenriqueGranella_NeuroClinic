@@ -101,7 +101,8 @@ def test_faixa_da_home_mostra_o_que_o_painel_mostra_no_mes_atual(admin_logado, m
     home = _html(admin_logado.get("/"))
     painel = _html(admin_logado.get("/admin/painel"))
     faixa = re.findall(r'<li><strong class="font-monospace-num">([^<]+)</strong>', home)
-    cartoes = re.findall(r'<p class="indicador-valor font-monospace-num">([^<]+)</p>', painel)
+    cartoes = re.findall(r'<p class="painel-receita-valor font-monospace-num">([^<]+)</p>', painel)
+    cartoes += re.findall(r'<div class="cartao painel-menor"> <strong class="font-monospace-num">([^<]+)</strong>', painel)
     assert faixa == cartoes == ["R$ 1.995,45", "2", "2"]
     assert "Novembro até hoje" in home
     assert _corpo(home).count("<strong") == 6  # 3 números da faixa e 3 títulos dos cadastros

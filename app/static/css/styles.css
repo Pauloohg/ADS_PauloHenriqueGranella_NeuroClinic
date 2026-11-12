@@ -4010,3 +4010,317 @@
         text-align: left;
     }
 }
+
+
+/* --- Painel gerencial do Admin: refinamento da Semana 8 (RF15) ---------------------------------------- */
+
+.painel-mes-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+}
+
+.painel-mes-atual {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-andamento {
+    display: inline-block;
+    margin: 0 0 1rem;
+    padding: 0.3rem 0.8rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 6px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+    font-size: 0.93rem;
+    font-weight: 600;
+}
+
+.painel-alto {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.painel-receita {
+    padding: 1.5rem 1.75rem;
+}
+
+.painel-receita-titulo {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-receita-valor {
+    margin: 0.35rem 0 0.25rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 2.4rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-receita-nota {
+    margin: 0 0 1rem;
+    font-size: 0.93rem;
+    color: var(--bs-secondary-color);
+}
+
+.painel-comparacao {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0 0 0.6rem;
+    max-width: 32rem;
+}
+
+.painel-comparacao-linha {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.painel-comparacao dt {
+    font-weight: 400;
+    font-size: 0.93rem;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-comparacao dd {
+    margin: 0;
+}
+
+.painel-comparacao-valor {
+    font-size: 0.93rem;
+    color: var(--cor-texto-escuro);
+    white-space: nowrap;
+}
+
+.painel-trilho {
+    display: block;
+    height: 0.6rem;
+    border-radius: 999px;
+    background-color: var(--cor-fundo-creme-escuro);
+    overflow: hidden;
+}
+
+.painel-trilho > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+}
+
+.painel-barra-mes {
+    background-color: var(--bs-primary);
+}
+
+.painel-barra-anterior {
+    background-color: var(--cor-borda-campo);
+}
+
+.painel-barra-esp {
+    background-color: var(--esp-cor, var(--cor-borda-campo));
+}
+
+.painel-comparacao-texto {
+    margin: 0;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-menores {
+    display: grid;
+    gap: 1rem;
+}
+
+.painel-menor {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.1rem 1.35rem;
+}
+
+.painel-menor strong {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-menor span {
+    font-size: 0.93rem;
+    color: var(--bs-secondary-color);
+}
+
+.painel-baixo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.painel-tabela th[scope="row"] {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: normal;
+    text-transform: none;
+    color: inherit;
+}
+
+.painel-tabela th,
+.painel-tabela td {
+    padding: 0.75rem 0.75rem;
+}
+
+.painel-tabela .chip-especialidade {
+    white-space: nowrap;
+}
+
+.painel-centro,
+.painel-tabela thead th:nth-child(2) {
+    text-align: center;
+}
+
+.painel-celula-valor {
+    display: block;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    white-space: nowrap;
+}
+
+.painel-tabela .painel-trilho {
+    margin-top: 0.3rem;
+    max-width: 9rem;
+}
+
+.painel-nota {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+.painel-ranking-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.painel-ranking-lista li {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.painel-ranking-lista li:first-child {
+    border-top: 0;
+}
+
+.painel-posicao {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-ranking-nome strong {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-ranking-numeros {
+    text-align: right;
+}
+
+.painel-ranking-numeros strong {
+    display: block;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.painel-ranking-numeros span {
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+@media (max-width: 991.98px) {
+    .painel-alto,
+    .painel-baixo {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .painel-menores {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .painel-tabela thead {
+        display: none;
+    }
+
+    .painel-tabela tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem 1rem;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .painel-tabela tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .painel-tabela th,
+    .painel-tabela td {
+        display: block;
+        padding: 0;
+        border: 0;
+        text-align: left;
+    }
+
+    .painel-tabela th[scope="row"] {
+        grid-column: 1 / -1;
+    }
+
+    .painel-tabela td::before {
+        content: attr(data-rotulo);
+        display: block;
+        font-size: 0.85rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .painel-tabela td.painel-centro {
+        grid-column: 1 / -1;
+    }
+
+    .painel-receita {
+        padding: 1.2rem 1.1rem;
+    }
+
+    .painel-receita-valor {
+        font-size: 2rem;
+    }
+
+    .painel-comparacao-linha {
+        grid-template-columns: 5.5rem minmax(0, 1fr);
+    }
+
+    .painel-comparacao-valor {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 420px) {
+    .painel-menores {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
