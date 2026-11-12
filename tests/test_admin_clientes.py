@@ -267,7 +267,8 @@ def test_tela_da_lista_pagina_invalida_nao_da_erro(admin_logado, db):
 def test_tela_da_lista_busca_sem_resultado(admin_logado, db):
     criar_cliente(db)
     html = _html(admin_logado.get("/admin/clientes?q=inexistente"))
-    assert "Nenhum cliente encontrado" in html
+    assert "Nenhum cliente com “inexistente”." in html
+    assert "Confira a grafia ou busque só por uma parte do nome ou do e-mail." in html
 
 
 def test_tela_de_detalhe(admin_logado, db, fono):

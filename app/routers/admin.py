@@ -333,15 +333,20 @@ def listar_clientes(
     request: Request, q: str = "", pagina: str = "", usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
 ):
     resultado = admin_clientes_service.listar(db, agora_local(), q, admin_clientes_service.interpretar_pagina(pagina))
-    return templates.TemplateResponse(request, TEMPLATE_CLIENTES, {"usuario": usuario, "resultado": resultado})
+    contagem = admin_clientes_service.texto_contagem(resultado.total, resultado.pagina, resultado.total_paginas, resultado.busca)
+    contexto = {"usuario": usuario, "resultado": resultado, "contagem": contagem}
+    return templates.TemplateResponse(request, TEMPLATE_CLIENTES, contexto)
 
 
 @router.get("/clientes/{cliente_id}")
 def detalhar_cliente(
-    request: Request, cliente_id: int, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
+    request: Request, cliente_id: str, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
 ):
+    numero = inteiro_positivo(cliente_id)
+    if numero is None:
+        raise _nao_encontrado("Cliente não encontrado.")
     try:
-        cliente = admin_clientes_service.detalhar(db, cliente_id, agora_local())
+        cliente = admin_clientes_service.detalhar(db, numero, agora_local())
     except admin_clientes_service.ClienteNaoEncontrado:
         raise _nao_encontrado("Cliente não encontrado.") from None
     return templates.TemplateResponse(request, TEMPLATE_CLIENTE_DETALHE, {"usuario": usuario, "cliente": cliente})

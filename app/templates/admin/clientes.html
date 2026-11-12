@@ -1,83 +1,77 @@
 {% extends "_interno.html" %}
+{% set r = resultado %}
+{% set base = {'q': r.busca} if r.busca else {} %}
 
 {% block title %}Clientes — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Clientes{% endblock %}
-{% block subtitulo_pagina %}Responsáveis cadastrados na clínica. Consulta somente leitura.{% endblock %}
+{% block subtitulo_pagina %}Responsáveis cadastrados na clínica. Aqui você só consulta.{% endblock %}
 
 {% block conteudo %}
-{% set r = resultado %}
-<form method="get" action="/admin/clientes" class="busca-clientes mb-4" role="search">
-    <label for="q" class="visually-hidden">Buscar por nome ou e-mail</label>
-    <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
-        <input type="search" id="q" name="q" value="{{ r.busca }}" class="form-control" placeholder="Buscar por nome ou e-mail">
-        <button type="submit" class="btn btn-primary">Buscar</button>
-    </div>
-    {% if r.busca %}
-    <p class="small text-muted mt-2 mb-0">
-        {{ r.total }} {{ "resultado" if r.total == 1 else "resultados" }} para “{{ r.busca }}”.
-        <a href="/admin/clientes">Limpar busca</a>
-    </p>
-    {% endif %}
-</form>
+{% macro url(parametros) %}/admin/clientes{% if parametros %}?{{ parametros | urlencode }}{% endif %}{% endmacro %}
+
+{% if r.total or r.busca %}
+<div class="meus-ferramentas cli-ferramentas">
+    <form method="get" action="/admin/clientes" class="meus-busca cli-busca" role="search">
+        <label for="q" class="visually-hidden">Buscar cliente por nome ou e-mail</label>
+        <input type="search" id="q" name="q" value="{{ r.busca }}" maxlength="100" class="form-control" placeholder="Buscar por nome ou e-mail">
+        <button type="submit" class="btn btn-outline-primary text-nowrap"><i class="bi bi-search me-1" aria-hidden="true"></i>Buscar</button>
+    </form>
+    {% if r.busca %}<a href="/admin/clientes" class="cli-limpar">Limpar busca</a>{% endif %}
+    <p class="meus-total" role="status">{{ contagem }}</p>
+</div>
+{% endif %}
 
 {% if r.clientes %}
-<section class="cartao cartao-tabela">
-    <div class="table-responsive">
-        <table class="table tabela tabela-empilhavel tabela-clientes align-middle mb-0">
-            <thead>
-                <tr>
-                    <th scope="col">Nome</th>
-                    <th scope="col">Telefone</th>
-                    <th scope="col">Cadastro</th>
-                    <th scope="col" class="text-end">Atendidos</th>
-                    <th scope="col" class="text-end">Planos ativos</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in r.clientes %}
-                <tr>
-                    <td>
-                        <a href="/admin/clientes/{{ c.id }}" class="fw-medium d-block link-cliente">{{ c.nome }}</a>
-                        <span class="small text-muted">{{ c.email }}</span>
-                    </td>
-                    <td class="text-nowrap" data-rotulo="Telefone">{{ c.telefone or "—" }}</td>
-                    <td class="text-nowrap font-monospace-num" data-rotulo="Cadastro">{{ c.cadastrado_em | data_br }}</td>
-                    <td class="text-end font-monospace-num" data-rotulo="Atendidos">{{ c.pacientes }}</td>
-                    <td class="text-end font-monospace-num" data-rotulo="Planos ativos">{{ c.planos_ativos }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="meus-lista">
+    <div class="cli-linha cli-linha-cabecalho" aria-hidden="true">
+        <span>Cliente</span>
+        <span class="cli-centro">Telefone</span>
+        <span class="cli-centro">Cadastro</span>
+        <span class="cli-centro">Atendidos</span>
+        <span class="cli-centro">Planos ativos</span>
+        <span></span>
     </div>
-</section>
+    <ul class="meus-linhas">
+        {% for c in r.clientes %}
+        <li class="cli-linha">
+            <div class="cli-nome">
+                <a href="/admin/clientes/{{ c.id }}" class="meus-link">{{ c.nome }}</a>
+                <span class="cli-email">{{ c.email }}</span>
+            </div>
+            <div class="cli-centro cli-celula"><span class="cli-rotulo">Telefone</span> {% if c.telefone %}<span class="font-monospace-num">{{ c.telefone }}</span>{% else %}<span class="cli-zero">—</span>{% endif %}</div>
+            <div class="cli-centro cli-celula"><span class="cli-rotulo">Cadastro</span> <span class="font-monospace-num">{{ c.cadastrado_em | data_br }}</span></div>
+            <div class="cli-centro cli-celula"><span class="cli-rotulo">Atendidos</span> <span class="font-monospace-num {% if not c.pacientes %}cli-zero{% endif %}">{{ c.pacientes }}</span></div>
+            <div class="cli-centro cli-celula"><span class="cli-rotulo">Planos ativos</span> <span class="font-monospace-num {% if not c.planos_ativos %}cli-zero{% endif %}">{{ c.planos_ativos }}</span></div>
+            <span class="meus-seta" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
 
 {% if r.total_paginas > 1 %}
-<nav class="paginacao mt-4" aria-label="Paginação da lista de clientes">
-    {% if r.pagina > 1 %}
-    <a class="btn btn-outline-primary btn-sm" href="/admin/clientes?{{ {'q': r.busca, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
-        <i class="bi bi-chevron-left me-1"></i>Anterior
-    </a>
-    {% else %}<span></span>{% endif %}
-    <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
-    {% if r.pagina < r.total_paginas %}
-    <a class="btn btn-outline-primary btn-sm" href="/admin/clientes?{{ {'q': r.busca, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
-        Próxima<i class="bi bi-chevron-right ms-1"></i>
-    </a>
-    {% else %}<span></span>{% endif %}
+<nav class="cli-paginacao" aria-label="Paginação da lista de clientes">
+    <span>Página {{ r.pagina }} de {{ r.total_paginas }}</span>
+    <span class="cli-paginacao-botoes">
+        {% if r.pagina > 1 %}
+        <a class="btn btn-outline-primary btn-sm" href="{{ url(dict(base, pagina=r.pagina - 1)) }}" rel="prev"><i class="bi bi-chevron-left me-1" aria-hidden="true"></i>Anterior</a>
+        {% endif %}
+        {% if r.pagina < r.total_paginas %}
+        <a class="btn btn-outline-primary btn-sm" href="{{ url(dict(base, pagina=r.pagina + 1)) }}" rel="next">Próxima<i class="bi bi-chevron-right ms-1" aria-hidden="true"></i></a>
+        {% endif %}
+    </span>
 </nav>
 {% endif %}
+
+{% elif r.busca %}
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum cliente com “{{ r.busca }}”.</h2>
+    <p class="text-muted">Confira a grafia ou busque só por uma parte do nome ou do e-mail.</p>
+    <a href="/admin/clientes" class="btn btn-outline-primary btn-sm">Limpar busca</a>
+</section>
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-person-lines-fill"></i></div>
-    {% if r.busca %}
-    <h2 class="titulo-serifa h5">Nenhum cliente encontrado</h2>
-    <p class="text-muted">Confira a grafia do nome ou do e-mail e tente novamente.</p>
-    <a href="/admin/clientes" class="btn btn-outline-primary">Ver todos os clientes</a>
-    {% else %}
-    <h2 class="titulo-serifa h5">Nenhum cliente cadastrado</h2>
-    <p class="text-muted mb-0">Os clientes aparecem aqui assim que criam a conta pelo site.</p>
-    {% endif %}
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhum cliente cadastrado</h2>
+    <p class="text-muted mb-0">Os clientes aparecem aqui quando criam a conta pela página de cadastro do site.</p>
 </section>
 {% endif %}
 {% endblock %}

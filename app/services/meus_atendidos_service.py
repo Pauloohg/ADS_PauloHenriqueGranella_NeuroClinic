@@ -5,7 +5,7 @@ from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.ids import ler_opcao
-from app.core.templating import NOMES_DIAS
+from app.core.templating import NOMES_DIAS, descrever_configuracao
 from app.models.avaliacao import Avaliacao
 from app.models.paciente import Paciente
 from app.models.plano import Plano
@@ -135,18 +135,6 @@ def quando_relativo(momento: datetime, agora: datetime) -> str:
     else:
         dia = dia_abreviado(momento.date(), hoje)
     return f"{dia}, {momento:%H:%M}"
-
-
-def _juntar(nomes: list[str]) -> str:
-    return nomes[0] if len(nomes) == 1 else ", ".join(nomes[:-1]) + " e " + nomes[-1]
-
-
-def descrever_configuracao(duracao: str, frequencia: int, dias: list[int], horario: time) -> str:
-    vezes = "1 vez por semana" if frequencia == 1 else f"{frequencia} vezes por semana"
-    partes = [duracao.capitalize(), vezes]
-    if dias:
-        partes.append(f"{_juntar([NOMES_DIAS[d].lower() + 's' for d in sorted(dias)])} às {horario:%H:%M}")
-    return ", ".join(partes)
 
 
 def _total_paginas(total: int) -> int:

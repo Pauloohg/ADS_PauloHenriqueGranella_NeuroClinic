@@ -1,74 +1,89 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import voltar %}
-{% from "cliente/_valores_plano.html" import nota_desconto %}
 
 {% block title %}{{ cliente.nome }} — Clientes — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/admin/clientes", "Clientes") }}{% endblock %}
 {% block titulo_pagina %}{{ cliente.nome }}{% endblock %}
-{% block subtitulo_pagina %}Cliente desde {{ cliente.cadastrado_em | data_br }}. Consulta somente leitura.{% endblock %}
+{% block subtitulo_pagina %}Cliente desde {{ cliente.cadastrado_em | data_br }}.{% endblock %}
+
+{% macro cartao_plano(p) %}
+{% set plano = p.plano %}
+<article class="cli-plano {{ p.especialidade | classe_especialidade or 'esp-neutra' }}" aria-label="Plano de {{ p.especialidade }} com {{ p.profissional }}">
+    <div class="cli-plano-topo">
+        <div class="cli-plano-quem">
+            <span class="chip-especialidade">{{ p.especialidade }}</span>
+            <span>com {{ p.profissional }}</span>
+        </div>
+        {% if p.situacao == "aguardando_pagamento" %}
+        <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+        {% elif p.situacao == "encerrado" %}
+        <span class="badge rounded-pill status-inativo">Encerrado</span>
+        {% else %}
+        <span class="badge rounded-pill cli-selo-ativo">Ativo</span>
+        {% endif %}
+    </div>
+    <div class="cli-plano-meio">
+        <div>
+            <p class="cli-plano-config">{{ p.configuracao }}</p>
+            <p class="cli-plano-suave"><span class="font-monospace-num">{{ plano.data_inicio | data_br }}</span> a <span class="font-monospace-num">{{ plano.data_fim | data_br }}</span></p>
+            {% if p.prazo_texto %}
+            <p class="cli-plano-prazo">Pagar até <span class="font-monospace-num">{{ p.prazo_texto }}</span></p>
+            {% else %}
+            <p class="cli-plano-suave" id="progresso-{{ plano.id }}">{{ p.realizadas }} de {{ p.total_sessoes }} {{ "consulta realizada" if p.total_sessoes == 1 else "consultas realizadas" }}</p>
+            <div class="progress meus-plano-barra cli-plano-barra" role="progressbar" aria-labelledby="progresso-{{ plano.id }}"
+                 aria-valuenow="{{ p.realizadas }}" aria-valuemin="0" aria-valuemax="{{ p.total_sessoes }}">
+                <div class="progress-bar" style="width: {{ (100 * p.realizadas / p.total_sessoes) | round(1) if p.total_sessoes else 0 }}%"></div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="cli-plano-valor">
+            <strong class="font-monospace-num">{{ plano.valor_total | moeda }}</strong>
+            <span>{% if plano.desconto_percentual %}com {{ plano.desconto_percentual }}% de desconto{% else %}sem desconto{% endif %}</span>
+        </div>
+    </div>
+</article>
+{% endmacro %}
 
 {% block conteudo %}
-<div class="row g-4">
-    <div class="col-lg-4">
-        <section class="cartao">
-            <h2 class="cartao-titulo">Contato</h2>
-            <dl class="lista-dados">
-                <dt>E-mail</dt>
-                <dd class="text-break">{{ cliente.email }}</dd>
-                <dt>Telefone</dt>
-                <dd>{{ cliente.telefone or "não informado" }}</dd>
-                <dt>CPF</dt>
-                <dd class="font-monospace-num">{{ cliente.cpf_mascarado or "não informado" }}</dd>
-            </dl>
+<div class="cli-detalhe">
+    <aside class="cartao cli-contato" aria-labelledby="titulo-contato">
+        <h2 class="cartao-titulo" id="titulo-contato">Contato</h2>
+        <dl class="lista-dados">
+            <dt>E-mail</dt>
+            <dd class="text-break">{{ cliente.email }}</dd>
+            <dt>Telefone</dt>
+            <dd>{{ cliente.telefone or "não informado" }}</dd>
+            <dt>CPF</dt>
+            <dd class="font-monospace-num">{{ cliente.cpf_mascarado or "não informado" }}</dd>
+        </dl>
+        <p class="cli-contato-resumo">{{ cliente.resumo }}</p>
+    </aside>
+
+    <div class="cli-atendidos">
+        {% for paciente in cliente.pacientes %}
+        <section class="cli-atendido" aria-labelledby="atendido-{{ loop.index }}">
+            <header class="cli-atendido-topo">
+                <h2 class="titulo-serifa cli-atendido-nome" id="atendido-{{ loop.index }}">{{ paciente.nome }}</h2>
+                <span>{{ paciente.idade | idade }}</span>
+            </header>
+            {% for p in paciente.planos_em_aberto %}{{ cartao_plano(p) }}{% endfor %}
+            {% if not paciente.planos %}
+            <p class="cli-plano-suave mb-0">Nenhum plano contratado até agora.</p>
+            {% endif %}
+            {% set encerrados = paciente.planos_encerrados %}
+            {% if encerrados %}
+            <details class="cli-encerrados">
+                <summary>{{ "1 plano encerrado" if encerrados | length == 1 else encerrados | length ~ " planos encerrados" }}</summary>
+                {% for p in encerrados %}{{ cartao_plano(p) }}{% endfor %}
+            </details>
+            {% endif %}
         </section>
-    </div>
-    <div class="col-lg-8">
-        <section aria-labelledby="titulo-pacientes">
-            <h2 id="titulo-pacientes" class="titulo-serifa h4 mb-3">Atendidos</h2>
-            {% for paciente in cliente.pacientes %}
-            <article class="cartao mb-3">
-                <header class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
-                    <h3 class="titulo-serifa h5 mb-0">{{ paciente.nome }}</h3>
-                    <span class="small text-muted">{{ paciente.idade | idade }}</span>
-                </header>
-                {% if paciente.planos %}
-                <ul class="lista-planos-admin">
-                    {% for resumo in paciente.planos %}
-                    {% set plano = resumo.plano %}
-                    <li class="{{ resumo.especialidade | classe_especialidade }}">
-                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                            <span class="chip-especialidade">{{ resumo.especialidade }}</span>
-                            {% if resumo.situacao == "aguardando_pagamento" %}
-                            <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
-                            {% elif resumo.situacao == "encerrado" %}
-                            <span class="badge rounded-pill status-inativo">Encerrado</span>
-                            {% else %}
-                            <span class="badge rounded-pill status-ativo">Ativo</span>
-                            {% endif %}
-                        </div>
-                        <dl class="lista-dados">
-                            <dt>Profissional</dt>
-                            <dd>{{ resumo.profissional }}</dd>
-                            <dt>Período</dt>
-                            <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
-                            <dt>Valor total</dt>
-                            <dd class="font-monospace-num">{{ plano.valor_total | moeda }}{{ nota_desconto(plano.desconto_percentual) }}</dd>
-                        </dl>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-muted small mb-0">Nenhum plano contratado até agora.</p>
-                {% endif %}
-            </article>
-            {% else %}
-            <div class="cartao estado-vazio">
-                <div class="icone-destaque mb-3"><i class="bi bi-people"></i></div>
-                <p class="titulo-serifa h5">Nenhum atendido cadastrado</p>
-                <p class="text-muted mb-0">Este cliente ainda não cadastrou atendidos.</p>
-            </div>
-            {% endfor %}
+        {% else %}
+        <section class="cartao agenda-aviso">
+            <h2 class="agenda-aviso-titulo">Ainda sem atendidos</h2>
+            <p class="text-muted mb-0">Quando este cliente cadastrar um atendido e contratar um plano, eles aparecem aqui.</p>
         </section>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}

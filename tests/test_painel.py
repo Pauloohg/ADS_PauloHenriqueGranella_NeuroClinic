@@ -186,7 +186,7 @@ def test_tela_do_painel_e_lista_de_clientes_mostram_os_mesmos_ativos(admin_logad
     painel = " ".join(admin_logado.get("/admin/painel").text.split())
     lista = " ".join(admin_logado.get("/admin/clientes").text.split())
     assert '<dt>Planos ativos</dt><dd class="font-monospace-num">1</dd>' in painel
-    assert 'data-rotulo="Planos ativos">1</td>' in lista
+    assert '<span class="cli-rotulo">Planos ativos</span> <span class="font-monospace-num ">1</span>' in lista
 
 
 # --- Ranking -------------------------------------------------------------------------------------

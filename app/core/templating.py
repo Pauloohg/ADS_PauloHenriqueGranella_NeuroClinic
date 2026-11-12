@@ -1,5 +1,5 @@
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -52,6 +52,19 @@ ROTULOS_DURACAO = {
     "bimestral": "Bimestral (2 meses)",
     "anual": "Anual (12 meses)",
 }
+
+
+def _juntar(nomes: list[str]) -> str:
+    return nomes[0] if len(nomes) == 1 else ", ".join(nomes[:-1]) + " e " + nomes[-1]
+
+
+# Usada por Meus atendidos (RF16) e pelo detalhe do cliente do Admin (RF14); fica aqui para não haver import circular
+def descrever_configuracao(duracao: str, frequencia: int, dias: list[int], horario: time) -> str:
+    vezes = "1 vez por semana" if frequencia == 1 else f"{frequencia} vezes por semana"
+    partes = [duracao.capitalize(), vezes]
+    if dias:
+        partes.append(f"{_juntar([NOMES_DIAS[d].lower() + 's' for d in sorted(dias)])} às {horario:%H:%M}")
+    return ", ".join(partes)
 
 
 NOMES_MESES = (

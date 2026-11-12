@@ -270,3 +270,24 @@ def test_borda_da_nota_do_formulario_no_creme():
     corpo = re.search(r"(?m)^\.esp-form-nota\s*\{([^}]*)\}", CSS).group(1)
     borda = re.search(r"border-left:\s*\d+px solid (var\(--[\w-]+\)|#[0-9A-Fa-f]{6});", corpo).group(1)
     assert razao_contraste(_cor(borda), CREME) >= 3
+
+
+# --- Clientes do Admin (refinamento da Semana 8) ------------------------------------------------------
+
+@pytest.mark.parametrize("fundo", [BRANCO, CREME])  # linha normal e linha em hover
+def test_zero_em_cinza_continua_legivel(fundo):
+    assert razao_contraste(_propriedade(".cli-zero", "color"), fundo) >= 4.5
+
+
+def test_selo_ativo_verde_claro():
+    fundo, texto = _cores_da_regra(".cli-selo-ativo")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".cli-plano-prazo", ".cli-plano-valor strong", ".cli-plano-config", ".cli-celula"])
+def test_textos_do_cartao_de_plano_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_resumo_de_encerrados_no_creme():
+    assert razao_contraste(_propriedade(".cli-encerrados summary", "color"), CREME) >= 4.5

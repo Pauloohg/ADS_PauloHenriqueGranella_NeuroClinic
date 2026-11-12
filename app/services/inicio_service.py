@@ -42,6 +42,7 @@ class ResumoPlano:
     tempo_restante: timedelta | None
     prazo_pagamento: datetime | None = None
     boleto: bool = False
+    forma: FormaPagamento | None = None
 
 
 @dataclass(frozen=True)
@@ -175,6 +176,7 @@ def planos_do_cliente(db: Session, cliente_id: int, agora: datetime) -> list[Res
             tempo_restante=restante,
             prazo_pagamento=prazo,
             boleto=forma == FormaPagamento.BOLETO,
+            forma=forma,
         ))
     return sorted(resumos, key=lambda r: (ORDEM_SITUACAO[r.situacao], r.plano.data_inicio, r.plano.id))
 
