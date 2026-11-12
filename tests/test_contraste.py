@@ -243,3 +243,30 @@ def test_fundo_da_linha_desativada_e_seletor_travado_com_texto_escuro():
     fundo = _cor(re.search(r"background-color:\s*([^;]+);", corpo).group(1))
     texto = _cor(re.search(r"(?<!-)color:\s*([^;]+);", corpo).group(1))
     assert razao_contraste(texto, fundo) >= 4.5
+
+
+# --- Especialidades do Admin (refinamento da Semana 8) ------------------------------------------------
+
+@pytest.mark.parametrize("seletor", [
+    ".esp-sem-ativo",  # "Sem profissional ativo" na coluna Profissionais
+    ".esp-form-nota",  # "Depois de cadastrar" e "Quem é afetado"
+])
+def test_combinacoes_de_especialidades_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_sem_ativo_em_foco_continua_legivel():
+    fundo = _propriedade(".esp-sem-ativo", "background-color")
+    assert razao_contraste(_propriedade(".esp-sem-ativo:focus-visible", "color"), fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".esp-valor", ".esp-profissionais", ".esp-descontos-grade dd"])
+def test_valor_contagem_e_percentual_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_borda_da_nota_do_formulario_no_creme():
+    corpo = re.search(r"(?m)^\.esp-form-nota\s*\{([^}]*)\}", CSS).group(1)
+    borda = re.search(r"border-left:\s*\d+px solid (var\(--[\w-]+\)|#[0-9A-Fa-f]{6});", corpo).group(1)
+    assert razao_contraste(_cor(borda), CREME) >= 3

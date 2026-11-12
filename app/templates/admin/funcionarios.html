@@ -18,7 +18,7 @@
         <span class="prof-grupo-qtd">{{ g.ativos }} {{ "ativo" if g.ativos == 1 else "ativos" }}{% if g.desativados %}, {{ g.desativados }} {{ "desativado" if g.desativados == 1 else "desativados" }}{% endif %}</span>
     </header>
     {% if not g.ativos %}
-    <p class="prof-sem-ativo">Sem profissional ativo. Quem tenta contratar essa especialidade vê “{{ msg_sem_profissionais }}”.</p>
+    <p class="prof-sem-ativo">{{ msg_sem_profissional_ativo }}. Quem tenta contratar essa especialidade vê “{{ msg_sem_profissionais }}”.</p>
     {% endif %}
     {% if g.profissionais %}
     <ul class="prof-linhas">

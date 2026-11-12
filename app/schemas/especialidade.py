@@ -17,7 +17,7 @@ def converter_valor(valor: str | Decimal) -> Decimal:
     except InvalidOperation:
         raise ValueError("Informe um valor numérico, como 150,00.") from None
     if not numero.is_finite() or numero <= 0:
-        raise ValueError("O valor da sessão deve ser maior que zero.")
+        raise ValueError("Informe um valor maior que zero. Ex.: 180,00.")
     if numero > VALOR_SESSAO_MAXIMO:
         raise ValueError("Valor alto demais.")
     if numero != numero.quantize(Decimal("0.01")):

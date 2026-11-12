@@ -3542,3 +3542,184 @@
         padding: 1.2rem 1.1rem;
     }
 }
+
+
+/* --- Especialidades do Admin: refinamento da Semana 8 (RF12) ------------------------------------------- */
+
+.esp-tabela th[scope="row"] {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: normal;
+    text-transform: none;
+    color: inherit;
+}
+
+.esp-profissionais {
+    color: var(--cor-texto-escuro);
+}
+
+/* "Sem profissional ativo" em texto, não só em cor: mesmo âmbar do aviso da lista de Profissionais */
+.esp-sem-ativo {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 6px;
+    background-color: #FBEFD5;
+    color: #6B4A10;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.esp-sem-ativo:hover,
+.esp-sem-ativo:focus-visible {
+    color: #4F3607;
+}
+
+.esp-valor {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    white-space: nowrap;
+}
+
+.esp-descontos {
+    margin-top: 1.5rem;
+    max-width: 48rem;
+}
+
+.esp-descontos-titulo {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.esp-descontos-nota {
+    margin: 0.25rem 0 0.75rem;
+    font-size: 0.95rem;
+    color: var(--bs-secondary-color);
+}
+
+.esp-descontos-grade {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.esp-descontos-grade > div {
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 0.65rem 1rem;
+    border-left: 1px solid var(--bs-border-color);
+}
+
+.esp-descontos-grade > div:first-child {
+    border-left: 0;
+}
+
+.esp-descontos-grade dt {
+    font-weight: 400;
+    font-size: 0.9rem;
+    color: var(--bs-secondary-color);
+}
+
+.esp-descontos-grade dd {
+    margin: 0;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.esp-form {
+    max-width: 600px;
+}
+
+.esp-form-atual {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.esp-form-rotulo {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--bs-secondary-color);
+}
+
+.esp-valor-atual {
+    font-size: 1.5rem;
+}
+
+.esp-form-nota {
+    margin: 1.25rem 0 1.4rem;
+    padding: 0.65rem 0.9rem;
+    border-left: 4px solid var(--cor-borda-campo);
+    border-radius: 8px;
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+    font-size: 0.93rem;
+}
+
+.esp-form-nota strong {
+    display: block;
+}
+
+@media (max-width: 767.98px) {
+    .esp-tabela thead {
+        display: none;
+    }
+
+    .esp-tabela tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.5rem 0.75rem;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    .esp-tabela tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .esp-tabela th,
+    .esp-tabela td {
+        padding: 0;
+        border: 0;
+        text-align: left;
+    }
+
+    .esp-tabela .esp-valor {
+        grid-column: 2;
+        grid-row: 1;
+        text-align: right;
+    }
+
+    .esp-celula-profissionais,
+    .esp-celula-acoes {
+        grid-column: 1 / -1;
+    }
+
+    .esp-tabela .esp-celula-acoes {
+        text-align: left;
+    }
+
+    .esp-descontos-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .esp-descontos-grade > div:nth-child(3) {
+        border-left: 0;
+    }
+
+    .esp-descontos-grade > div:nth-child(n + 3) {
+        border-top: 1px solid var(--bs-border-color);
+    }
+}

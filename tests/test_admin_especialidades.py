@@ -102,7 +102,7 @@ def test_especialidade_cadastrada_aparece_no_formulario_de_funcionario(client, d
     [
         ({"nome": "", "valor_sessao": ""}, "Este campo é obrigatório."),
         ({"nome": "Psicologia", "valor_sessao": "zero"}, "Informe um valor numérico"),
-        ({"nome": "fonoaudiologia", "valor_sessao": "100"}, "Já existe uma especialidade com este nome."),
+        ({"nome": "fonoaudiologia", "valor_sessao": "100"}, "Já existe uma especialidade com esse nome."),
     ],
 )
 def test_cadastro_de_especialidade_com_erro(client, db, admin_logado, dados, mensagem):
@@ -118,7 +118,7 @@ def test_atualizar_valor_pela_tela(client, db, admin_logado):
     url = f"/admin/especialidades/{fono.id}/editar"
     html = client.get(url).text
     assert 'value="150,00"' in html
-    assert "Planos já existentes mantêm o valor" in html
+    assert "Planos já contratados mantêm o valor cobrado na contratação." in html
 
     resposta = client.post(url, data={"valor_sessao": "175,00", "nome": "Ignorado"}, follow_redirects=False)
     assert resposta.status_code == 303
@@ -153,5 +153,5 @@ def test_rotas_de_especialidades_bloqueadas_para_quem_nao_e_admin(client, db, pe
 
 def test_placeholder_do_nome_e_renderizado_sem_aspas_escapadas(client, admin_logado):
     html = client.get("/admin/especialidades/nova").text
-    assert 'placeholder="Ex.: Terapia Ocupacional"' in html
+    assert 'placeholder="Ex.: Neuropsicologia"' in html
     assert "&#34;" not in html

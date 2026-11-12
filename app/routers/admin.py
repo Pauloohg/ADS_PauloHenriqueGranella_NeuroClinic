@@ -52,6 +52,7 @@ ROTULOS_CAMPOS_FUNCIONARIO = {
     "senha": "Senha provisória", "formacao": "Formação", "registro_profissional": "Registro profissional",
     "apresentacao": "Apresentação", "telefone_contato": "Telefone de contato", "email_contato": "E-mail de contato",
 }
+MSG_ESPECIALIDADE_REPETIDA = "Já existe uma especialidade com esse nome."
 MENSAGENS_ESPECIALIDADES = {
     "cadastrada": "Especialidade cadastrada.",
     "atualizada": "Valor da sessão atualizado. Planos já contratados mantêm o valor anterior.",
@@ -262,7 +263,7 @@ def _buscar_especialidade_ou_404(db: Session, especialidade_id: int):
 def listar_especialidades(request: Request, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)):
     contexto = {
         "usuario": usuario,
-        "especialidades": especialidade_service.listar(db),
+        "especialidades": funcionario_service.listar_especialidades_com_ativos(db),
         "sucesso": MENSAGENS_ESPECIALIDADES.get(request.query_params.get("ok")),
     }
     return templates.TemplateResponse(request, TEMPLATE_ESPECIALIDADES, contexto)
@@ -287,7 +288,7 @@ def cadastrar_especialidade(
     except ValidationError as exc:
         erros = erros_por_campo(exc.errors())
     except especialidade_service.EspecialidadeJaCadastrada:
-        erros = {"nome": "Já existe uma especialidade com este nome."}
+        erros = {"nome": MSG_ESPECIALIDADE_REPETIDA}
     else:
         return _redirecionar("/admin/especialidades?ok=cadastrada")
     return _form_especialidade(request, usuario, dados_form, erros, status_code=status.HTTP_400_BAD_REQUEST)
@@ -295,9 +296,12 @@ def cadastrar_especialidade(
 
 @router.get("/especialidades/{especialidade_id}/editar")
 def editar_especialidade_form(
-    request: Request, especialidade_id: int, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
+    request: Request, especialidade_id: str, usuario: Usuario = Depends(somente_admin), db: Session = Depends(get_db)
 ):
-    especialidade = _buscar_especialidade_ou_404(db, especialidade_id)
+    numero = inteiro_positivo(especialidade_id)
+    if numero is None:
+        raise _nao_encontrado("Especialidade não encontrada.")
+    especialidade = _buscar_especialidade_ou_404(db, numero)
     dados = {"valor_sessao": valor_formulario(especialidade.valor_sessao)}
     return _form_especialidade(request, usuario, dados, {}, especialidade)
 

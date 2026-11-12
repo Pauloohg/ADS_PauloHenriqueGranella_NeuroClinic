@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
@@ -169,11 +170,37 @@ def contar_sessoes_futuras(db: Session, funcionario_id: int, agora: datetime) ->
     )
 
 
-def contar_ativos_da_especialidade(db: Session, especialidade_id: int) -> int:
-    return db.scalar(
-        select(func.count()).select_from(Funcionario)
-        .where(Funcionario.especialidade_id == especialidade_id, Funcionario.ativo.is_(True))
+def _ativos_por_especialidade():
+    # Contagem única de ativos: lista de Profissionais, lista de Especialidades e confirmação de desativação
+    return (
+        select(Funcionario.especialidade_id, func.count(Funcionario.usuario_id).label("ativos"))
+        .where(Funcionario.ativo.is_(True))
+        .group_by(Funcionario.especialidade_id)
+        .subquery()
     )
+
+
+def contar_ativos_da_especialidade(db: Session, especialidade_id: int) -> int:
+    ativos = _ativos_por_especialidade()
+    return db.scalar(select(ativos.c.ativos).where(ativos.c.especialidade_id == especialidade_id)) or 0
+
+
+@dataclass(frozen=True)
+class EspecialidadeNaLista:
+    id: int
+    nome: str
+    valor_sessao: Decimal
+    ativos: int
+
+
+def listar_especialidades_com_ativos(db: Session) -> list[EspecialidadeNaLista]:
+    ativos = _ativos_por_especialidade()
+    linhas = db.execute(
+        select(Especialidade.id, Especialidade.nome, Especialidade.valor_sessao, func.coalesce(ativos.c.ativos, 0))
+        .outerjoin(ativos, ativos.c.especialidade_id == Especialidade.id)
+        .order_by(Especialidade.nome, Especialidade.id)
+    ).all()
+    return [EspecialidadeNaLista(i, nome, valor, int(n)) for i, nome, valor, n in linhas]
 
 
 @dataclass(frozen=True)
@@ -189,11 +216,8 @@ class ProfissionalNaLista:
 class GrupoDeEspecialidade:
     id: int
     nome: str
+    ativos: int
     profissionais: list[ProfissionalNaLista]
-
-    @property
-    def ativos(self) -> int:
-        return sum(1 for p in self.profissionais if p.ativo)
 
     @property
     def desativados(self) -> int:
@@ -202,20 +226,22 @@ class GrupoDeEspecialidade:
 
 def listar_por_especialidade(db: Session, agora: datetime) -> list[GrupoDeEspecialidade]:
     futuras = _futuras_por_profissional(agora)
+    ativos = _ativos_por_especialidade()
     linhas = db.execute(
         select(
-            Especialidade.id, Especialidade.nome, Usuario.id, Usuario.nome, Usuario.email, Funcionario.ativo,
-            func.coalesce(futuras.c.futuras, 0),
+            Especialidade.id, Especialidade.nome, func.coalesce(ativos.c.ativos, 0), Usuario.id, Usuario.nome,
+            Usuario.email, Funcionario.ativo, func.coalesce(futuras.c.futuras, 0),
         )
         .select_from(Especialidade)
+        .outerjoin(ativos, ativos.c.especialidade_id == Especialidade.id)
         .outerjoin(Funcionario, Funcionario.especialidade_id == Especialidade.id)
         .outerjoin(Usuario, Usuario.id == Funcionario.usuario_id)
         .outerjoin(futuras, futuras.c.funcionario_id == Funcionario.usuario_id)
         .order_by(Especialidade.nome, Especialidade.id, Funcionario.ativo.desc(), Usuario.nome, Usuario.id)
     ).all()
     grupos: dict[int, GrupoDeEspecialidade] = {}
-    for esp_id, esp_nome, usuario_id, nome, email, ativo, n in linhas:
-        grupo = grupos.setdefault(esp_id, GrupoDeEspecialidade(esp_id, esp_nome, []))
+    for esp_id, esp_nome, qtd_ativos, usuario_id, nome, email, ativo, n in linhas:
+        grupo = grupos.setdefault(esp_id, GrupoDeEspecialidade(esp_id, esp_nome, int(qtd_ativos), []))
         if usuario_id is not None:
             grupo.profissionais.append(ProfissionalNaLista(usuario_id, nome, email, bool(ativo), int(n)))
     return list(grupos.values())

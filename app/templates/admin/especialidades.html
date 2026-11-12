@@ -5,7 +5,7 @@
 {% block titulo_pagina %}Especialidades{% endblock %}
 {% block subtitulo_pagina %}Áreas atendidas e valor de cada sessão, usado no cálculo dos planos.{% endblock %}
 {% block acoes_pagina %}
-<a href="/admin/especialidades/nova" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Nova especialidade</a>
+{% if especialidades %}<a href="/admin/especialidades/nova" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Nova especialidade</a>{% endif %}
 {% endblock %}
 
 {% block conteudo %}
@@ -13,10 +13,11 @@
 {% if especialidades %}
 <section class="cartao cartao-tabela">
     <div class="table-responsive">
-        <table class="table tabela align-middle mb-0">
+        <table class="table tabela esp-tabela align-middle mb-0">
             <thead>
                 <tr>
                     <th scope="col">Especialidade</th>
+                    <th scope="col">Profissionais</th>
                     <th scope="col" class="text-end">Valor da sessão</th>
                     <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
                 </tr>
@@ -24,11 +25,18 @@
             <tbody>
                 {% for especialidade in especialidades %}
                 <tr>
-                    <td><span class="chip-especialidade {{ especialidade.nome | classe_especialidade }}">{{ especialidade.nome }}</span></td>
-                    <td class="text-end font-monospace-num">{{ especialidade.valor_sessao | moeda }}</td>
-                    <td class="text-end">
+                    <th scope="row" class="esp-celula-nome"><span class="chip-especialidade {{ especialidade.nome | classe_especialidade or 'esp-neutra' }}">{{ especialidade.nome }}</span></th>
+                    <td class="esp-celula-profissionais">
+                        {% if especialidade.ativos %}
+                        <a href="/admin/funcionarios#grupo-{{ especialidade.id }}" class="esp-profissionais">{{ especialidade.ativos }} {{ "ativo" if especialidade.ativos == 1 else "ativos" }}<span class="visually-hidden"> em {{ especialidade.nome }}</span></a>
+                        {% else %}
+                        <a href="/admin/funcionarios#grupo-{{ especialidade.id }}" class="esp-sem-ativo">{{ msg_sem_profissional_ativo }}<span class="visually-hidden"> em {{ especialidade.nome }}</span></a>
+                        {% endif %}
+                    </td>
+                    <td class="text-end esp-valor font-monospace-num">{{ especialidade.valor_sessao | moeda }}</td>
+                    <td class="text-end esp-celula-acoes">
                         <a href="/admin/especialidades/{{ especialidade.id }}/editar" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-pencil me-1"></i>Alterar valor<span class="visually-hidden"> de {{ especialidade.nome }}</span>
+                            Alterar valor<span class="visually-hidden"> de {{ especialidade.nome }}</span>
                         </a>
                     </td>
                 </tr>
@@ -37,12 +45,24 @@
         </table>
     </div>
 </section>
+
+<section class="esp-descontos" aria-labelledby="titulo-descontos">
+    <h2 class="titulo-serifa esp-descontos-titulo" id="titulo-descontos">Descontos por duração do plano</h2>
+    <p class="esp-descontos-nota">Valem para todas as especialidades e são definidos pelo sistema. Não dá para alterá-los aqui.</p>
+    <dl class="esp-descontos-grade">
+        {% for duracao, percentual in descontos_por_duracao.items() %}
+        <div>
+            <dt>{{ duracao }}</dt>
+            <dd>{{ percentual }}%</dd>
+        </div>
+        {% endfor %}
+    </dl>
+</section>
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-tags"></i></div>
-    <h2 class="titulo-serifa h5">Nenhuma especialidade cadastrada</h2>
-    <p class="text-muted">Cadastre as especialidades antes dos profissionais: cada um é vinculado a uma delas.</p>
-    <a href="/admin/especialidades/nova" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Cadastrar especialidade</a>
+<section class="cartao agenda-aviso">
+    <h2 class="agenda-aviso-titulo">Nenhuma especialidade cadastrada</h2>
+    <p class="text-muted">Cadastre a primeira e o valor da sessão. Depois, cadastre um profissional para ela, para que os clientes possam contratar.</p>
+    <a href="/admin/especialidades/nova" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Cadastrar especialidade</a>
 </section>
 {% endif %}
 {% endblock %}

@@ -1,44 +1,60 @@
 {% extends "_interno.html" %}
-{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% from "_formulario.html" import alertas, voltar %}
 {% set editando = especialidade is defined and especialidade %}
 
-{% block title %}{{ "Alterar valor" if editando else "Nova especialidade" }} — NeuroClinic{% endblock %}
+{% block title %}{{ "Alterar valor da sessão" if editando else "Nova especialidade" }} — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/admin/especialidades", "Especialidades") }}{% endblock %}
-{% block titulo_pagina %}{{ especialidade.nome if editando else "Nova especialidade" }}{% endblock %}
-{% block subtitulo_pagina %}{{ "Atualize o valor cobrado por sessão." if editando else "Informe o nome e o valor de cada sessão." }}{% endblock %}
+{% block titulo_pagina %}{{ "Alterar valor da sessão" if editando else "Nova especialidade" }}{% endblock %}
+{% block subtitulo_pagina %}{% if editando %}Atualize o valor cobrado por sessão em {{ especialidade.nome }}.{% else %}Informe o nome e o valor de cada sessão de {{ duracao_sessao_minutos }} minutos.{% endif %}{% endblock %}
 
 {% block conteudo %}
-<section class="cartao cartao-formulario">
+{% set valores = dados or {} %}
+<section class="cartao cartao-formulario esp-form">
     {{ alertas(erro=erro) }}
     <form method="post" action="{{ request.url.path }}" novalidate>
-        {% if not editando %}
-        {{ campo("nome", "Nome da especialidade", autocomplete="off", atributos={"placeholder": "Ex.: Terapia Ocupacional"}) }}
+        {% if editando %}
+        <div class="esp-form-atual">
+            <div>
+                <span class="esp-form-rotulo">Especialidade</span>
+                <span class="chip-especialidade {{ especialidade.nome | classe_especialidade or 'esp-neutra' }}">{{ especialidade.nome }}</span>
+            </div>
+            <div class="text-sm-end">
+                <span class="esp-form-rotulo">Valor atual</span>
+                <span class="esp-valor esp-valor-atual">{{ especialidade.valor_sessao | moeda }}</span>
+            </div>
+        </div>
         {% else %}
-        <div class="mb-3">
-            <span class="form-label d-block">Valor atual</span>
-            <span class="fs-5 fw-medium">{{ especialidade.valor_sessao | moeda }}</span>
+        {% set erro_nome = erros.get("nome") %}
+        <div class="prof-campo">
+            <label for="nome" class="form-label">Nome da especialidade</label>
+            <input type="text" id="nome" name="nome" required autocomplete="off" maxlength="100" placeholder="Ex.: Neuropsicologia"
+                   value="{{ valores.get('nome', '') }}" class="form-control {% if erro_nome %}is-invalid{% endif %}"
+                   {% if erro_nome %}aria-invalid="true" aria-describedby="nome-erro"{% endif %}>
+            {% if erro_nome %}<p class="invalid-feedback d-block prof-campo-erro" id="nome-erro"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ erro_nome }}</p>{% endif %}
         </div>
         {% endif %}
 
-        <div class="mb-3">
+        {% set erro_valor = erros.get("valor_sessao") %}
+        {% set descricao = (["valor_sessao-erro"] if erro_valor else []) + (["valor_sessao-ajuda"] if not editando else []) %}
+        <div class="prof-campo">
             <label for="valor_sessao" class="form-label">{{ "Novo valor da sessão" if editando else "Valor da sessão" }}</label>
-            <div class="input-group {% if erros.valor_sessao %}has-validation{% endif %}">
-                <span class="input-group-text">R$</span>
-                <input type="text" id="valor_sessao" name="valor_sessao" required inputmode="decimal"
-                       placeholder="150,00" value="{{ (dados or {}).get('valor_sessao', '') }}"
-                       class="form-control {% if erros.valor_sessao %}is-invalid{% endif %}">
-                {% if erros.valor_sessao %}<div class="invalid-feedback">{{ erros.valor_sessao }}</div>{% endif %}
+            <div class="input-group {% if erro_valor %}has-validation{% endif %}">
+                <span class="input-group-text" aria-hidden="true">R$</span>
+                <input type="text" id="valor_sessao" name="valor_sessao" required inputmode="decimal" autocomplete="off"
+                       value="{{ valores.get('valor_sessao', '') }}" class="form-control {% if erro_valor %}is-invalid{% endif %}"
+                       {% if erro_valor %}aria-invalid="true"{% endif %} {% if descricao %}aria-describedby="{{ descricao | join(' ') }}"{% endif %}>
             </div>
+            {% if erro_valor %}<p class="invalid-feedback d-block prof-campo-erro" id="valor_sessao-erro"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ erro_valor }}</p>{% endif %}
+            {% if not editando %}<p class="form-text prof-campo-ajuda" id="valor_sessao-ajuda">Use vírgula para os centavos. Ex.: 150,00.</p>{% endif %}
         </div>
 
         {% if editando %}
-        <div class="alert alert-info d-flex gap-2 small" role="note">
-            <i class="bi bi-info-circle"></i>
-            <span>O novo valor vale só para planos contratados daqui em diante. Planos já existentes mantêm o valor cobrado na contratação.</span>
-        </div>
+        <p class="esp-form-nota"><strong>Quem é afetado</strong>O novo valor vale para novos planos e renovações. Planos já contratados mantêm o valor cobrado na contratação.</p>
+        {% else %}
+        <p class="esp-form-nota"><strong>Depois de cadastrar</strong>Cadastre um profissional para essa especialidade. Sem profissional ativo, ninguém consegue contratar.</p>
         {% endif %}
 
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <button type="submit" class="btn btn-primary">{{ "Salvar novo valor" if editando else "Cadastrar especialidade" }}</button>
             <a href="/admin/especialidades" class="btn btn-link text-decoration-none">Cancelar</a>
         </div>
