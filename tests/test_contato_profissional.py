@@ -225,9 +225,8 @@ def test_card_mostra_so_o_que_foi_preenchido(client, db, fono, carla, maria_loga
 def test_contratacao_e_resumo_mostram_o_card_resumido_sem_email_de_login(client, db, fono, carla_completa, maria_logada):
     pedro = criar_paciente(db, maria_logada.id)
     tela = _html(client.get(f"/contratar/{carla_completa.usuario.id}"))
-    resumido = tela[tela.index("cartao-profissional-resumido"):tela.index('id="form-contratacao"')]
-    for trecho in ("Carla Fono", "CRFa 7-12345", "Fonoaudiologia (UPF)", "(54) 98888-7777", "carla.contato@clinica.com"):
-        assert trecho in resumido, trecho
+    # Semana 8: o passo 2 não repete o cartão (ele está no passo 1); o nome continua no subtítulo
+    assert "cartao-profissional-resumido" not in tela and "Com Carla Fono · Fonoaudiologia" in tela
     _sem_email_de_login(tela)
 
     dados = {"paciente_id": str(pedro.id), "celula": ["0-14"], "frequencia_semanal": "1", "duracao": "mensal", "observacao": ""}

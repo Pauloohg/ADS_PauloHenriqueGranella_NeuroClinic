@@ -373,3 +373,44 @@ def test_valor_e_quantidade_no_branco(seletor):
 
 def test_explicacao_do_plano_no_creme():
     assert razao_contraste(_propriedade(".contr-plano", "color"), CREME) >= 4.5
+
+
+# --- Contratação, passo 2 (refinamento da Semana 8) ------------------------------------------------------
+
+@pytest.mark.parametrize("seletor", [".contr2-motivo", ".contr2-contador", ".contr2-opcao", ".contr2-desconto", ".contr2-rotulo"])
+def test_textos_do_passo_2_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_opcao_marcada_continua_legivel():
+    fundo = _propriedade(".btn-check:checked + .contr2-opcao", "background-color")
+    assert razao_contraste(_propriedade(".contr2-opcao", "color"), fundo) >= 4.5
+    assert razao_contraste(_propriedade(".contr2-desconto", "color"), fundo) >= 4.5
+    corpo = re.search(r"(?m)^\.contr2-opcao\s*\{([^}]*)\}", CSS).group(1)
+    borda = re.search(r"border:\s*\d+px solid (var\(--[\w-]+\)|#[0-9A-Fa-f]{6});", corpo).group(1)
+    assert razao_contraste(_cor(borda), BRANCO) >= 3  # o contorno da opção se distingue do cartão
+
+
+# --- Contratação, passo 3 (refinamento da Semana 8) ------------------------------------------------------
+
+@pytest.mark.parametrize("seletor", [".rev-conflito", ".rev-prazo", ".rev-feriado"])
+def test_blocos_da_revisao_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_ver_as_datas_no_branco():
+    assert razao_contraste(_propriedade(".rev-datas summary", "color"), BRANCO) >= 4.5
+
+
+# --- Plano reservado e forma de pagamento (refinamento da Semana 8) --------------------------------------
+
+def test_faixa_do_plano_reservado():
+    fundo, texto = _cores_da_regra(".plano-urgente")
+    assert razao_contraste(texto, fundo) >= 4.5
+    assert razao_contraste(_propriedade(".plano-urgente-titulo", "color"), fundo) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".plano-cab-quem", ".pag-prazo"])
+def test_cabecalho_e_prazo_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5

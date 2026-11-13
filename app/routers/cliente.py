@@ -404,19 +404,25 @@ def contratar_resumo(
         )
     parametros = [(campo, dados[campo]) for campo in ("paciente_id", "frequencia_semanal", "duracao", "observacao")]
     parametros += [("celula", c) for c in celula]
+    prazo = contratacao_service.prazo_previsto(agora_utc().replace(tzinfo=None), resumo.simulacao.data_inicio, agora)
     contexto = {
+        **_contexto_revisao(funcionario_id, resumo, parametros),
         "usuario": usuario,
+        "campos_confirmacao": parametros,
+        "prazo": prazo,
+        "pix_ate": contratacao_service.texto_dia_hora(prazo.pix, agora),
+    }
+    return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto)
+
+
+def _contexto_revisao(funcionario_id: int, resumo, parametros: list[tuple[str, str]]) -> dict:
+    return {
         "resumo": resumo,
         "feriados": [(dia, plano_service.nome_do_feriado(dia)) for dia in resumo.simulacao.feriados_pulados],
         "url_editar": f"/contratar/{funcionario_id}?" + urlencode(parametros),
         "url_confirmar": f"/contratar/{funcionario_id}/confirmar",
-        "campos_confirmacao": parametros,
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
-        "prazo": contratacao_service.prazo_previsto(
-            agora_utc().replace(tzinfo=None), resumo.simulacao.data_inicio, agora
-        ),
     }
-    return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto)
 
 
 @router.post("/contratar/{funcionario_id}/confirmar")
@@ -444,6 +450,17 @@ def contratar_confirmar(
             "celulas": celula, "observacao": observacao,
         }
         if exc.conflitos:
+            resumo = contratacao_service.resumo_em_conflito(
+                db, funcionario_id, paciente, celula, frequencia_semanal, duracao, observacao, agora_local()
+            )
+            if resumo is not None:
+                # Volta ao passo 2 com atendido, frequência, duração e observação; os horários são escolhidos de novo
+                parametros = [(c, dados[c]) for c in ("paciente_id", "frequencia_semanal", "duracao", "observacao")]
+                contexto = {
+                    **_contexto_revisao(funcionario_id, resumo, parametros),
+                    "usuario": usuario, "conflito": True, "conflitos": exc.conflitos,
+                }
+                return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto, status_code=status.HTTP_409_CONFLICT)
             return _tela_contratacao(
                 request, usuario, db, profissional, dados, exc.erros, exc.conflitos, MSG_CONFLITO_CONFIRMACAO,
                 status.HTTP_409_CONFLICT,
@@ -458,10 +475,13 @@ def contratar_confirmar(
 
 def _tela_plano(request, usuario, detalhe, erro=None, status_code=200, db=None):
     pagamento = pagamento_service.buscar_pagamento(db, detalhe.plano.id) if db is not None else None
+    agora = agora_local()
     contexto = {
         "usuario": usuario, "detalhe": detalhe, "erro": erro, "pagamento": pagamento,
         "rotulos_forma": pagamento_service.ROTULOS_FORMA,
         "confirmado_em": pagamento_service.data_confirmacao_local(pagamento),
+        "pague_ate": contratacao_service.texto_dia_hora(detalhe.prazo_pagamento, agora),
+        "restam": contratacao_service.tempo_restante(detalhe.prazo_pagamento, agora),
     }
     return templates.TemplateResponse(request, TEMPLATE_PLANO, contexto, status_code=status_code)
 
@@ -509,6 +529,7 @@ def _tela_escolha_pagamento(request, usuario, detalhe, agora, erro=None, forma="
         "usuario": usuario, "detalhe": detalhe, "erro": erro, "dados": {"forma": forma}, "erros": {},
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
         "vencimento_boleto": pagamento_service.boleto_oferecido(detalhe.plano, agora),
+        "pix_ate": contratacao_service.texto_dia_hora(detalhe.prazo_pagamento, agora),
     }
     return templates.TemplateResponse(request, TEMPLATE_PAGAMENTO, contexto, status_code=status_code)
 

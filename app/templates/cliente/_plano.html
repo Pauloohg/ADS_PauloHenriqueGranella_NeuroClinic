@@ -1,0 +1,48 @@
+{% macro selo_situacao(situacao) -%}
+{% if situacao == "aguardando_pagamento" %}<span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
+{%- elif situacao == "ativo" %}<span class="badge rounded-pill status-ativo">Ativo</span>
+{%- elif situacao == "encerrado" %}<span class="badge rounded-pill status-inativo">Encerrado</span>
+{%- else %}<span class="badge rounded-pill status-inativo">Prazo de pagamento encerrado</span>{% endif %}
+{%- endmacro %}
+
+{% macro cabecalho_plano(detalhe) %}
+<div class="plano-cab {{ detalhe.especialidade | classe_especialidade or 'esp-neutra' }}">
+    <p class="plano-cab-quem">
+        <strong>{{ detalhe.paciente }}</strong>
+        <span class="chip-especialidade">{{ detalhe.especialidade }}</span>
+        <span>com {{ detalhe.profissional }}</span>
+    </p>
+    {{ selo_situacao(detalhe.situacao) }}
+</div>
+{% endmacro %}
+
+{% macro dados_plano(detalhe) %}
+{% set plano = detalhe.plano %}
+{% set quantidade = detalhe.sessoes | length %}
+<dl class="lista-dados plano-dados">
+    <dt>Pessoa atendida</dt>
+    <dd>{{ detalhe.paciente }}</dd>
+    <dt>Especialidade</dt>
+    <dd><span class="chip-especialidade {{ detalhe.especialidade | classe_especialidade or 'esp-neutra' }}">{{ detalhe.especialidade }}</span></dd>
+    <dt>Profissional</dt>
+    <dd>{{ detalhe.profissional }}</dd>
+    <dt>Dias e horário</dt>
+    <dd>{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }} (60 minutos)</dd>
+    <dt>Frequência e duração</dt>
+    <dd>{{ plano.frequencia_semanal }}x por semana · {{ plano.duracao | capitalize }}</dd>
+    <dt>Período</dt>
+    <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }} · {{ quantidade }} {{ "sessão" if quantidade == 1 else "sessões" }}</dd>
+    {% if plano.observacao %}
+    <dt>Observação</dt>
+    <dd class="text-break">{{ plano.observacao }}</dd>
+    {% endif %}
+</dl>
+{% endmacro %}
+
+{% macro lista_datas(detalhe) %}
+<ol class="lista-sessoes">
+    {% for sessao in detalhe.sessoes %}
+    <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
+    {% endfor %}
+</ol>
+{% endmacro %}

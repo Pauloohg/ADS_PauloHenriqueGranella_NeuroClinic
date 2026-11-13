@@ -6,13 +6,18 @@
     const celulas = () => [...form.querySelectorAll('input[name="celula"]')];
     const selecionadas = () => celulas().filter((c) => c.checked);
     const frequencia = () => Number(form.querySelector('input[name="frequencia_semanal"]:checked')?.value || 1);
-    const duracao = $("duracao");
+    const duracao = () => form.querySelector('input[name="duracao"]:checked')?.value || "";
     const grade = $("grade");
     const botao = $("btn-continuar");
     let ultimaSimulacao = 0;
 
     function mostrar(id, visivel) {
         $(id).classList.toggle("d-none", !visivel);
+    }
+
+    function textoMotivo(faltam) {
+        if (faltam <= 0) return "";
+        return faltam === 1 ? "Falta escolher 1 horário" : `Faltam ${faltam} horários`;
     }
 
     function aplicarRegras() {
@@ -29,6 +34,8 @@
             celula.disabled = !livre || completa || (hora !== null && celula.dataset.hora !== hora);
         }
         const faltam = frequencia() - escolhidas.length;
+        $("grade-contador").textContent = `${escolhidas.length} de ${frequencia()} ${frequencia() === 1 ? "escolhido" : "escolhidos"}`;
+        $("motivo-continuar").textContent = textoMotivo(faltam);
         $("grade-instrucao").textContent = faltam > 0
             ? `Escolha ${faltam} horário(s) livre(s), todos na mesma hora e em dias diferentes. As sessões duram 60 minutos e se repetem toda semana.`
             : "Seleção completa. Para trocar, desmarque um horário.";
@@ -62,7 +69,7 @@
         const parametros = new URLSearchParams({
             horario: `${escolhidas[0].dataset.hora.padStart(2, "0")}:00`,
             frequencia: String(frequencia()),
-            duracao: duracao.value,
+            duracao: duracao(),
         });
         escolhidas.forEach((c) => parametros.append("dias", c.dataset.dia));
 
@@ -95,6 +102,7 @@
             preencherLista("resumo-conflitos-lista", dados.conflitos);
             mostrar("resumo-conflitos", dados.conflitos.length > 0);
             botao.disabled = dados.conflitos.length > 0;
+            $("motivo-continuar").textContent = dados.conflitos.length ? "Escolha outro horário: este está ocupado." : "";
         } catch {
             if (id !== ultimaSimulacao) return;
             mostrar("resumo-carregando", false);
@@ -108,7 +116,7 @@
         mostrar("grade-erro", false);
         botao.disabled = true;
         try {
-            const resposta = await fetch(`${form.dataset.urlDisponibilidade}?duracao=${encodeURIComponent(duracao.value)}`);
+            const resposta = await fetch(`${form.dataset.urlDisponibilidade}?duracao=${encodeURIComponent(duracao())}`);
             if (!resposta.ok) throw new Error();
             const { livres } = await resposta.json();
             for (const celula of celulas()) {

@@ -3,39 +3,39 @@
 {% from "cliente/_etapas_contratacao.html" import etapas %}
 {% from "cliente/_valores_plano.html" import linhas_desconto %}
 {% set sim = resumo.simulacao %}
+{% set em_conflito = conflito is defined and conflito %}
 
-{% block title %}Resumo do plano — NeuroClinic{% endblock %}
-{% block titulo_pagina %}Resumo do plano{% endblock %}
-{% block subtitulo_pagina %}Confira os dados do plano. Os valores foram recalculados agora, com a agenda atual do profissional.{% endblock %}
+{% block title %}Confira e confirme — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Confira e confirme{% endblock %}
+{% block subtitulo_pagina %}Os valores foram recalculados agora, com a agenda atual do profissional.{% endblock %}
 
 {% block conteudo %}
 {{ etapas(3) }}
 {% if resumo.cpf_registrado %}{{ alertas(sucesso="Seu CPF foi salvo no perfil.") }}{% endif %}
+{% if em_conflito %}
+<div class="rev-conflito" role="alert" id="alerta-conflitos">
+    <p class="rev-conflito-titulo">Esse horário foi ocupado enquanto você conferia. Nada foi contratado.</p>
+    <p class="mb-1">Horários que deixaram de estar livres:</p>
+    <ul class="mb-0">{% for data_hora in conflitos %}<li>{{ data_hora | data_br }} às {{ data_hora.strftime("%H:%M") }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
 <div class="row g-4">
     <div class="col-lg-8">
-        <section class="cartao mb-4">
-            <h2 class="cartao-titulo">Dados do plano</h2>
-            <dl class="lista-dados">
-                <dt>Especialidade</dt>
-                <dd><span class="chip-especialidade {{ resumo.especialidade.nome | classe_especialidade }}">{{ resumo.especialidade.nome }}</span></dd>
-                <dt>Profissional</dt>
-                <dd>{{ resumo.profissional.nome }}</dd>
+        <section class="cartao mb-4" aria-labelledby="titulo-dados">
+            <h2 class="cartao-titulo" id="titulo-dados">Dados do plano</h2>
+            <dl class="lista-dados rev-dados">
                 <dt>Pessoa atendida</dt>
                 <dd>{{ resumo.paciente.nome }}</dd>
+                <dt>Especialidade</dt>
+                <dd><span class="chip-especialidade {{ resumo.especialidade.nome | classe_especialidade or 'esp-neutra' }}">{{ resumo.especialidade.nome }}</span></dd>
+                <dt>Profissional</dt>
+                <dd>{{ resumo.profissional.nome }}</dd>
                 <dt>Dias e horário</dt>
                 <dd>{% for dia in resumo.dias_semana %}{{ dia | nome_dia }}{% if not loop.last %}{{ " e " if loop.revindex == 2 else ", " }}{% endif %}{% endfor %}, às {{ resumo.horario.strftime("%H:%M") }} (60 minutos)</dd>
-                <dt>Frequência</dt>
-                <dd>{{ resumo.frequencia_semanal }}x por semana</dd>
-                <dt>Duração</dt>
-                <dd>{{ rotulos_duracao[resumo.duracao] }}</dd>
+                <dt>Frequência e duração</dt>
+                <dd>{{ resumo.frequencia_semanal }}x por semana · {{ resumo.duracao | capitalize }}</dd>
                 <dt>Período</dt>
-                <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }}</dd>
-                <dt>Quantidade de sessões</dt>
-                <dd>{{ sim.quantidade }}</dd>
-                <dt>Primeira sessão</dt>
-                <dd>{{ sim.sessoes[0] | data_br }} às {{ sim.sessoes[0].strftime("%H:%M") }}</dd>
-                <dt>Última sessão</dt>
-                <dd>{{ sim.sessoes[-1] | data_br }} às {{ sim.sessoes[-1].strftime("%H:%M") }}</dd>
+                <dd>{{ sim.data_inicio | data_br }} a {{ sim.data_fim | data_br }} · {{ sim.quantidade }} {{ "sessão" if sim.quantidade == 1 else "sessões" }}</dd>
                 {% if resumo.observacao %}
                 <dt>Observação</dt>
                 <dd class="text-break">{{ resumo.observacao }}</dd>
@@ -43,51 +43,58 @@
             </dl>
         </section>
 
-        <section class="cartao">
-            <h2 class="cartao-titulo">{{ sim.quantidade }} sessões</h2>
-            <ol class="lista-sessoes">
-                {% for sessao in sim.sessoes %}
-                <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
-                {% endfor %}
-            </ol>
-            {% if feriados %}
-            <div class="alert alert-secondary small mt-3 mb-0">
-                <p class="fw-semibold mb-1"><i class="bi bi-calendar-event me-1"></i>Feriados nacionais pulados</p>
-                <p class="mb-1">Não há atendimento em feriados. As datas abaixo foram puladas e o plano se estende até completar as {{ sim.quantidade }} sessões, sem mudar o valor.</p>
-                <ul class="mb-0">{% for dia, nome in feriados %}<li>{{ dia | data_br }} — {{ nome }}</li>{% endfor %}</ul>
-            </div>
-            {% endif %}
+        <section class="cartao" aria-labelledby="titulo-datas">
+            <h2 class="cartao-titulo" id="titulo-datas">As {{ sim.quantidade }} {{ "sessão" if sim.quantidade == 1 else "sessões" }}</h2>
+            <details class="rev-datas" open>
+                <summary>Ver as datas</summary>
+                <ol class="lista-sessoes">
+                    {% for sessao in sim.sessoes %}
+                    <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
+                    {% endfor %}
+                </ol>
+                {% if feriados %}
+                <div class="rev-feriado">
+                    <p class="fw-semibold mb-1"><i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Feriados nacionais pulados</p>
+                    <p class="mb-1">Não há atendimento em feriados. As datas abaixo foram puladas e o plano se estende até completar as {{ sim.quantidade }} sessões, sem mudar o valor.</p>
+                    <ul class="mb-0">{% for dia, nome in feriados %}<li>{{ dia | data_br }} — {{ nome }}</li>{% endfor %}</ul>
+                </div>
+                {% endif %}
+            </details>
         </section>
     </div>
 
     <div class="col-lg-4">
-        <aside class="cartao resumo-plano">
-            <h2 class="cartao-titulo">Valor</h2>
+        <aside class="cartao resumo-plano contr2-resumo" aria-labelledby="titulo-valor">
+            <h2 class="cartao-titulo" id="titulo-valor">Valor</h2>
             <dl class="resumo-valores">
                 <dt>Valor da sessão</dt><dd class="font-monospace-num">{{ sim.valor_sessao | moeda }}</dd>
                 <dt>Sessões</dt><dd>{{ sim.quantidade }}</dd>
                 {{ linhas_desconto(sim.valor_bruto, sim.desconto_percentual, sim.valor_desconto) }}
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ sim.valor_total | moeda }}</dd>
             </dl>
-            <div class="alert alert-warning small mt-3 mb-0" role="note" id="aviso-prazo">
-                <p class="mb-1"><i class="bi bi-clock me-1"></i><strong>Depois de confirmar, é preciso pagar dentro do prazo.</strong> Confirmando agora:</p>
-                <ul class="mb-1 ps-3">
-                    <li>Pix: até {{ prazo.pix | data_br }} às {{ prazo.pix.strftime("%H:%M") }} ({{ prazo_horas }} horas).</li>
+            {% if em_conflito %}
+            <a href="{{ url_editar }}" class="btn btn-primary w-100 mt-4">Escolher outro horário</a>
+            {% else %}
+            <div class="rev-prazo" role="note" id="aviso-prazo">
+                <p class="rev-prazo-titulo">Depois de confirmar, é preciso pagar dentro do prazo.</p>
+                <ul>
+                    <li>Pix: pague até {{ pix_ate }} ({{ prazo_horas }} horas).</li>
                     {% if prazo.vencimento_boleto %}
-                    <li>Boleto: gere em até {{ prazo_horas }} horas; ele vence em {{ prazo.vencimento_boleto | data_br }}.</li>
+                    <li>Boleto: vence em {{ prazo.vencimento_boleto | data_br }}.</li>
                     {% else %}
                     <li>Boleto: indisponível para este plano, porque não haveria tempo de compensar antes da primeira sessão.</li>
                     {% endif %}
                 </ul>
                 <p class="mb-0">Sem o pagamento no prazo, os horários voltam a ficar livres para outros atendidos.</p>
             </div>
-            <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-4">
+            <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-3">
                 {% for nome, valor in campos_confirmacao %}
                 <input type="hidden" name="{{ nome }}" value="{{ valor }}">
                 {% endfor %}
-                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1"></i>Confirmar contratação</button>
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Confirmar contratação</button>
             </form>
-            <a href="{{ url_editar }}" class="btn btn-outline-primary w-100 mt-2"><i class="bi bi-arrow-left me-1"></i>Voltar e editar</a>
+            <a href="{{ url_editar }}" class="btn btn-outline-primary w-100 mt-2"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar e editar</a>
+            {% endif %}
         </aside>
     </div>
 </div>

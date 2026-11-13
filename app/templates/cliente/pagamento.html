@@ -1,27 +1,28 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
 {% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
+{% from "cliente/_plano.html" import cabecalho_plano, dados_plano %}
 
 {% block title %}Pagamento do plano — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/planos/" ~ detalhe.plano.id if detalhe is defined else "/", "Plano" if detalhe is defined else "Início") }}{% endblock %}
-{% block titulo_pagina %}Pagamento do plano{% endblock %}
-{% block subtitulo_pagina %}{% if detalhe is defined %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endif %}{% endblock %}
+{% block titulo_pagina %}{{ "Como você quer pagar?" if detalhe is defined else "Pagamento do plano" }}{% endblock %}
 
 {% block conteudo %}
+{% if detalhe is defined %}{{ cabecalho_plano(detalhe) }}{% endif %}
 {{ alertas(erro=erro) }}
 {% if detalhe is defined %}
 {% set plano = detalhe.plano %}
 {% set forma = (dados or {}).get("forma", "") %}
 <div class="row g-4">
     <div class="col-lg-8">
-        <form method="post" action="/planos/{{ plano.id }}/pagamento" class="cartao">
+        <form method="post" action="/planos/{{ plano.id }}/pagamento" class="cartao mb-4">
             <fieldset>
-                <legend class="cartao-titulo">Como você quer pagar?</legend>
+                <legend class="cartao-titulo">Forma de pagamento</legend>
                 <div class="opcoes-pagamento">
                     <input type="radio" class="btn-check" name="forma" id="forma-pix" value="pix" autocomplete="off" required {% if forma != "boleto" %}checked{% endif %}>
                     <label class="opcao-pagamento" for="forma-pix">
                         <i class="bi bi-qr-code" aria-hidden="true"></i>
-                        <span><strong>Pix</strong><span class="d-block small text-muted">Pague em até {{ prazo_horas }} horas. QR Code ou copia e cola; a confirmação costuma chegar em segundos.</span></span>
+                        <span><strong>Pix</strong><span class="d-block small text-muted">Pague em até {{ prazo_horas }} horas, até <strong class="pag-prazo">{{ pix_ate }}</strong>. QR Code ou copia e cola; a confirmação costuma chegar em segundos.</span></span>
                     </label>
                     {% if vencimento_boleto %}
                     <input type="radio" class="btn-check" name="forma" id="forma-boleto" value="boleto" autocomplete="off" {% if forma == "boleto" %}checked{% endif %}>
@@ -35,21 +36,24 @@
                 <p class="small text-muted mt-3 mb-0" id="boleto-indisponivel"><i class="bi bi-info-circle me-1"></i>O boleto não está disponível para este plano porque a primeira sessão é muito próxima.</p>
                 {% endif %}
             </fieldset>
-            <button type="submit" class="btn btn-primary mt-4"><i class="bi bi-lock me-1"></i>Gerar cobrança</button>
+            <button type="submit" class="btn btn-primary mt-4"><i class="bi bi-lock me-1" aria-hidden="true"></i>Gerar cobrança</button>
         </form>
+        <section class="cartao" aria-labelledby="titulo-dados">
+            <h2 class="cartao-titulo" id="titulo-dados">Dados do plano</h2>
+            {{ dados_plano(detalhe) }}
+        </section>
     </div>
     <div class="col-lg-4">
         <aside class="cartao resumo-plano" aria-labelledby="titulo-resumo-pagamento">
-            <h2 class="cartao-titulo" id="titulo-resumo-pagamento">Resumo</h2>
+            <h2 class="cartao-titulo" id="titulo-resumo-pagamento">Valor</h2>
             <dl class="resumo-valores">
                 <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
-                <dt>Período</dt><dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
                 {{ linhas_desconto_plano(plano) }}
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
             <div class="prazo-pagamento" role="note">
-                <i class="bi bi-hourglass-split me-1"></i>Escolha a forma de pagamento até
-                <strong>{{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}</strong>
+                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Escolha a forma de pagamento até
+                <strong>{{ pix_ate }}</strong>
                 <span class="small">(horário de Brasília).</span>
             </div>
         </aside>

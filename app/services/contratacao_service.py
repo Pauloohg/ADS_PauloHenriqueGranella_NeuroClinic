@@ -1,12 +1,12 @@
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.core.ids import ler_inteiro
-from app.core.templating import NOMES_DIAS
+from app.core.templating import NOMES_DIAS, tempo_curto
 from app.models.cliente import Cliente
 from app.models.especialidade import Especialidade
 from app.models.pagamento import FormaPagamento
@@ -80,6 +80,24 @@ class ResumoContratacao:
 class PrazoPrevisto:
     pix: datetime
     vencimento_boleto: date | None
+
+
+def dia_relativo(dia: date, agora: datetime) -> str:
+    if dia == agora.date():
+        return "hoje"
+    if dia == agora.date() + timedelta(days=1):
+        return "amanhã"
+    return dia.strftime("%d/%m")
+
+
+def texto_dia_hora(momento: datetime, agora: datetime) -> str:
+    return f"{dia_relativo(momento.date(), agora)}, às {momento:%H:%M}"
+
+
+def tempo_restante(prazo: datetime, agora: datetime) -> str | None:
+    if prazo <= agora:
+        return None  # prazo vencido: nunca contagem negativa
+    return tempo_curto(prazo - agora)
 
 
 def prazo_previsto(criado_em_utc: datetime, data_primeira_sessao: date, agora: datetime) -> PrazoPrevisto:
@@ -191,6 +209,32 @@ def preparar_resumo(
         duracao=duracao,
         observacao=observacao,
         cpf_registrado=cpf_novo is not None,
+    )
+
+
+def resumo_em_conflito(
+    db: Session, funcionario_id: int, paciente: Paciente | None, celulas: list[str], frequencia: str, duracao: str,
+    observacao: str, agora: datetime,
+) -> ResumoContratacao | None:
+    # Só para exibir o 409: a mesma simulação, sem gravar nada; qualquer dado inválido volta à tela de hoje
+    if paciente is None:
+        return None
+    try:
+        dias, horario = ler_celulas(celulas)
+        vezes = _ler_frequencia(frequencia)
+        simulacao = plano_service.simular_plano(db, funcionario_id, dias, horario, vezes, duracao, agora)
+    except PlanoInvalido:
+        return None
+    return ResumoContratacao(
+        simulacao=simulacao,
+        paciente=paciente,
+        profissional=db.get(Usuario, funcionario_id),
+        especialidade=db.get(Especialidade, simulacao.especialidade_id),
+        dias_semana=sorted(dias),
+        horario=horario,
+        frequencia_semanal=vezes,
+        duracao=duracao,
+        observacao=observacao.strip() or None,
     )
 
 

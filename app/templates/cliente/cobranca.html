@@ -1,6 +1,7 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
 {% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
+{% from "cliente/_plano.html" import cabecalho_plano %}
 {% set plano = detalhe.plano %}
 {% set pagamento = tela.pagamento %}
 {% set cobranca = tela.cobranca %}
@@ -10,9 +11,8 @@
 {% block head %}{% if aguardando %}<meta http-equiv="refresh" content="{{ intervalo_atualizacao }}">{% endif %}{% endblock %}
 {% block voltar %}{{ voltar("/planos/" ~ plano.id, "Plano") }}{% endblock %}
 {% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else ("Pagamento via Pix" if pagamento.forma_pagamento.value == "pix" else "Pagamento via boleto") }}{% endblock %}
-{% block subtitulo_pagina %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endblock %}
-
 {% block conteudo %}
+{{ cabecalho_plano(detalhe) }}
 {{ alertas(erro=tela.erro) }}
 <div class="row g-4">
     <div class="col-lg-8">

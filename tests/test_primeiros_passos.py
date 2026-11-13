@@ -161,7 +161,8 @@ def test_formulario_mostra_etapa_2_e_explicacao_acima_do_formulario(client, db, 
     html = _html(client.get(f"/contratar/{carla.usuario.id}"))
     assert "Dias e horários" in _etapa_atual(html)
     assert re.search(r'<li class="etapa etapa-concluida">.*?Especialidade e profissional.*?\(concluída\)', html)
-    assert html.index("O que é um plano?") < html.index('id="form-contratacao"')
+    assert "O que é um plano?" not in html  # Semana 8: a explicação fica só no passo 1
+    assert "Quem será atendido" in html
 
 
 def test_contratacao_sem_atendido_mantem_aviso_com_link(client, carla, maria_logada):
@@ -180,10 +181,9 @@ def test_resumo_mostra_etapa_3_sessoes_e_prazo_da_rn09(client, db, carla, maria_
     assert "Revisão e pagamento" in _etapa_atual(html)
     for trecho in (
         "Fonoaudiologia", "Carla Fono", "Pessoa atendida</dt> <dd>Pedro Souza", "Segunda, às 14:00",
-        "Quantidade de sessões</dt> <dd>5", "Primeira sessão</dt> <dd>03/08/2026 às 14:00",
-        "Última sessão</dt> <dd>31/08/2026 às 14:00", "R$ 750,00",
+        "Período</dt> <dd>03/08/2026 a 31/08/2026 · 5 sessões", "1x por semana · Mensal", "R$ 750,00",
         "Depois de confirmar, é preciso pagar dentro do prazo.",
-        "Pix: até 01/08/2026 às 14:00 (4 horas).",
+        "Pix: pague até hoje, às 14:00 (4 horas).",
     ):
         assert trecho in html, trecho
     # Primeira sessão na segunda 03/08: o 2º dia útil antes dela já passou (RN09)

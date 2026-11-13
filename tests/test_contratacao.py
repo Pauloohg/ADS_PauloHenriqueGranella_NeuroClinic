@@ -133,7 +133,7 @@ def test_tela_mostra_profissional_grade_e_so_pacientes_do_cliente(client, db, fo
     assert re.search(r'value="2-14"[^>]*data-livre="0"[^>]*disabled', html)
     assert re.search(r'value="0-14"[^>]*data-livre="1"', html)
     assert 'value="0-12"' not in html and 'value="0-13"' not in html
-    assert "Intervalo comercial — sem atendimento" in html
+    assert "12h às 14h, sem atendimento" in html
     assert "joana@exemplo.com" not in html
 
 
@@ -221,7 +221,7 @@ def test_resumo_mostra_o_plano_sem_criar_nada(client, db, fono, carla, pedro, ma
     html = resposta.text
     assert resposta.status_code == 200
     for trecho in (
-        "Fonoaudiologia", "Carla Fono", "Pedro Souza", "Segunda, às 14:00", "1x por semana", "Bimestral (2 meses)",
+        "Fonoaudiologia", "Carla Fono", "Pedro Souza", "Segunda, às 14:00", "1x por semana · Bimestral",
         "9 sessões", "03/08/2026 a 05/10/2026", "07/09/2026 — Independência do Brasil",
         "R$ 150,00", "R$ 1.350,00", "4 horas", "Voltar e editar", "Prefere tarde",
     ):
@@ -246,8 +246,8 @@ def test_voltar_e_editar_preserva_a_selecao(client, db, carla, pedro, maria, mar
     url_editar = re.search(r'href="(/contratar/[^"]+)"[^>]*>\s*<i class="bi bi-arrow-left', html).group(1).replace("&amp;", "&")
     tela = client.get(url_editar).text
     assert re.search(r'value="4-16"[^>]*checked', tela)
-    assert re.search(r'<option value="quinzenal" selected', tela)
-    assert re.search(rf'<option value="{pedro.id}" selected', tela)
+    assert 'id="duracao-quinzenal" value="quinzenal" autocomplete="off" checked' in tela
+    assert f'<input type="hidden" name="paciente_id" value="{pedro.id}">' in tela  # único atendido
 
 
 def test_revalidacao_ignora_numeros_adulterados(client, db, carla, pedro, maria, maria_logada):

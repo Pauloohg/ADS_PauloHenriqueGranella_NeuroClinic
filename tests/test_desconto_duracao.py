@@ -137,9 +137,10 @@ def test_json_da_simulacao_anual_mostra_cheio_desconto_e_total(client, carla, ma
 
 def test_tela_de_contratacao_mostra_a_tabela_de_descontos(client, carla, pedro, maria_logada):
     html = _html(client.get(f"/contratar/{carla.usuario.id}"))
-    tabela = re.search(r'<div class="tabela-descontos" id="tabela-descontos">.*?</div>', html).group(0)
-    for linha in ("Quinzenal: sem desconto", "Mensal: 5% de desconto", "Bimestral: 7% de desconto", "Anual: 10% de desconto"):
-        assert linha in tabela, linha
+    assert "tabela-descontos" not in html  # o desconto agora fica na própria opção de duração
+    assert 'for="duracao-quinzenal">Quinzenal<small>' in html
+    for nome, percentual in (("Mensal", 5), ("Bimestral", 7), ("Anual", 10)):
+        assert f'>{nome} <span class="contr2-desconto">−{percentual}%</span>' in html, nome
     assert 'id="resumo-valor-desconto"' in html and 'id="resumo-valor-bruto"' in html
 
 

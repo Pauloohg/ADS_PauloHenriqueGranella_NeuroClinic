@@ -4689,3 +4689,215 @@
 .contr-grade-dois .cartao-profissional {
     border-top: 4px solid var(--esp-cor, var(--cor-borda-campo));
 }
+
+
+/* --- Contratação, passo 2 (dias e horários): refinamento da Semana 8 (RF05) ----------------------------- */
+
+.contr2-rotulo {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.contr2-unico {
+    margin: 0 0 1rem;
+    color: var(--cor-texto-escuro);
+}
+
+.contr2-unico .contr2-rotulo {
+    display: inline;
+    margin-right: 0.35rem;
+}
+
+.contr2-opcoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Radios de verdade (btn-check) estilizados: o envio do formulário é o mesmo de antes */
+.contr2-opcao {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 7.5rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--cor-borda-campo);
+    border-radius: 0.6rem;
+    background-color: #fff;
+    color: var(--cor-texto-escuro);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.contr2-opcao small {
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: var(--bs-secondary-color);
+}
+
+.btn-check:checked + .contr2-opcao {
+    border-color: var(--bs-primary);
+    background-color: var(--cor-aviso-salvia-fundo);
+    box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+
+.btn-check:focus-visible + .contr2-opcao {
+    outline: 3px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+.contr2-desconto {
+    color: #1E5B37;
+}
+
+.contr2-grade-titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+}
+
+.contr2-contador {
+    font-family: var(--bs-body-font-family);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+/* Depois do 1º horário escolhido, as outras horas ficam apagadas (mesma hora para todos; também sem JS) */
+.contr2-grade .grade-horarios:has(.celula-input:checked) tbody tr:not(:has(.celula-input:checked)) .celula {
+    opacity: 0.35;
+}
+
+.contr2-grade .celula-ocupada {
+    background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(31, 42, 34, 0.14) 5px 7px);
+    cursor: not-allowed;
+}
+
+.contr2-motivo {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6B4A10;
+}
+
+.contr2-motivo:empty {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .contr2-resumo {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+
+/* --- Contratação, passo 3 (revisão): refinamento da Semana 8 (RF05) -------------------------------------- */
+
+.rev-conflito {
+    margin-bottom: 1.25rem;
+    padding: 0.85rem 1.1rem;
+    border-left: 5px solid var(--cor-erro);
+    border-radius: 0.75rem;
+    background-color: #F8E1E3;
+    color: #5C1820;
+}
+
+.rev-conflito-titulo {
+    margin: 0 0 0.35rem;
+    font-weight: 700;
+}
+
+.rev-datas summary {
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: var(--bs-primary);
+    cursor: pointer;
+}
+
+.rev-feriado {
+    margin-top: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    border-left: 4px solid var(--cor-borda-campo);
+    border-radius: 8px;
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+    font-size: 0.9rem;
+}
+
+.rev-prazo {
+    margin-top: 1.25rem;
+    padding: 0.75rem 0.95rem;
+    border-left: 4px solid var(--cor-psicopedagogia);
+    border-radius: 8px;
+    background-color: #FBEFD5;
+    color: #4F3607;
+    font-size: 0.9rem;
+}
+
+.rev-prazo-titulo {
+    margin: 0 0 0.35rem;
+    font-weight: 700;
+}
+
+.rev-prazo ul {
+    margin: 0 0 0.35rem;
+    padding-left: 1.1rem;
+}
+
+
+/* --- Plano reservado, forma de pagamento e cabeçalho do plano: refinamento da Semana 8 (RF05, RF06) ------ */
+
+.plano-cab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1.1rem;
+    border-left: 5px solid var(--esp-cor, var(--cor-borda-campo));
+    border-radius: 0.75rem;
+    background-color: #fff;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.plano-cab-quem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    margin: 0;
+    color: var(--cor-texto-escuro);
+}
+
+.plano-urgente {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-left: 5px solid var(--cor-psicopedagogia);
+    border-radius: 0.75rem;
+    background-color: #FBEFD5;
+    color: #4F3607;
+}
+
+.plano-urgente-titulo {
+    margin: 0 0 0.2rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #4F3607;
+}
+
+.pag-prazo {
+    color: var(--cor-texto-escuro);
+}

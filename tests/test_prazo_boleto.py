@@ -356,8 +356,8 @@ def test_selos_pague_ate_usam_o_vencimento_do_boleto(client, db, monkeypatch, ca
     assert "Planos aguardando pagamento" in inicio and inicio.count(">Pagar agora<") == 2
 
     pagina = _html(client.get(f"/planos/{plano_boleto.id}"))
-    assert "Pague até <strong>06/08/2026 às 23:59</strong>" in pagina
-    assert _html(client.get(f"/planos/{pix.id}")).count("Pague até <strong>04/08/2026 às 13:00</strong>") == 1
+    assert "Pague até <strong>06/08, às 23:59</strong>" in pagina
+    assert _html(client.get(f"/planos/{pix.id}")).count("Pague até <strong>hoje, às 13:00</strong>") == 1
 
 
 def test_boleto_vencido_nao_aparece_como_proxima_sessao(client, db, monkeypatch, carla, pedro, maria):

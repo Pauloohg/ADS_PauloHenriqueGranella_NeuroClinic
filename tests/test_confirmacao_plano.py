@@ -181,9 +181,12 @@ def test_conflito_surgido_depois_do_resumo_nao_grava_nada(client, db, fono, carl
     html = _html(resposta)
     assert "Nada foi contratado" in html
     assert "17/08/2026 às 14:00" in html
-    assert re.search(rf'<option value="{pedro.id}" selected>', html)
-    assert "Prefere tarde" in html
-    assert 'id="freq-1" value="1" autocomplete="off" checked' in html
+    assert "Esse horário foi ocupado enquanto você conferia. Nada foi contratado." in html
+    # "Escolher outro horário" volta ao passo 2 com atendido, frequência, duração e observação (sem os horários)
+    volta = re.search(r'<a href="([^"]+)" class="btn btn-primary w-100 mt-4">Escolher outro horário</a>', html).group(1)
+    assert volta == (f"/contratar/{carla.usuario.id}?paciente_id={pedro.id}&amp;frequencia_semanal=1"
+                     "&amp;duracao=mensal&amp;observacao=Prefere+tarde")
+    assert "Prefere tarde" in html and "Confirmar contratação" not in html and 'id="form-confirmar"' not in html
     assert db.query(Plano).count() == 1  # só o da outra cliente
     assert db.query(Sessao).count() == 1
 
@@ -291,7 +294,7 @@ def test_pagina_do_plano_mostra_aguardando_pagamento_e_prazo(client, db, carla, 
     assert resposta.status_code == 200
     html = _html(resposta)
     for trecho in (
-        "Plano reservado", "Aguardando pagamento", "Pague até <strong>01/08/2026 às 14:00</strong>", "horário de Brasília",
+        "Plano reservado", "Aguardando pagamento", "Pague até <strong>hoje, às 14:00</strong>", "Restam 4h.", "horário de Brasília",
         "R$ 750,00", "5 sessões", "03/08/2026 a 31/08/2026", "Carla Fono", "Pedro Souza", "Prefere tarde",
     ):
         assert trecho in html, trecho
@@ -304,7 +307,7 @@ def test_prazo_da_pagina_do_plano_e_mostrado_em_horario_local(client, db, monkey
     # 01:30 UTC de 04/08 = 22:30 local de 03/08; o prazo vence às 02:30 local de 04/08
     _fixar_relogio(monkeypatch, datetime(2026, 8, 3, 22, 30), datetime(2026, 8, 4, 1, 30, tzinfo=timezone.utc))
     html = _html(client.post(_url(carla), data=_form(pedro)))
-    assert "Pague até <strong>04/08/2026 às 02:30</strong>" in html
+    assert "Pague até <strong>amanhã, às 02:30</strong>" in html and "Restam 4h." in html
 
 
 def test_pagina_de_plano_de_outro_cliente_retorna_404(client, db, carla, pedro, maria):

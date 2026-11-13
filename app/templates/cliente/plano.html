@@ -1,68 +1,71 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas, voltar %}
 {% from "cliente/_valores_plano.html" import linhas_desconto_plano %}
+{% from "cliente/_plano.html" import cabecalho_plano, dados_plano, lista_datas %}
 {% set plano = detalhe.plano %}
 {% set situacao = detalhe.situacao %}
+{% set quantidade = detalhe.sessoes | length %}
 
 {% block title %}Plano de {{ detalhe.paciente }} — NeuroClinic{% endblock %}
 {% block voltar %}{{ voltar("/", "Início") }}{% endblock %}
 {% block titulo_pagina %}{{ "Plano reservado" if situacao == "aguardando_pagamento" else "Plano de atendimento" }}{% endblock %}
-{% block subtitulo_pagina %}{{ detalhe.paciente }} · {{ detalhe.especialidade }} com {{ detalhe.profissional }}{% endblock %}
 
 {% block conteudo %}
+{{ cabecalho_plano(detalhe) }}
 {{ alertas(erro=erro) }}
+{% if situacao == "aguardando_pagamento" %}
+<section class="plano-urgente" role="note" id="prazo-pagamento" aria-labelledby="titulo-prazo">
+    <div>
+        <p class="plano-urgente-titulo" id="titulo-prazo">Pague até <strong>{{ pague_ate }}</strong></p>
+        <p class="mb-0">{% if restam %}Restam {{ restam }}. {% endif %}Os horários ficam reservados até lá (horário de Brasília); sem o pagamento, voltam a ficar livres e o plano expira.</p>
+    </div>
+    <a href="/planos/{{ plano.id }}/pagamento" class="btn btn-primary"><i class="bi bi-credit-card me-1" aria-hidden="true"></i>Pagar agora</a>
+</section>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <section class="cartao mb-4" aria-labelledby="titulo-dados">
+            <h2 class="cartao-titulo" id="titulo-dados">Dados do plano</h2>
+            {{ dados_plano(detalhe) }}
+        </section>
+        <section class="cartao" aria-labelledby="titulo-datas">
+            <h2 class="cartao-titulo" id="titulo-datas">{{ quantidade }} {{ "sessão" if quantidade == 1 else "sessões" }}</h2>
+            <details class="rev-datas">
+                <summary>Ver as datas</summary>
+                {{ lista_datas(detalhe) }}
+            </details>
+        </section>
+    </div>
+    <div class="col-lg-4">
+        <aside class="cartao resumo-plano" aria-labelledby="titulo-valor">
+            <h2 class="cartao-titulo" id="titulo-valor">Valor</h2>
+            <dl class="resumo-valores">
+                <dt>Sessões</dt><dd>{{ quantidade }}</dd>
+                {{ linhas_desconto_plano(plano) }}
+                <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+            </dl>
+            <a href="/" class="btn btn-outline-primary w-100 mt-3">Voltar ao início</a>
+        </aside>
+    </div>
+</div>
+{% else %}
 <div class="row g-4">
     <div class="col-lg-8">
         <section class="cartao mb-4">
             <h2 class="cartao-titulo">Dados do plano</h2>
-            <dl class="lista-dados">
-                <dt>Especialidade</dt>
-                <dd><span class="chip-especialidade {{ detalhe.especialidade | classe_especialidade }}">{{ detalhe.especialidade }}</span></dd>
-                <dt>Profissional</dt>
-                <dd>{{ detalhe.profissional }}</dd>
-                <dt>Pessoa atendida</dt>
-                <dd>{{ detalhe.paciente }}</dd>
-                <dt>Dias e horário</dt>
-                <dd>{{ plano.dias_semana | sort | map("nome_dia") | join(", ") }}, às {{ plano.horario.strftime("%H:%M") }} (60 minutos)</dd>
-                <dt>Frequência</dt>
-                <dd>{{ plano.frequencia_semanal }}x por semana</dd>
-                <dt>Duração</dt>
-                <dd>{{ rotulos_duracao.get(plano.duracao, plano.duracao) }}</dd>
-                <dt>Período</dt>
-                <dd>{{ plano.data_inicio | data_br }} a {{ plano.data_fim | data_br }}</dd>
-                {% if plano.observacao %}
-                <dt>Observação</dt>
-                <dd class="text-break">{{ plano.observacao }}</dd>
-                {% endif %}
-            </dl>
+            {{ dados_plano(detalhe) }}
         </section>
 
         <section class="cartao">
-            <h2 class="cartao-titulo">{{ detalhe.sessoes | length }} sessões</h2>
-            <ol class="lista-sessoes">
-                {% for sessao in detalhe.sessoes %}
-                <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
-                {% endfor %}
-            </ol>
+            <h2 class="cartao-titulo">{{ quantidade }} sessões</h2>
+            {{ lista_datas(detalhe) }}
         </section>
     </div>
 
     <div class="col-lg-4">
         <aside class="cartao resumo-plano" aria-labelledby="titulo-situacao">
-            <h2 class="cartao-titulo d-flex justify-content-between align-items-center gap-2" id="titulo-situacao">
-                Situação
-                {% if situacao == "aguardando_pagamento" %}
-                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
-                {% elif situacao == "encerrado" %}
-                <span class="badge rounded-pill status-inativo">Encerrado</span>
-                {% elif situacao == "ativo" %}
-                <span class="badge rounded-pill status-ativo">Ativo</span>
-                {% else %}
-                <span class="badge rounded-pill status-inativo">Prazo de pagamento encerrado</span>
-                {% endif %}
-            </h2>
+            <h2 class="cartao-titulo" id="titulo-situacao">Valor</h2>
             <dl class="resumo-valores">
-                <dt>Sessões</dt><dd>{{ detalhe.sessoes | length }}</dd>
+                <dt>Sessões</dt><dd>{{ quantidade }}</dd>
                 {{ linhas_desconto_plano(plano) }}
                 {% if confirmado_em %}
                 <dt>Pagamento</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
@@ -71,14 +74,7 @@
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
 
-            {% if situacao == "aguardando_pagamento" %}
-            <div class="prazo-pagamento" role="note" id="prazo-pagamento">
-                <i class="bi bi-hourglass-split me-1"></i>Pague até
-                <strong>{{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}</strong>
-                <span class="small">(horário de Brasília). Os horários ficam reservados até lá; sem o pagamento, voltam a ficar livres e o plano expira.</span>
-            </div>
-            <a href="/planos/{{ plano.id }}/pagamento" class="btn btn-primary w-100 mt-4"><i class="bi bi-credit-card me-1"></i>Pagar agora</a>
-            {% elif situacao is none %}
+            {% if situacao is none %}
             <p class="small text-muted mt-3 mb-0">O pagamento não foi feito até {{ detalhe.prazo_pagamento | data_br }} às {{ detalhe.prazo_pagamento.strftime("%H:%M") }}. Os horários foram liberados; contrate um novo plano quando quiser.</p>
             {% elif situacao == "encerrado" %}
             <a href="/planos/{{ plano.id }}/renovar" class="btn btn-primary w-100 mt-4"><i class="bi bi-arrow-repeat me-1"></i>Renovar</a>
@@ -87,4 +83,5 @@
         </aside>
     </div>
 </div>
+{% endif %}
 {% endblock %}

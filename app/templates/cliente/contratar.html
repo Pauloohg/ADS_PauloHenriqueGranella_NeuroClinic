@@ -1,14 +1,14 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import campo, alertas, voltar with context %}
-{% from "cliente/_etapas_contratacao.html" import etapas, explicacao_plano %}
-{% from "cliente/_valores_plano.html" import tabela_descontos %}
-{% from "cliente/_perfil_profissional.html" import cartao_resumido %}
+{% from "cliente/_etapas_contratacao.html" import etapas %}
 {% set tem_contexto = profissional is defined and profissional %}
 {% set em_renovacao = renovacao is defined and renovacao %}
 {% set lista_pacientes = pacientes if pacientes is defined else [] %}
 {% set lista_conflitos = conflitos if conflitos is defined else [] %}
 {% set selecionadas = (dados or {}).get("celulas") or [] %}
 {% set frequencia = (dados or {}).get("frequencia_semanal") or "1" %}
+{% set vezes_escolhidas = (frequencia | int) if frequencia in ("1", "2", "3") else 1 %}
+{% set faltam = vezes_escolhidas - (selecionadas | length) %}
 
 {% block title %}{{ "Renovar plano" if em_renovacao else "Contratar plano" }} — NeuroClinic{% endblock %}
 {% block head %}
@@ -22,7 +22,6 @@
 
 {% block conteudo %}
 {{ etapas(2 if tem_contexto else 1) }}
-{% if tem_contexto and perfil_profissional is defined %}{{ cartao_resumido(perfil_profissional) }}{% endif %}
 {% if em_renovacao %}{% include "cliente/_renovacao.html" %}{% endif %}
 {% if not tem_contexto %}
 {% if not em_renovacao %}
@@ -47,57 +46,63 @@
 </div>
 {% endif %}
 
-{{ explicacao_plano() }}
-
 <form id="form-contratacao" method="post" action="/contratar/{{ profissional.usuario.id }}" novalidate
       data-url-disponibilidade="/contratar/{{ profissional.usuario.id }}/disponibilidade"
       data-url-simulacao="/contratar/{{ profissional.usuario.id }}/simulacao">
     <div class="row g-4">
         <div class="col-lg-8">
-            <section class="cartao mb-4">
-                <h2 class="cartao-titulo">Atendido e plano</h2>
-                <div class="mb-3">
-                    <label for="paciente_id" class="form-label">Pessoa atendida</label>
-                    <select id="paciente_id" name="paciente_id" required class="form-select {% if erros.paciente_id %}is-invalid{% endif %}">
-                        <option value="">Selecione…</option>
+            <section class="cartao mb-4 contr2-bloco" aria-labelledby="titulo-quem">
+                <h2 class="cartao-titulo" id="titulo-quem">Quem será atendido</h2>
+                {% if lista_pacientes | length == 1 %}
+                {% set unico = lista_pacientes[0] %}
+                <p class="contr2-unico"><span class="contr2-rotulo">Pessoa atendida</span> <strong>{{ unico.nome }}</strong></p>
+                <input type="hidden" name="paciente_id" value="{{ unico.id }}">
+                {% if erros.paciente_id %}<div class="invalid-feedback d-block mb-3">{{ erros.paciente_id }}</div>{% endif %}
+                {% else %}
+                <fieldset class="mb-3">
+                    <legend class="contr2-rotulo">Pessoa atendida</legend>
+                    <div class="contr2-opcoes {% if erros.paciente_id %}is-invalid{% endif %}">
                         {% for paciente in lista_pacientes %}
-                        <option value="{{ paciente.id }}" {% if dados.paciente_id == paciente.id | string %}selected{% endif %}>{{ paciente.nome }}</option>
+                        <input type="radio" class="btn-check" name="paciente_id" id="paciente-{{ paciente.id }}" value="{{ paciente.id }}" autocomplete="off" {% if dados.paciente_id == paciente.id | string %}checked{% endif %}>
+                        <label class="contr2-opcao" for="paciente-{{ paciente.id }}">{{ paciente.nome }}</label>
                         {% endfor %}
-                    </select>
-                    {% if erros.paciente_id %}<div class="invalid-feedback">{{ erros.paciente_id }}</div>{% endif %}
-                </div>
+                    </div>
+                    {% if erros.paciente_id %}<div class="invalid-feedback d-block">{{ erros.paciente_id }}</div>{% endif %}
+                </fieldset>
+                {% endif %}
 
                 <fieldset class="mb-3">
-                    <legend class="form-label fs-6">Frequência</legend>
-                    <div class="opcoes-frequencia {% if erros.frequencia_semanal %}is-invalid{% endif %}">
+                    <legend class="contr2-rotulo">Quantas vezes por semana</legend>
+                    <div class="opcoes-frequencia contr2-opcoes {% if erros.frequencia_semanal %}is-invalid{% endif %}">
                         {% for vezes in (1, 2, 3) %}
                         <input type="radio" class="btn-check" name="frequencia_semanal" id="freq-{{ vezes }}" value="{{ vezes }}" autocomplete="off" {% if frequencia == vezes | string %}checked{% endif %}>
-                        <label class="btn btn-outline-primary" for="freq-{{ vezes }}">{{ vezes }}x por semana</label>
+                        <label class="contr2-opcao" for="freq-{{ vezes }}">{{ vezes }}x por semana</label>
                         {% endfor %}
                     </div>
                     {% if erros.frequencia_semanal %}<div class="invalid-feedback d-block">{{ erros.frequencia_semanal }}</div>{% endif %}
                 </fieldset>
 
-                <div class="mb-0">
-                    <label for="duracao" class="form-label">Duração</label>
-                    <select id="duracao" name="duracao" class="form-select {% if erros.duracao %}is-invalid{% endif %}">
+                <fieldset class="mb-0">
+                    <legend class="contr2-rotulo">Por quanto tempo</legend>
+                    <div class="contr2-opcoes {% if erros.duracao %}is-invalid{% endif %}">
                         {% for valor, rotulo in rotulos_duracao.items() %}
-                        <option value="{{ valor }}" {% if dados.duracao == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% set percentual = descontos_por_duracao.get(valor, 0) %}
+                        <input type="radio" class="btn-check" name="duracao" id="duracao-{{ valor }}" value="{{ valor }}" autocomplete="off" {% if dados.duracao == valor %}checked{% endif %}>
+                        <label class="contr2-opcao" for="duracao-{{ valor }}">{{ valor | capitalize }}{% if percentual %} <span class="contr2-desconto">−{{ percentual }}%</span>{% endif %}<small>{{ rotulo.split("(")[-1].rstrip(")") }}</small></label>
                         {% endfor %}
-                    </select>
-                    {% if erros.duracao %}<div class="invalid-feedback">{{ erros.duracao }}</div>{% endif %}
-                    {{ tabela_descontos() }}
-                </div>
+                    </div>
+                    {% if erros.duracao %}<div class="invalid-feedback d-block">{{ erros.duracao }}</div>{% endif %}
+                </fieldset>
             </section>
 
             <section class="cartao mb-4" aria-labelledby="titulo-grade">
-                <h2 class="cartao-titulo mb-1" id="titulo-grade">Dias e horário</h2>
+                <h2 class="cartao-titulo mb-1 contr2-grade-titulo" id="titulo-grade">Dias e horário <span class="contr2-contador" id="grade-contador">{{ selecionadas | length }} de {{ vezes_escolhidas }} {{ "escolhido" if vezes_escolhidas == 1 else "escolhidos" }}</span></h2>
                 <p class="text-muted small mb-3" id="grade-instrucao">
                     Escolha {{ frequencia }} horário(s) livre(s), todos na mesma hora e em dias diferentes. As sessões
                     duram 60 minutos e se repetem toda semana.
                 </p>
                 {% if erros.celulas and not lista_conflitos %}<div class="alert alert-danger py-2 small" role="alert">{{ erros.celulas }}</div>{% endif %}
-                <div class="grade-wrapper" id="grade" aria-busy="false">
+                <div class="grade-wrapper contr2-grade" id="grade" aria-busy="false">
                     <table class="grade-horarios">
                         <caption class="visually-hidden">Horários semanais livres de {{ profissional.usuario.nome }}</caption>
                         <thead>
@@ -111,7 +116,7 @@
                         <tbody>
                             {% for hora in horarios %}
                             {% if loop.previtem is defined and hora - loop.previtem > 1 %}
-                            <tr class="linha-almoco"><th scope="row">{{ loop.previtem + 1 }}h–{{ hora }}h</th><td colspan="{{ dias_uteis | length }}">Intervalo comercial — sem atendimento</td></tr>
+                            <tr class="linha-almoco"><th scope="row">{{ loop.previtem + 1 }}h–{{ hora }}h</th><td colspan="{{ dias_uteis | length }}">{{ loop.previtem + 1 }}h às {{ hora }}h, sem atendimento</td></tr>
                             {% endif %}
                             <tr>
                                 <th scope="row">{{ "%02d"|format(hora) }}:00</th>
@@ -160,7 +165,7 @@
         </div>
 
         <div class="col-lg-4">
-            <aside class="cartao resumo-plano" aria-labelledby="titulo-resumo">
+            <aside class="cartao resumo-plano contr2-resumo" aria-labelledby="titulo-resumo">
                 <h2 class="cartao-titulo" id="titulo-resumo">Resumo do plano</h2>
                 <div id="resumo-estado" aria-live="polite">
                     <p class="text-muted mb-0" id="resumo-instrucao">Escolha os horários na grade para ver a quantidade de sessões e o valor.</p>
@@ -175,7 +180,7 @@
                         <dt class="resumo-total-rotulo">Valor total</dt><dd id="resumo-valor-total" class="resumo-total font-monospace-num"></dd>
                     </dl>
                     <div class="resumo-feriados d-none" id="resumo-feriados">
-                        <p class="small fw-semibold mb-1"><i class="bi bi-calendar-event me-1"></i>Feriados pulados (o plano se estende):</p>
+                        <p class="small fw-semibold mb-1"><i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Feriado pulado (o plano se estende e o valor não muda):</p>
                         <ul class="small mb-0" id="resumo-feriados-lista"></ul>
                     </div>
                     <div class="alert alert-danger small mt-3 mb-0 d-none" id="resumo-conflitos" role="alert">
@@ -184,7 +189,8 @@
                         <p class="mb-0">Escolha outro dia ou horário.</p>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 mt-4" id="btn-continuar">Continuar<i class="bi bi-arrow-right ms-1"></i></button>
+                <button type="submit" class="btn btn-primary w-100 mt-4" id="btn-continuar" aria-describedby="motivo-continuar">Continuar<i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></button>
+                <p class="contr2-motivo" id="motivo-continuar" aria-live="polite">{% if faltam == 1 %}Falta escolher 1 horário{% elif faltam > 1 %}Faltam {{ faltam }} horários{% endif %}</p>
                 <p class="small text-muted mt-2 mb-0">Na próxima tela você confere tudo antes de confirmar.</p>
             </aside>
         </div>

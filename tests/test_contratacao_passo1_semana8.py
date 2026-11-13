@@ -171,8 +171,7 @@ def test_bloco_ambar_some_com_atendido(client, db, pedag, carla, maria):
 # --- Pré-seleção do atendido -------------------------------------------------------------------------------
 
 def _selecionado(html: str) -> list[str]:
-    select = re.search(r'<select id="paciente_id".*?</select>', html).group(0)
-    return re.findall(r'<option value="(\d+)" selected>', select)
+    return re.findall(r'name="paciente_id" id="paciente-\d+" value="(\d+)" autocomplete="off" checked', html)
 
 
 def test_parametro_repassado_no_passo_1(client, db, pedag, carla, maria):

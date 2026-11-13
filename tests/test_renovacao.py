@@ -138,9 +138,9 @@ def test_renovacao_abre_a_contratacao_pre_preenchida(client, db, pedro, carla, e
     assert "Renovar com a mesma configuração" in html
     # Formulário de ajuste com paciente, frequência, duração e horário do plano anterior
     assert f'action="/contratar/{carla.usuario.id}"' in html
-    assert re.search(rf'<option value="{pedro.id}" selected>', html)
+    assert f'<input type="hidden" name="paciente_id" value="{pedro.id}">' in html  # único atendido
     assert 'id="freq-1" value="1" autocomplete="off" checked' in html
-    assert '<option value="mensal" selected>' in html
+    assert 'id="duracao-mensal" value="mensal" autocomplete="off" checked' in html
     assert re.search(r'value="0-14"[^>]*data-livre="1"[^>]*checked', html)
     # Simulação já calculada no servidor: 5 segundas de agosto
     nova = re.search(r'id="renovacao-nova">(.*?)</form>', html).group(1)

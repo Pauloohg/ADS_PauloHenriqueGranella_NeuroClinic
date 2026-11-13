@@ -165,7 +165,7 @@ def test_escolha_mostra_pix_boleto_valor_e_prazo(client, plano_boleto, maria_log
     resposta = client.get(f"/planos/{plano_boleto.id}/pagamento")
     html = _html(resposta)
     assert resposta.status_code == 200
-    for trecho in ('value="pix"', 'value="boleto"', "R$ 600,00", "01/08/2026 às 13:00", "horário de Brasília"):
+    for trecho in ('value="pix"', 'value="boleto"', "R$ 600,00", "hoje, às 13:00", "horário de Brasília"):
         assert trecho in html, trecho
     assert "<script" not in resposta.text.split("<main", 1)[1].split("</main>", 1)[0]
     assert api_falsa.requisicoes == []
