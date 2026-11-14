@@ -72,6 +72,14 @@ def cliente_500(db):
         fastapi_app.dependency_overrides.clear()
 
 
+@pytest.fixture(params=[True, False], ids=["debug-ligado", "debug-desligado"])
+def cliente_500_por_debug(request, monkeypatch):
+    # O Starlette guarda o debug na pilha de middlewares montada no 1º request: zerar a pilha antes de criar o cliente
+    monkeypatch.setattr(fastapi_app, "debug", request.param)
+    monkeypatch.setattr(fastapi_app, "middleware_stack", None)
+    return request.param, request.getfixturevalue("cliente_500")
+
+
 # --- Funções puras ---------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("accept, esperado", [
@@ -363,3 +371,24 @@ def test_endpoints_json_continuam_em_json(client, db, logado_cliente, cliente):
     ):
         r = logado_cliente.get(caminho, headers={"Accept": "*/*"})
         assert r.headers["content-type"] == "application/json", caminho
+
+
+# --- 500 independente do DEBUG do .env (verificação de 15/11) ------------------------------------------
+
+def test_500_com_html_mostra_a_pagina_com_debug_ligado_ou_desligado(cliente_500_por_debug):
+    _, c = cliente_500_por_debug
+    r = c.get(ROTA_COM_ERRO, headers=HTML)
+    assert r.status_code == 500 and _titulo(r.text) == "Algo deu errado do nosso lado"
+    assert r.headers["cache-control"] == "no-store"
+    for proibido in ("segredo-interno", "Traceback", "RuntimeError", "explodir"):
+        assert proibido not in r.text
+
+
+@pytest.mark.parametrize("cabecalhos", SEM_HTML)
+def test_500_sem_html_segue_o_padrao_do_starlette_com_debug_ligado_ou_desligado(cliente_500_por_debug, cabecalhos):
+    debug, c = cliente_500_por_debug
+    r = c.get(ROTA_COM_ERRO, headers=cabecalhos)
+    assert r.status_code == 500 and r.headers["content-type"].startswith("text/plain")
+    assert "Algo deu errado do nosso lado" not in r.text
+    if not debug:
+        assert r.text == "Internal Server Error"  # produção: nem traceback, nem arquivo, nem variável
