@@ -483,3 +483,9 @@ def test_destaque_das_avaliacoes_e_divisor_hoje():
     assert razao_contraste(texto_hoje, fundo_hoje) >= 4.5
     assert "border-top: 1px solid var(--cor-borda-campo);" in re.search(r"(?m)^\.hist-hoje\s*\{([^}]*)\}", CSS).group(1)
     assert razao_contraste(_variavel("cor-borda-campo"), fundo_hoje) >= 3
+
+
+# --- Páginas de erro (Semana 8) ------------------------------------------------------------------------
+
+def test_contato_da_pagina_de_erro_no_branco():
+    assert razao_contraste(_propriedade(".erro-contato", "color"), BRANCO) >= 4.5

@@ -1,12 +1,13 @@
 import logging
 
 from fastapi import FastAPI, Request
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
+from app.core.paginas_erro import ErroInesperado, tratar_http_exception, tratar_validacao_sem_formulario
 from app.core.templating import templates
 from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, meus_atendidos, webhooks
 from app.routers.auth import NaoAutenticado, erros_por_campo
@@ -16,6 +17,10 @@ if settings.DEBUG:
     logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+
+# Fica por dentro do ServerErrorMiddleware: com DEBUG=True o handler de Exception do Starlette seria ignorado
+app.add_middleware(ErroInesperado)
+app.add_exception_handler(StarletteHTTPException, tratar_http_exception)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -67,7 +72,7 @@ async def reexibir_formulario_com_erros(request: Request, exc: RequestValidation
     rota = request.scope.get("route")
     template = FORMULARIOS_POR_ROTA.get(getattr(rota, "path", None))
     if template is None or request.method != "POST":
-        return await request_validation_exception_handler(request, exc)
+        return await tratar_validacao_sem_formulario(request, exc)
 
     try:
         form = await request.form()

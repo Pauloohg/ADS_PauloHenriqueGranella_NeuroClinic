@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ erro.titulo }} — NeuroClinic{% endblock %}
+
+{% block main_class %}pagina-interna{% endblock %}
+
+{% block content %}
+<div class="container-wide py-4 py-lg-5">
+    <section class="cartao estado-vazio erro-cartao" aria-labelledby="erro-titulo">
+        <div class="icone-destaque mb-3"><i class="bi {{ erro.icone }}" aria-hidden="true"></i></div>
+        <h1 class="titulo-serifa h4" id="erro-titulo">{{ erro.titulo }}</h1>
+        <p class="text-muted erro-texto">{{ erro.texto }}</p>
+        {% if contato %}
+        <p class="erro-contato"><i class="bi bi-telephone me-1" aria-hidden="true"></i>{{ contato }}</p>
+        {% endif %}
+        <div class="erro-acoes">
+            {% if usuario %}
+            <a href="/" class="btn btn-primary"><i class="bi bi-house me-1" aria-hidden="true"></i>Voltar ao início</a>
+            {% else %}
+            <a href="/" class="btn btn-primary"><i class="bi bi-house me-1" aria-hidden="true"></i>Ir para a página inicial</a>
+            {% if mostrar_entrar %}
+            <a href="/login" class="btn btn-outline-primary"><i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>Entrar</a>
+            {% endif %}
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

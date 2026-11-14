@@ -5481,3 +5481,30 @@
     font-weight: 600;
     color: var(--bs-primary);
 }
+
+/* --- Páginas de erro (403, 404, 405, 422 e 500; Semana 8) ------------------------------------------- */
+
+.erro-cartao {
+    max-width: 36rem;
+    margin-inline: auto;
+}
+
+.erro-texto {
+    margin-inline: auto;
+    max-width: 30rem;
+}
+
+.erro-contato {
+    margin-inline: auto;
+    max-width: 30rem;
+    font-size: 0.95rem;
+    color: var(--cor-texto-escuro);
+}
+
+.erro-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
