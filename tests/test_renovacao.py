@@ -85,10 +85,25 @@ def _renovar(client, plano, **params):
     return client.get(f"/planos/{plano.id}/renovar", params=params)
 
 
-def _form_direto(html: str) -> tuple[str, list[tuple[str, str]]]:
-    form = re.search(r'<form method="post" action="([^"]+)" id="form-renovar-direto">(.*?)</form>', html, re.S)
+def _form_direto(html: str, form_id: str = "form-renovar-direto") -> tuple[str, list[tuple[str, str]]]:
+    form = re.search(rf'<form method="post" action="([^"]+)" id="{form_id}"[^>]*>(.*?)</form>', html, re.S)
     campos = re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', form.group(2))
     return form.group(1), campos
+
+
+def _agrupar(campos):
+    dados = {}
+    for nome, valor in campos:
+        dados.setdefault(nome, []).append(valor)
+    return dados
+
+
+def _confirmar_pela_revisao(client, html_renovacao):
+    action, campos = _form_direto(html_renovacao)
+    revisao = client.post(action, data=_agrupar(campos))
+    assert revisao.status_code == 200 and "Confira e confirme" in revisao.text
+    action, campos = _form_direto(revisao.text, "form-confirmar")
+    return client.post(action, data=_agrupar(campos), follow_redirects=False)
 
 
 def _snapshot(db, plano_id):
@@ -121,9 +136,9 @@ def test_so_plano_encerrado_pode_ser_renovado(client, db, pedro, carla, maria_lo
     plano = criar_plano(db, pedro, carla, sessoes, criado_em=criado_em)
     resposta = _renovar(client, plano)
 
-    assert resposta.status_code == 409
-    assert "A renovação fica disponível quando o plano for encerrado" in resposta.text
+    assert resposta.status_code == 404
     assert 'id="form-renovar-direto"' not in resposta.text
+    assert _renovar(client, plano, editar="1").status_code == 404
     assert db.query(Plano).count() == 1
 
 
@@ -134,34 +149,41 @@ def test_renovacao_abre_a_contratacao_pre_preenchida(client, db, pedro, carla, e
 
     assert resposta.status_code == 200
     html = _html(resposta)
-    assert "Renovar plano" in html and "Renovação do plano de Pedro Souza" in html
+    assert "Renovar plano" in html and "Continua igual" in html
     assert "Renovar com a mesma configuração" in html
-    # Formulário de ajuste com paciente, frequência, duração e horário do plano anterior
-    assert f'action="/contratar/{carla.usuario.id}"' in html
-    assert f'<input type="hidden" name="paciente_id" value="{pedro.id}">' in html  # único atendido
-    assert 'id="freq-1" value="1" autocomplete="off" checked' in html
-    assert 'id="duracao-mensal" value="mensal" autocomplete="off" checked' in html
-    assert re.search(r'value="0-14"[^>]*data-livre="1"[^>]*checked', html)
-    # Simulação já calculada no servidor: 5 segundas de agosto
-    nova = re.search(r'id="renovacao-nova">(.*?)</form>', html).group(1)
-    assert "Carla Fono" in nova and "03/08/2026 a 31/08/2026" in nova and "R$ 750,00" in nova
+    # Página curta: sem o formulário do passo 2 (grade, frequência e duração)
+    assert 'id="form-contratacao"' not in html and 'id="freq-1"' not in html and "data-livre" not in html
+    # Tabela Antes/Agora com a simulação calculada no servidor: 5 segundas de agosto
+    nova = re.search(r'id="renovacao-nova">(.*?)</section>', html).group(1)
+    assert "03/08/2026 a 31/08/2026" in nova and "R$ 712,50" in nova and "06/07/2026 a 27/07/2026" in nova
 
     action, campos = _form_direto(resposta.text)
-    assert action == f"/contratar/{carla.usuario.id}/confirmar"
+    assert action == f"/contratar/{carla.usuario.id}"  # o POST do resumo (passo 3), não a confirmação
     assert sorted(campos) == sorted([
         ("paciente_id", str(pedro.id)), ("frequencia_semanal", "1"), ("duracao", "mensal"),
         ("observacao", ""), ("celula", "0-14"),
     ])
 
+    # "Mudar dia, horário ou duração" abre o passo 2 já preenchido com a configuração anterior
+    assert f'href="/planos/{encerrado.id}/renovar?editar=1"' in html
+    passo2 = _html(_renovar(client, encerrado, editar="1"))
+    assert f'action="/contratar/{carla.usuario.id}"' in passo2 and 'id="form-contratacao"' in passo2
+    assert f'<input type="hidden" name="paciente_id" value="{pedro.id}">' in passo2  # único atendido
+    assert 'id="freq-1" value="1" autocomplete="off" checked' in passo2
+    assert 'id="duracao-mensal" value="mensal" autocomplete="off" checked' in passo2
+    assert re.search(r'value="0-14"[^>]*data-livre="1"[^>]*checked', passo2)
+
 
 def test_um_clique_renova_com_a_mesma_configuracao(client, db, pedro, carla, encerrado, maria_logada):
     antes = _snapshot(db, encerrado.id)
     action, campos = _form_direto(_renovar(client, encerrado).text)
-    dados = {}
-    for nome, valor in campos:
-        dados.setdefault(nome, []).append(valor)
 
-    resposta = client.post(action, data=dados, follow_redirects=False)
+    revisao = client.post(action, data=_agrupar(campos))
+    assert revisao.status_code == 200 and "Confira e confirme" in revisao.text and "Confirmar contratação" in revisao.text
+    assert db.query(Plano).count() == 1  # o botão da renovação não cria plano
+
+    action, campos = _form_direto(revisao.text, "form-confirmar")
+    resposta = client.post(action, data=_agrupar(campos), follow_redirects=False)
 
     novo = db.scalars(select(Plano).where(Plano.id != encerrado.id)).one()
     assert resposta.status_code == 303 and resposta.headers["location"] == f"/planos/{novo.id}"
@@ -179,8 +201,7 @@ def test_valor_recalculado_com_o_valor_atual_da_especialidade(client, db, fono, 
     # RN11: 5 x R$ 200 = R$ 1.000,00 cheio, 5% de desconto no mensal; R$ 600,00 é o total do plano anterior
     assert "R$ 1.000,00" in html and "R$ 950,00" in html and "R$ 600,00" in html
 
-    action, campos = _form_direto(_renovar(client, encerrado).text)
-    client.post(action, data={nome: valor for nome, valor in campos})
+    assert _confirmar_pela_revisao(client, _renovar(client, encerrado).text).status_code == 303
     novo = db.scalars(select(Plano).where(Plano.id != encerrado.id)).one()
     assert novo.valor_total == Decimal("950.00")
     assert db.get(Plano, encerrado.id).valor_total == Decimal("600.00")
@@ -220,9 +241,12 @@ def test_escolher_outro_profissional_mantem_a_configuracao(client, db, pedro, ca
     html = _html(resposta)
     assert resposta.status_code == 200
     assert "Renovar com a mesma configuração" in html and "Bruno Fono" in html
-    assert re.search(r'value="0-14"[^>]*data-livre="1"[^>]*checked', html)
-    action, _ = _form_direto(resposta.text)
-    assert action == f"/contratar/{bruno.usuario.id}/confirmar"
+    action, campos = _form_direto(resposta.text)
+    assert action == f"/contratar/{bruno.usuario.id}" and ("celula", "0-14") in campos
+    assert f'href="/planos/{encerrado.id}/renovar?profissional={bruno.usuario.id}&amp;editar=1"' in html
+    passo2 = _html(_renovar(client, encerrado, profissional=bruno.usuario.id, editar="1"))
+    assert f'action="/contratar/{bruno.usuario.id}"' in passo2
+    assert re.search(r'value="0-14"[^>]*data-livre="1"[^>]*checked', passo2)
 
 
 def test_sem_outro_profissional_mostra_caminho_alternativo(client, db, carla, encerrado, maria_logada):
@@ -247,10 +271,14 @@ def test_horario_ocupado_informa_e_pede_novo_horario(client, db, fono, carla, en
 
     html = _html(resposta)
     assert resposta.status_code == 200
+    assert '<p class="rev-conflito-titulo">Esse horário não está mais livre.</p>' in html
     assert "O horário do plano anterior (Segunda, às 14:00) não está mais livre com Carla Fono" in html
-    assert 'id="form-renovar-direto"' not in html
-    assert 'id="form-contratacao"' in html  # o fluxo continua: escolher outro horário
-    assert not re.search(r'name="celula"[^>]*checked', html)
+    assert 'id="form-renovar-direto"' not in html and 'id="renovacao-nova"' not in html and "R$" not in html
+    assert f'<a href="/planos/{encerrado.id}/renovar?editar=1" class="btn btn-primary" id="link-escolher-horario">' in html
+    assert "Escolher outro horário" in html
+    passo2 = _html(_renovar(client, encerrado, editar="1"))
+    assert 'id="form-contratacao"' in passo2  # o fluxo continua: escolher outro horário
+    assert not re.search(r'name="celula"[^>]*checked', passo2)
 
 
 def test_configuracao_antiga_fora_das_duracoes_atuais(client, db, carla, encerrado, maria_logada):
@@ -258,7 +286,8 @@ def test_configuracao_antiga_fora_das_duracoes_atuais(client, db, carla, encerra
     db.commit()
     html = _html(_renovar(client, encerrado))
     assert contratacao_service.MSG_CONFIGURACAO_ANTIGA in html
-    assert 'id="form-contratacao"' in html and 'id="form-renovar-direto"' not in html
+    assert 'id="form-renovar-direto"' not in html and 'id="link-escolher-horario"' in html
+    assert 'id="form-contratacao"' in _html(_renovar(client, encerrado, editar="1"))
 
 
 # --- Início do Cliente ---------------------------------------------------------------------------

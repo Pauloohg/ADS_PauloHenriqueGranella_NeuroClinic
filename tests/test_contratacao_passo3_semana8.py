@@ -110,7 +110,8 @@ def test_datas_em_details_aberto_com_o_feriado(client, db, carla, pedro):
 def test_prazo_pix_hoje_e_boleto_presente(client, db, carla, pedro):
     html = _revisao(client, carla, pedro)  # sexta 07/08: boleto vence no 2º dia útil antes, 05/08
     prazo = re.search(r'<div class="rev-prazo" role="note" id="aviso-prazo">.*?</div>', html).group(0)
-    assert "<li>Pix: pague até hoje, às 14:00 (4 horas).</li>" in prazo
+    assert "<li>Pix: pague até hoje, às 14:00.</li>" in prazo
+    assert "Você tem 4 horas para gerar a cobrança; sem ela, os horários voltam a ficar livres para outros atendidos." in prazo
     assert "<li>Boleto: vence em 05/08/2026.</li>" in prazo
     assert html.index('id="aviso-prazo"') < html.index("Confirmar contratação") < html.index("Voltar e editar")
 
@@ -118,7 +119,7 @@ def test_prazo_pix_hoje_e_boleto_presente(client, db, carla, pedro):
 def test_prazo_pix_amanha(client, db, carla, pedro, monkeypatch):
     _relogio(monkeypatch, datetime(2026, 8, 3, 22, 0))
     html = _revisao(client, carla, pedro, celulas=("4-14",))
-    assert "Pix: pague até amanhã, às 02:00 (4 horas)." in html
+    assert "<li>Pix: pague até amanhã, às 02:00.</li>" in html
 
 
 def test_boleto_ausente_mostra_a_explicacao_de_hoje(client, db, carla, pedro):

@@ -13,9 +13,8 @@ from app.models.pagamento import FormaPagamento
 from app.models.paciente import Paciente
 from app.models.plano import Plano
 from app.models.usuario import TipoUsuario, Usuario
-from app.services.contratacao_service import prazo_previsto
+from app.services.contratacao_service import texto_prazo_pagamento
 from app.services.inicio_service import AGUARDANDO_PAGAMENTO, ATIVO, ENCERRADO, ResumoPlano, planos_do_cliente
-from app.services.plano_service import prazo_pagamento
 from app.services.plano_service import condicao_plano_ativo
 
 POR_PAGINA = 20
@@ -121,11 +120,7 @@ def texto_resumo_do_cliente(atendidos: int, planos_ativos: int) -> str:
 def texto_prazo(
     criado_em_utc: datetime, data_primeira_sessao: date, forma: FormaPagamento | None, agora: datetime
 ) -> str:
-    if forma == FormaPagamento.BOLETO:
-        return prazo_pagamento(criado_em_utc, data_primeira_sessao, forma).strftime("%d/%m/%Y")
-    if forma is None:  # cobrança ainda não escolhida: o prazo é o do Pix, como no resumo da contratação
-        return prazo_previsto(criado_em_utc, data_primeira_sessao, agora).pix.strftime("%d/%m/%Y, %H:%M")
-    return prazo_pagamento(criado_em_utc, data_primeira_sessao, forma).strftime("%d/%m/%Y, %H:%M")
+    return texto_prazo_pagamento(criado_em_utc, data_primeira_sessao, forma, agora).neutro
 
 
 def _plano_do_cliente(resumo: ResumoPlano, agora: datetime) -> PlanoDoCliente:

@@ -39,10 +39,14 @@
 </dl>
 {% endmacro %}
 
-{% macro lista_datas(detalhe) %}
+{% macro lista_datas(detalhe, destaque=none) %}
 <ol class="lista-sessoes">
     {% for sessao in detalhe.sessoes %}
+    {% if destaque and sessao == destaque %}
+    <li class="plano-proxima" aria-current="date"><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span> <span class="plano-proxima-rotulo">próxima</span></li>
+    {% else %}
     <li><span class="font-monospace-num">{{ sessao | data_br }}</span> <span class="text-muted">{{ (sessao.weekday() | nome_dia)[:3] | lower }}<span class="d-none d-sm-inline"> · {{ sessao.strftime("%H:%M") }}</span></span></li>
+    {% endif %}
     {% endfor %}
 </ol>
 {% endmacro %}

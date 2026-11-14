@@ -245,8 +245,8 @@ def test_limpeza_do_pix_continua_com_60_minutos(db, carla, pedro, plano_boleto):
 def test_escolha_mostra_pix_em_4_horas_e_vencimento_do_boleto(client, plano, maria, api_falsa):
     logar(client, maria.email)
     html = _html(client.get(f"/planos/{plano.id}/pagamento"))
-    assert "Pague em até 4 horas" in html
-    assert 'value="boleto"' in html and "Vence em 06/08/2026. O horário fica reservado até o vencimento." in html
+    assert 'Pague até <strong class="pag-prazo">' in html and "4 horas" not in html
+    assert 'value="boleto"' in html and "Vence em 06/08/2026. Ao gerar o boleto, o horário fica reservado até o vencimento." in html
     assert "boleto não está disponível" not in html
     assert "Vence hoje" not in html and "3 dias úteis" not in html
     assert api_falsa.requisicoes == []
@@ -329,8 +329,8 @@ def test_pagina_do_boleto_mostra_vencimento(client, db, monkeypatch, plano, mari
 
     _fixar_relogio(monkeypatch, datetime(2026, 8, 5, 9, 0))  # depois das 4h, antes do vencimento
     html = _html(client.get(f"/planos/{plano.id}/cobranca"))
-    assert "Vence em 06/08/2026. O horário fica reservado até o vencimento." in html
-    assert "Prazo limite: <strong>06/08/2026 às 23:59</strong>" in html
+    assert "<strong>Vence em 06/08/2026.</strong> Depois de pagar, o banco pode levar até 1 dia útil para avisar" in html
+    assert "Vence em <strong>06/08/2026</strong> <span class=\"small\">O horário fica reservado até o vencimento.</span>" in html
     assert "Aguardando pagamento" in html and "Prazo de pagamento encerrado" not in html
     assert "Vence hoje" not in html and "3 dias úteis" not in html
 
@@ -351,13 +351,13 @@ def test_selos_pague_ate_usam_o_vencimento_do_boleto(client, db, monkeypatch, ca
     logar(client, maria.email)
 
     inicio = _html(client.get("/"))
-    assert "Pague até 06/08/2026 (vencimento do boleto)." in inicio
-    assert "Pague até 13:00 (restam 3h)." in inicio
+    assert "Pague até 06/08, às 23:59." in inicio
+    assert "Gere a cobrança até hoje, às 13:00 (restam 3h)." in inicio
     assert "Planos aguardando pagamento" in inicio and inicio.count(">Pagar agora<") == 2
 
     pagina = _html(client.get(f"/planos/{plano_boleto.id}"))
     assert "Pague até <strong>06/08, às 23:59</strong>" in pagina
-    assert _html(client.get(f"/planos/{pix.id}")).count("Pague até <strong>hoje, às 13:00</strong>") == 1
+    assert _html(client.get(f"/planos/{pix.id}")).count("Gere a cobrança até <strong>hoje, às 13:00</strong>") == 1
 
 
 def test_boleto_vencido_nao_aparece_como_proxima_sessao(client, db, monkeypatch, carla, pedro, maria):
@@ -458,6 +458,11 @@ def test_renovacao_com_primeira_data_nominal_em_feriado(client, db, monkeypatch,
     campos = re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', form.group(2))
     dados: dict[str, list[str]] = {}
     for nome, valor in campos:
+        dados.setdefault(nome, []).append(valor)
+    revisao = client.post(form.group(1), data=dados).text  # a renovação leva à revisão (passo 3)
+    form = re.search(r'<form method="post" action="([^"]+)" id="form-confirmar"[^>]*>(.*?)</form>', revisao, re.S)
+    dados = {}
+    for nome, valor in re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', form.group(2)):
         dados.setdefault(nome, []).append(valor)
     assert client.post(form.group(1), data=dados, follow_redirects=False).status_code == 303
 

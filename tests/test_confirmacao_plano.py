@@ -294,7 +294,8 @@ def test_pagina_do_plano_mostra_aguardando_pagamento_e_prazo(client, db, carla, 
     assert resposta.status_code == 200
     html = _html(resposta)
     for trecho in (
-        "Plano reservado", "Aguardando pagamento", "Pague até <strong>hoje, às 14:00</strong>", "Restam 4h.", "horário de Brasília",
+        "Plano reservado", "Aguardando pagamento", "Gere a cobrança até <strong>hoje, às 14:00</strong>", "Restam 4h.",
+        "Com Pix, o pagamento também vale até esse horário. Sem cobrança, os horários voltam a ficar livres",
         "R$ 750,00", "5 sessões", "03/08/2026 a 31/08/2026", "Carla Fono", "Pedro Souza", "Prefere tarde",
     ):
         assert trecho in html, trecho
@@ -307,7 +308,7 @@ def test_prazo_da_pagina_do_plano_e_mostrado_em_horario_local(client, db, monkey
     # 01:30 UTC de 04/08 = 22:30 local de 03/08; o prazo vence às 02:30 local de 04/08
     _fixar_relogio(monkeypatch, datetime(2026, 8, 3, 22, 30), datetime(2026, 8, 4, 1, 30, tzinfo=timezone.utc))
     html = _html(client.post(_url(carla), data=_form(pedro)))
-    assert "Pague até <strong>amanhã, às 02:30</strong>" in html and "Restam 4h." in html
+    assert "Gere a cobrança até <strong>amanhã, às 02:30</strong>" in html and "Restam 4h." in html
 
 
 def test_pagina_de_plano_de_outro_cliente_retorna_404(client, db, carla, pedro, maria):

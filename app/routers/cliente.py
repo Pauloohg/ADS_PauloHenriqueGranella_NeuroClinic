@@ -13,7 +13,7 @@ from app.core.config import (
     INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
     PRAZO_PAGAMENTO_HORAS,
 )
-from app.core.ids import inteiro_positivo, ler_inteiro
+from app.core.ids import inteiro_positivo, ler_inteiro, ler_opcao
 from app.core.templating import moeda, templates, titulo_do_resumo_de_erros
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
@@ -45,6 +45,8 @@ TEMPLATE_RESUMO = "cliente/contratar_resumo.html"
 TEMPLATE_PLANO = "cliente/plano.html"
 TEMPLATE_PAGAMENTO = "cliente/pagamento.html"
 TEMPLATE_COBRANCA = "cliente/cobranca.html"
+TEMPLATE_RENOVAR = "cliente/renovar.html"
+MODO_EDITAR = "1"
 
 DURACAO_PADRAO = "mensal"
 MSG_REVISE = "Revise os campos destacados antes de continuar."
@@ -256,16 +258,19 @@ def _duracao_ou_padrao(duracao: str | None) -> str:
 
 
 def _tela_contratacao(
-    request, usuario, db, profissional, dados, erros=None, conflitos=(), erro=None, status_code=200, renovacao=None
+    request, usuario, db, profissional, dados, erros=None, conflitos=(), erro=None, status_code=200, renovacao=None,
+    url_renovacao=None,
 ):
     duracao = _duracao_ou_padrao(dados.get("duracao"))
     contexto = {
         "renovacao": renovacao,
+        "url_renovacao": url_renovacao,
         "prazo_horas": PRAZO_PAGAMENTO_HORAS,
         "usuario": usuario,
         "profissional": profissional,
         "perfil_profissional": funcionario_service.perfil_publico(profissional.usuario, profissional.funcionario),
-        "pacientes": paciente_service.listar_do_cliente(db, usuario.id),
+        # Renovação: o atendido é o do plano anterior, fixo; o POST ainda confere o dono pelo paciente_id
+        "pacientes": [renovacao.paciente] if renovacao else paciente_service.listar_do_cliente(db, usuario.id),
         "pedir_cpf": cliente_service.obter_cliente(db, usuario).cpf is None,
         "livres": plano_service.disponibilidade_semanal(db, profissional.usuario.id, duracao, agora_local()),
         "dias_uteis": DIAS_UTEIS,
@@ -404,13 +409,13 @@ def contratar_resumo(
         )
     parametros = [(campo, dados[campo]) for campo in ("paciente_id", "frequencia_semanal", "duracao", "observacao")]
     parametros += [("celula", c) for c in celula]
-    prazo = contratacao_service.prazo_previsto(agora_utc().replace(tzinfo=None), resumo.simulacao.data_inicio, agora)
     contexto = {
         **_contexto_revisao(funcionario_id, resumo, parametros),
         "usuario": usuario,
         "campos_confirmacao": parametros,
-        "prazo": prazo,
-        "pix_ate": contratacao_service.texto_dia_hora(prazo.pix, agora),
+        "prazo": contratacao_service.texto_prazo_pagamento(
+            agora_utc().replace(tzinfo=None), resumo.simulacao.data_inicio, None, agora
+        ),
     }
     return templates.TemplateResponse(request, TEMPLATE_RESUMO, contexto)
 
@@ -480,8 +485,10 @@ def _tela_plano(request, usuario, detalhe, erro=None, status_code=200, db=None):
         "usuario": usuario, "detalhe": detalhe, "erro": erro, "pagamento": pagamento,
         "rotulos_forma": pagamento_service.ROTULOS_FORMA,
         "confirmado_em": pagamento_service.data_confirmacao_local(pagamento),
-        "pague_ate": contratacao_service.texto_dia_hora(detalhe.prazo_pagamento, agora),
-        "restam": contratacao_service.tempo_restante(detalhe.prazo_pagamento, agora),
+        "prazo": contratacao_service.texto_prazo_pagamento(
+            detalhe.plano.criado_em, detalhe.plano.data_inicio, pagamento.forma_pagamento if pagamento else None, agora
+        ),
+        "proxima": contratacao_service.texto_sessao(detalhe.proxima) if detalhe.proxima else None,
     }
     return templates.TemplateResponse(request, TEMPLATE_PLANO, contexto, status_code=status_code)
 
@@ -501,25 +508,37 @@ def ver_plano(request: Request, plano_id: int, usuario: Usuario = Depends(soment
 @router.get("/planos/{plano_id}/renovar")
 def renovar_plano(
     request: Request,
-    plano_id: int,
+    plano_id: str,
     profissional: str = "",
+    editar: str = "",
     usuario: Usuario = Depends(somente_cliente),
     db: Session = Depends(get_db),
 ):
-    agora = agora_local()
+    numero = inteiro_positivo(plano_id)
+    if numero is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.")
     escolhido = ler_inteiro(profissional)
+    agora = agora_local()
     try:
-        renovacao = contratacao_service.preparar_renovacao(db, usuario.id, plano_id, agora, escolhido)
-    except contratacao_service.PlanoNaoEncontrado:
+        renovacao = contratacao_service.preparar_renovacao(db, usuario.id, numero, agora, escolhido)
+    except (contratacao_service.PlanoNaoEncontrado, contratacao_service.RenovacaoIndisponivel):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
-    except contratacao_service.RenovacaoIndisponivel as exc:
-        detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
-        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_409_CONFLICT, db)
 
-    if renovacao.profissional is None:
-        contexto = {"usuario": usuario, "renovacao": renovacao, "dados": renovacao.dados, "erros": {}}
-        return templates.TemplateResponse(request, TEMPLATE_CONTRATAR, contexto)
-    return _tela_contratacao(request, usuario, db, renovacao.profissional, renovacao.dados, renovacao=renovacao)
+    url_renovacao = f"/planos/{numero}/renovar" + (f"?profissional={escolhido}" if escolhido is not None else "")
+    parametros = ([("profissional", escolhido)] if escolhido is not None else []) + [("editar", MODO_EDITAR)]
+    if ler_opcao(editar, (MODO_EDITAR,), "") == MODO_EDITAR and renovacao.profissional is not None:
+        return _tela_contratacao(
+            request, usuario, db, renovacao.profissional, renovacao.dados, renovacao=renovacao,
+            url_renovacao=url_renovacao,
+        )
+    contexto = {
+        "usuario": usuario, "renovacao": renovacao, "prazo_horas": PRAZO_PAGAMENTO_HORAS,
+        "url_editar": f"/planos/{numero}/renovar?" + urlencode(parametros),
+        "prazo": contratacao_service.texto_prazo_pagamento(
+            agora_utc().replace(tzinfo=None), renovacao.simulacao.data_inicio, None, agora
+        ) if renovacao.simulacao else None,
+    }
+    return templates.TemplateResponse(request, TEMPLATE_RENOVAR, contexto)
 
 
 # --- RF06: pagamento do plano --------------------------------------------------------------------
@@ -527,9 +546,7 @@ def renovar_plano(
 def _tela_escolha_pagamento(request, usuario, detalhe, agora, erro=None, forma="", status_code=200):
     contexto = {
         "usuario": usuario, "detalhe": detalhe, "erro": erro, "dados": {"forma": forma}, "erros": {},
-        "prazo_horas": PRAZO_PAGAMENTO_HORAS,
-        "vencimento_boleto": pagamento_service.boleto_oferecido(detalhe.plano, agora),
-        "pix_ate": contratacao_service.texto_dia_hora(detalhe.prazo_pagamento, agora),
+        "prazo": contratacao_service.texto_prazo_pagamento(detalhe.plano.criado_em, detalhe.plano.data_inicio, None, agora),
     }
     return templates.TemplateResponse(request, TEMPLATE_PAGAMENTO, contexto, status_code=status_code)
 
@@ -602,5 +619,8 @@ def ver_cobranca(
         "usuario": usuario, "detalhe": detalhe, "tela": tela, "rotulos_forma": pagamento_service.ROTULOS_FORMA,
         "confirmado_em": pagamento_service.data_confirmacao_local(tela.pagamento),
         "intervalo_atualizacao": INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
+        "prazo": contratacao_service.texto_prazo_pagamento(
+            tela.plano.criado_em, tela.plano.data_inicio, tela.pagamento.forma_pagamento, agora
+        ),
     }
     return templates.TemplateResponse(request, TEMPLATE_COBRANCA, contexto)

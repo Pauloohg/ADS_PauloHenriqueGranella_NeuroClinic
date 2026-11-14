@@ -4901,3 +4901,216 @@
 .pag-prazo {
     color: var(--cor-texto-escuro);
 }
+
+
+/* --- Cobrança por Pix e por boleto: refinamento da Semana 8 (RF06) ------------------------------------- */
+
+.cob-pix {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.cob-passos {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: cob-passo;
+    color: var(--cor-texto-escuro);
+}
+
+.cob-passos li {
+    counter-increment: cob-passo;
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: baseline;
+    margin-bottom: 0.85rem;
+}
+
+.cob-passos li::before {
+    content: counter(cob-passo);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.cob-teste {
+    margin: 1.25rem 0 0;
+    padding: 0.5rem 0.85rem;
+    border: 1px dashed var(--cor-borda-campo);
+    border-radius: 8px;
+    background-color: #fff;
+    color: var(--cor-aviso-salvia-texto);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 575.98px) {
+    .cob-pix {
+        grid-template-columns: 1fr;
+    }
+
+    .cob-pix .cobranca-qrcode {
+        margin: 0 auto;
+    }
+}
+
+
+/* --- Plano pago e plano encerrado: refinamento da Semana 8 (RF05, RF06) ------------------------------- */
+
+.plano-pago {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    border-left: 5px solid var(--bs-primary);
+    background-color: var(--cor-aviso-salvia-fundo);
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.plano-encerrado {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    border-left: 5px solid var(--cor-borda-campo);
+    background-color: var(--cor-fundo-creme-escuro);
+    color: var(--cor-texto-escuro);
+}
+
+.plano-bloco-titulo {
+    margin: 0 0 0.2rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.plano-proxima {
+    font-weight: 700;
+    color: var(--bs-primary);
+}
+
+.plano-proxima-rotulo {
+    display: inline-block;
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    background-color: var(--cor-aviso-salvia-fundo);
+    color: var(--cor-aviso-salvia-texto);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+    .plano-encerrado .btn {
+        width: 100%;
+    }
+}
+
+
+/* --- Renovar plano: refinamento da Semana 8 (RF05 / HU07) ------------------------------------------------ */
+
+.renov-comparacao {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--cor-texto-escuro);
+}
+
+.renov-comparacao th,
+.renov-comparacao td {
+    padding: 0.6rem 0.75rem 0.6rem 0;
+    border-top: 1px solid var(--cor-fundo-creme-escuro);
+    text-align: left;
+    vertical-align: baseline;
+}
+
+.renov-comparacao thead th {
+    border-top: 0;
+    color: var(--cor-aviso-salvia-texto);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.renov-comparacao tbody th {
+    width: 32%;
+    font-weight: 600;
+}
+
+.renov-total-novo {
+    display: block;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--bs-primary);
+}
+
+.renov-desconto {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--cor-aviso-salvia-texto);
+    font-size: 0.85rem;
+}
+
+.renov-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.renov-mudar {
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    .renov-comparacao thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .renov-comparacao tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.15rem 1rem;
+        padding: 0.6rem 0;
+        border-top: 1px solid var(--cor-fundo-creme-escuro);
+    }
+
+    .renov-comparacao th,
+    .renov-comparacao td {
+        padding: 0;
+        border-top: 0;
+    }
+
+    .renov-comparacao tbody th {
+        grid-column: 1 / -1;
+        width: auto;
+    }
+
+    .renov-comparacao td::before {
+        content: attr(data-rotulo) ": ";
+        display: block;
+        color: var(--cor-aviso-salvia-texto);
+        font-size: 0.8rem;
+        font-weight: 400;
+    }
+
+    .renov-acoes .btn,
+    .renov-acoes form {
+        width: 100%;
+    }
+}

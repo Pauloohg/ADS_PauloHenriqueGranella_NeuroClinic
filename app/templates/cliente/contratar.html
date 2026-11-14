@@ -15,19 +15,16 @@
 {% if tem_contexto %}<script src="{{ url_estatico('js/contratar.js') }}" defer></script>{% endif %}
 {% endblock %}
 {% block voltar %}
-{% if em_renovacao %}{{ voltar("/", "Início") }}{% elif tem_contexto %}{{ voltar("/especialidades/" ~ profissional.especialidade.id ~ "/profissionais", profissional.especialidade.nome) }}{% else %}{{ voltar("/especialidades", "Especialidades") }}{% endif %}
+{% if em_renovacao %}{{ voltar(url_renovacao, "Renovar plano") }}{% elif tem_contexto %}{{ voltar("/especialidades/" ~ profissional.especialidade.id ~ "/profissionais", profissional.especialidade.nome) }}{% else %}{{ voltar("/especialidades", "Especialidades") }}{% endif %}
 {% endblock %}
 {% block titulo_pagina %}{{ "Renovar plano" if em_renovacao else "Contratar plano" }}{% endblock %}
-{% block subtitulo_pagina %}{% if em_renovacao and not tem_contexto %}{{ renovacao.paciente.nome }} · {{ renovacao.especialidade.nome }}{% elif tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
+{% block subtitulo_pagina %}{% if tem_contexto %}Com {{ profissional.usuario.nome }} · {{ profissional.especialidade.nome }} · <span class="font-monospace-num">{{ profissional.especialidade.valor_sessao | moeda }}</span> por sessão{% endif %}{% endblock %}
 
 {% block conteudo %}
 {{ etapas(2 if tem_contexto else 1) }}
-{% if em_renovacao %}{% include "cliente/_renovacao.html" %}{% endif %}
 {% if not tem_contexto %}
-{% if not em_renovacao %}
 {{ alertas(erro=erro) }}
 <a href="/especialidades" class="btn btn-outline-primary">Ver especialidades</a>
-{% endif %}
 
 {% elif not lista_pacientes %}
 <section class="cartao estado-vazio">

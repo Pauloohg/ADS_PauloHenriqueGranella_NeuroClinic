@@ -216,6 +216,10 @@ def test_renovacao_recalcula_o_desconto_com_a_tabela_atual(client, db, monkeypat
 
     form = re.search(r'<form method="post" action="([^"]+)" id="form-renovar-direto">(.*?)</form>', html, re.S)
     campos = re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', form.group(2))
+    revisao = client.post(form.group(1), data={nome: valor for nome, valor in campos})
+    assert db.query(Plano).count() == 1 and "Desconto de 12%" in revisao.text  # a renovação leva à revisão
+    form = re.search(r'<form method="post" action="([^"]+)" id="form-confirmar"[^>]*>(.*?)</form>', revisao.text, re.S)
+    campos = re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">', form.group(2))
     client.post(form.group(1), data={nome: valor for nome, valor in campos})
 
     novo = db.scalars(select(Plano).where(Plano.id != encerrado.id)).one()

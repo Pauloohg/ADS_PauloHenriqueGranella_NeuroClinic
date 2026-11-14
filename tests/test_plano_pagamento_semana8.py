@@ -62,7 +62,8 @@ def test_plano_reservado_com_faixa_restam_e_pagar_agora(client, db, carla, pedro
     plano = _reservado(db, pedro, carla)
     html = _html(client.get(f"/planos/{plano.id}"))
     faixa = re.search(r'<section class="plano-urgente".*?</section>', html).group(0)
-    assert '<p class="plano-urgente-titulo" id="titulo-prazo">Pague até <strong>hoje, às 14:00</strong></p>' in faixa
+    assert '<p class="plano-urgente-titulo" id="titulo-prazo">Gere a cobrança até <strong>hoje, às 14:00</strong></p>' in faixa
+    assert "com boleto, a reserva se estende até o vencimento (06/08/2026)" in faixa
     assert "Restam 3h 40min." in faixa
     assert f'<a href="/planos/{plano.id}/pagamento" class="btn btn-primary">' in faixa and "Pagar agora" in faixa
     assert html.index('class="plano-urgente"') < html.index('class="lista-dados plano-dados"')
@@ -86,13 +87,14 @@ def test_forma_de_pagamento_com_pix_e_boleto(client, db, carla, pedro):
     html = _html(client.get(f"/planos/{plano.id}/pagamento"))
     assert "Como você quer pagar?</h1>" in html
     pix = re.search(r'<label class="opcao-pagamento" for="forma-pix">.*?</label>', html).group(0)
-    assert 'Pague em até 4 horas, até <strong class="pag-prazo">hoje, às 14:00</strong>' in pix
+    assert 'Pague até <strong class="pag-prazo">hoje, às 14:00</strong>. QR Code' in pix and "4 horas" not in pix
     boleto = re.search(r'<label class="opcao-pagamento" for="forma-boleto">.*?</label>', html).group(0)
-    assert "Vence em 06/08/2026. O horário fica reservado até o vencimento." in boleto
+    assert "Vence em 06/08/2026. Ao gerar o boleto, o horário fica reservado até o vencimento." in boleto
     assert 'name="forma" id="forma-pix" value="pix"' in html and 'name="forma" id="forma-boleto" value="boleto"' in html
     assert ">Gerar cobrança</button>" in html and "boleto-indisponivel" not in html
     valor = re.search(r'<aside class="cartao resumo-plano".*?</aside>', html).group(0)
-    assert "R$ 600,00" in valor and "Escolha a forma de pagamento até <strong>hoje, às 14:00</strong>" in valor
+    assert "R$ 600,00" in valor and "A reserva vale até <strong>hoje, às 14:00</strong>" in valor
+    assert "Se não gerar a cobrança até lá, os horários voltam a ficar livres." in valor
 
 
 def test_forma_de_pagamento_sem_boleto(client, db, carla, pedro):

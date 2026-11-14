@@ -27,7 +27,7 @@
             <p class="cli-plano-config">{{ p.configuracao }}</p>
             <p class="cli-plano-suave"><span class="font-monospace-num">{{ plano.data_inicio | data_br }}</span> a <span class="font-monospace-num">{{ plano.data_fim | data_br }}</span></p>
             {% if p.prazo_texto %}
-            <p class="cli-plano-prazo">Pagar até <span class="font-monospace-num">{{ p.prazo_texto }}</span></p>
+            <p class="cli-plano-prazo">{{ p.prazo_texto }}</p>
             {% else %}
             <p class="cli-plano-suave" id="progresso-{{ plano.id }}">{{ p.realizadas }} de {{ p.total_sessoes }} {{ "consulta realizada" if p.total_sessoes == 1 else "consultas realizadas" }}</p>
             <div class="progress meus-plano-barra cli-plano-barra" role="progressbar" aria-labelledby="progresso-{{ plano.id }}"

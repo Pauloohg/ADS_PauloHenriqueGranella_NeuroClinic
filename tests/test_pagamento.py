@@ -380,9 +380,9 @@ def test_tela_do_pix_tem_qr_code_copia_e_cola_e_atualizacao(client, plano, maria
     assert resposta.status_code == 200
     assert f'src="{QR_CODE_BASE64}"' in html
     assert _codigo(html, "pix-copia-cola") == BR_CODE and "<textarea" not in html
-    assert "Clique no código para selecioná-lo e copie." in html
+    assert "Toque no código para selecioná-lo e copie." in html
     assert '<meta http-equiv="refresh" content="15">' in html
-    for trecho in ("R$ 750,00", "Prazo limite", "01/08/2026 às 13:00", "horário de Brasília", "Aguardando pagamento"):
+    for trecho in ("R$ 750,00", "Pague até <strong>hoje, às 13:00</strong>", "Restam 3h.", "Horário de Brasília", "Aguardando pagamento"):
         assert trecho in html, trecho
     assert "Copiar" not in html and "<script" not in resposta.text.split("<main", 1)[1].split("</main>", 1)[0]
 

@@ -1,25 +1,22 @@
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 
 from sqlalchemy import case, exists, func, select
 from sqlalchemy.orm import Session
 
-from app.core.templating import NOMES_DIAS, NOMES_MESES, juntar_nomes, tempo_curto
+from app.core.templating import NOMES_DIAS, NOMES_MESES, juntar_nomes
 from app.models.paciente import Paciente
-from app.models.pagamento import FormaPagamento, Pagamento
+from app.models.pagamento import Pagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.services.admin_clientes_service import calcular_idade
 from app.services import inicio_service, plano_service
-from app.services.contratacao_service import prazo_previsto
+from app.services.contratacao_service import prazo_previsto, texto_prazo_pagamento
 from app.services.inicio_service import (
     AGUARDANDO_PAGAMENTO, ATIVO, ENCERRADO, PrimeirosPassos, ProximaSessao, ResumoPlano, situacao_plano,
 )
 from app.services.remarcacao_service import motivo_bloqueio
-
-LIMITE_PRAZO_COM_HORA = timedelta(hours=24)
-
 
 @dataclass(frozen=True)
 class PagamentoPendente:
@@ -55,13 +52,8 @@ def prazo_do_plano(resumo: ResumoPlano, agora: datetime) -> datetime:
     return plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, resumo.forma)
 
 
-def texto_prazo(prazo: datetime, boleto: bool, agora: datetime) -> str:
-    restante = max(prazo - agora, timedelta(0))
-    if restante < LIMITE_PRAZO_COM_HORA:
-        dias = (prazo.date() - agora.date()).days
-        dia = "" if dias <= 0 else "amanhã, " if dias == 1 else f"{prazo:%d/%m/%Y}, "
-        return f"Pague até {dia}{prazo:%H:%M} (restam {tempo_curto(restante)})"
-    return f"Pague até {prazo:%d/%m/%Y}" + (" (vencimento do boleto)" if boleto else "")
+def texto_prazo(resumo: ResumoPlano, agora: datetime) -> str:
+    return texto_prazo_pagamento(resumo.plano.criado_em, resumo.plano.data_inicio, resumo.forma, agora).linha
 
 
 def quando_em_dias(data_hora: datetime, agora: datetime) -> str:
@@ -89,7 +81,7 @@ def pagamentos_pendentes(planos: list[ResumoPlano], agora: datetime) -> list[Pag
         if resumo.situacao != AGUARDANDO_PAGAMENTO:
             continue
         prazo = prazo_do_plano(resumo, agora)
-        lista.append(PagamentoPendente(resumo, prazo, texto_prazo(prazo, resumo.forma == FormaPagamento.BOLETO, agora)))
+        lista.append(PagamentoPendente(resumo, prazo, texto_prazo(resumo, agora)))
     return sorted(lista, key=lambda p: (p.prazo, p.resumo.plano.id))
 
 

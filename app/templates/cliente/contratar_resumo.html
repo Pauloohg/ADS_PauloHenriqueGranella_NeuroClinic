@@ -78,14 +78,14 @@
             <div class="rev-prazo" role="note" id="aviso-prazo">
                 <p class="rev-prazo-titulo">Depois de confirmar, é preciso pagar dentro do prazo.</p>
                 <ul>
-                    <li>Pix: pague até {{ pix_ate }} ({{ prazo_horas }} horas).</li>
+                    <li>Pix: pague até {{ prazo.quando }}.</li>
                     {% if prazo.vencimento_boleto %}
                     <li>Boleto: vence em {{ prazo.vencimento_boleto | data_br }}.</li>
                     {% else %}
                     <li>Boleto: indisponível para este plano, porque não haveria tempo de compensar antes da primeira sessão.</li>
                     {% endif %}
                 </ul>
-                <p class="mb-0">Sem o pagamento no prazo, os horários voltam a ficar livres para outros atendidos.</p>
+                <p class="mb-0" id="frase-prazo">Você tem {{ prazo_horas }} horas para gerar a cobrança; sem ela, os horários voltam a ficar livres para outros atendidos.</p>
             </div>
             <form method="post" action="{{ url_confirmar }}" id="form-confirmar" class="mt-3">
                 {% for nome, valor in campos_confirmacao %}

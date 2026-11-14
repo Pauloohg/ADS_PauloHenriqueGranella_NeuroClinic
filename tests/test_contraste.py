@@ -414,3 +414,30 @@ def test_faixa_do_plano_reservado():
 @pytest.mark.parametrize("seletor", [".plano-cab-quem", ".pag-prazo"])
 def test_cabecalho_e_prazo_no_branco(seletor):
     assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+# --- Cobrança, plano pago/encerrado e renovação (refinamento da Semana 8) ---------------------------------
+
+@pytest.mark.parametrize("seletor", [".plano-pago", ".plano-encerrado", ".cob-teste", ".plano-proxima-rotulo"])
+def test_blocos_do_plano_e_da_cobranca_tem_contraste_de_4_5(seletor):
+    fundo, texto = _cores_da_regra(seletor)
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_tracejado_do_ambiente_de_testes_se_distingue_do_cartao():
+    corpo = re.search(r"(?m)^\.cob-teste\s*\{([^}]*)\}", CSS).group(1)
+    borda = re.search(r"border:\s*\d+px dashed (var\(--[\w-]+\)|#[0-9A-Fa-f]{6});", corpo).group(1)
+    assert razao_contraste(_cor(borda), BRANCO) >= 3
+
+
+def test_bordas_dos_blocos_verde_e_cinza_se_distinguem_do_fundo():
+    for seletor in (".plano-pago", ".plano-encerrado"):
+        corpo = re.search(rf"(?m)^{re.escape(seletor)}\s*\{{([^}}]*)\}}", CSS).group(1)
+        borda = re.search(r"border-left:\s*\d+px solid (var\(--[\w-]+\));", corpo).group(1)
+        fundo = re.search(r"background-color:\s*([^;]+);", corpo).group(1)
+        assert razao_contraste(_cor(borda), _cor(fundo)) >= 3, seletor
+
+
+@pytest.mark.parametrize("seletor", [".plano-proxima", ".renov-total-novo", ".renov-desconto", ".renov-comparacao thead th"])
+def test_textos_do_plano_e_da_renovacao_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5

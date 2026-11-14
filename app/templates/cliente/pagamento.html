@@ -22,17 +22,17 @@
                     <input type="radio" class="btn-check" name="forma" id="forma-pix" value="pix" autocomplete="off" required {% if forma != "boleto" %}checked{% endif %}>
                     <label class="opcao-pagamento" for="forma-pix">
                         <i class="bi bi-qr-code" aria-hidden="true"></i>
-                        <span><strong>Pix</strong><span class="d-block small text-muted">Pague em até {{ prazo_horas }} horas, até <strong class="pag-prazo">{{ pix_ate }}</strong>. QR Code ou copia e cola; a confirmação costuma chegar em segundos.</span></span>
+                        <span><strong>Pix</strong><span class="d-block small text-muted">Pague até <strong class="pag-prazo">{{ prazo.quando }}</strong>. QR Code ou copia e cola; a confirmação costuma chegar em segundos.</span></span>
                     </label>
-                    {% if vencimento_boleto %}
+                    {% if prazo.vencimento_boleto %}
                     <input type="radio" class="btn-check" name="forma" id="forma-boleto" value="boleto" autocomplete="off" {% if forma == "boleto" %}checked{% endif %}>
                     <label class="opcao-pagamento" for="forma-boleto">
                         <i class="bi bi-upc" aria-hidden="true"></i>
-                        <span><strong>Boleto</strong><span class="d-block small text-muted">Vence em {{ vencimento_boleto | data_br }}. O horário fica reservado até o vencimento.</span></span>
+                        <span><strong>Boleto</strong><span class="d-block small text-muted">{{ prazo.vencimento }}. Ao gerar o boleto, o horário fica reservado até o vencimento.</span></span>
                     </label>
                     {% endif %}
                 </div>
-                {% if not vencimento_boleto %}
+                {% if not prazo.vencimento_boleto %}
                 <p class="small text-muted mt-3 mb-0" id="boleto-indisponivel"><i class="bi bi-info-circle me-1"></i>O boleto não está disponível para este plano porque a primeira sessão é muito próxima.</p>
                 {% endif %}
             </fieldset>
@@ -52,9 +52,8 @@
                 <dt class="resumo-total-rotulo">Valor total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
             <div class="prazo-pagamento" role="note">
-                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Escolha a forma de pagamento até
-                <strong>{{ pix_ate }}</strong>
-                <span class="small">(horário de Brasília).</span>
+                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>A reserva vale até <strong>{{ prazo.quando }}</strong>
+                (horário de Brasília). <span class="small">Se não gerar a cobrança até lá, os horários voltam a ficar livres.</span>
             </div>
         </aside>
     </div>

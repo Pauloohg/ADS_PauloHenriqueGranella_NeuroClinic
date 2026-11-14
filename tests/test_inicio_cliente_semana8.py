@@ -9,7 +9,7 @@ from app.models.pagamento import FormaPagamento, Pagamento, StatusPagamento
 from app.models.sessao import Sessao, StatusSessao
 from app.routers import inicio as inicio_router
 from app.services import inicio_cliente_service as servico
-from app.services import inicio_service
+from app.services import contratacao_service, inicio_service
 from tests.fabricas import criar_cliente, criar_especialidade, criar_funcionario, criar_paciente, criar_plano, logar
 
 AGENDADA = StatusSessao.AGENDADA
@@ -64,17 +64,36 @@ def _resumo(criado_em, data_inicio, forma=None, situacao=inicio_service.AGUARDAN
 
 # --- Funções puras -----------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("prazo, boleto, agora, esperado", [
-    (datetime(2026, 11, 10, 14, 0), False, AGORA, "Pague até 14:00 (restam 3h 40min)"),
-    (datetime(2026, 11, 10, 14, 0), False, datetime(2026, 11, 10, 13, 59), "Pague até 14:00 (restam 1min)"),
-    (datetime(2026, 11, 11, 1, 0), False, datetime(2026, 11, 10, 22, 0), "Pague até amanhã, 01:00 (restam 3h)"),
-    (datetime(2026, 11, 12, 23, 59, 59), True, AGORA, "Pague até 12/11/2026 (vencimento do boleto)"),
-    (datetime(2026, 11, 10, 23, 59, 59), True, AGORA, "Pague até 23:59 (restam 13h 39min)"),  # boleto vencendo hoje
-    (datetime(2026, 11, 11, 10, 20), True, AGORA, "Pague até 11/11/2026 (vencimento do boleto)"),  # exatamente 24h: só a data
-    (datetime(2026, 11, 11, 10, 19), True, AGORA, "Pague até amanhã, 10:19 (restam 23h 59min)"),
+CRIADO_21H = datetime(2026, 11, 11, 0, 0)  # UTC = 21:00 local de 10/11: o Pix vence à 01:00 de 11/11
+FIM_DO_DIA_10_11 = datetime(2026, 11, 10, 23, 59, 59)
+
+
+# Mesmos 7 cenários de antes (hoje, 1min, amanhã, boleto além de 24h, vencendo hoje, exatamente 24h e logo abaixo),
+# agora com o estado do plano e os três textos: o do Cliente, o do vencimento e o neutro do Admin
+@pytest.mark.parametrize("criado_em, inicio, forma, agora, cliente, vencimento, neutro", [
+    pytest.param(CRIADO_10H, date(2026, 11, 23), FormaPagamento.PIX, AGORA,
+                 "Pague até hoje, às 14:00 (restam 3h 40min)", None, "Pix até hoje, às 14:00", id="pix-hoje"),
+    pytest.param(CRIADO_10H, date(2026, 11, 23), None, datetime(2026, 11, 10, 13, 59),
+                 "Gere a cobrança até hoje, às 14:00 (restam 1min)", "Vence em 13/11/2026",
+                 "Reserva até hoje, às 14:00 (sem cobrança gerada)", id="sem-cobranca-1min"),
+    pytest.param(CRIADO_21H, date(2026, 11, 23), None, datetime(2026, 11, 10, 22, 0),
+                 "Gere a cobrança até amanhã, às 01:00 (restam 3h)", "Vence em 13/11/2026",
+                 "Reserva até amanhã, às 01:00 (sem cobrança gerada)", id="sem-cobranca-amanha"),
+    pytest.param(CRIADO_10H, date(2026, 11, 16), FormaPagamento.BOLETO, AGORA,  # 2º dia útil antes de 16/11 = 12/11
+                 "Pague até 12/11, às 23:59", "Vence em 12/11/2026", "Boleto vence em 12/11/2026", id="boleto-data"),
+    pytest.param(CRIADO_10H, date(2026, 11, 12), FormaPagamento.BOLETO, AGORA,  # vence hoje
+                 "Pague até hoje, às 23:59 (restam 13h 39min)", "Vence em 10/11/2026", "Boleto vence em 10/11/2026",
+                 id="boleto-vence-hoje"),
+    pytest.param(CRIADO_10H, date(2026, 11, 13), FormaPagamento.BOLETO, FIM_DO_DIA_10_11,  # exatamente 24h: sem "restam"
+                 "Pague até amanhã, às 23:59", "Vence em 11/11/2026", "Boleto vence em 11/11/2026", id="boleto-24h"),
+    pytest.param(CRIADO_10H, date(2026, 11, 13), FormaPagamento.BOLETO, datetime(2026, 11, 11, 0, 0),
+                 "Pague até hoje, às 23:59 (restam 23h 59min)", "Vence em 11/11/2026", "Boleto vence em 11/11/2026",
+                 id="boleto-menos-de-24h"),
 ])
-def test_texto_do_prazo(prazo, boleto, agora, esperado):
-    assert servico.texto_prazo(prazo, boleto, agora) == esperado
+def test_texto_do_prazo(criado_em, inicio, forma, agora, cliente, vencimento, neutro):
+    assert servico.texto_prazo(_resumo(criado_em, inicio, forma), agora) == cliente
+    texto = contratacao_service.texto_prazo_pagamento(criado_em, inicio, forma, agora)
+    assert (texto.linha, texto.vencimento, texto.neutro) == (cliente, vencimento, neutro)
 
 
 def test_prazo_do_plano_pix_boleto_e_sem_cobranca():
@@ -94,7 +113,8 @@ def test_pagamentos_ordenados_pelo_menor_prazo():
     lista = servico.pagamentos_pendentes([boleto, pix_14h, ativo, sem_cobranca_13h], AGORA)
     assert [p.resumo.plano.id for p in lista] == [3, 2, 1]
     assert [p.texto for p in lista] == [
-        "Pague até 13:00 (restam 2h 40min)", "Pague até 14:00 (restam 3h 40min)", "Pague até 13/11/2026 (vencimento do boleto)",
+        "Gere a cobrança até hoje, às 13:00 (restam 2h 40min)", "Pague até hoje, às 14:00 (restam 3h 40min)",
+        "Pague até 13/11, às 23:59",
     ]
 
 
@@ -151,7 +171,7 @@ def test_aguardando_um_plano(client, db, carla, maria):
     bloco = re.search(r'<section class="ini-pagar".*?</section>', main).group(0)
     assert '<h2 class="ini-pagar-titulo" id="titulo-pagar">Plano aguardando pagamento</h2>' in bloco
     assert "<strong>Pedro Souza, Psicopedagogia</strong>" in bloco
-    assert "Pague até 14:00 (restam 3h 40min)." in bloco
+    assert "Gere a cobrança até hoje, às 14:00 (restam 3h 40min)." in bloco
     assert f'href="/planos/{plano.id}/pagamento"' in bloco
     assert "Primeiros passos" in main
     assert "Próxima sessão" not in main and "Planos de atendimento" not in main  # sem blocos vazios
@@ -168,7 +188,7 @@ def test_aguardando_dois_planos_menor_prazo_primeiro(client, db, carla, rafael, 
     bloco = re.search(r'<section class="ini-pagar".*?</section>', main).group(0)
     assert "Planos aguardando pagamento</h2>" in bloco
     assert bloco.index(f"/planos/{pix.id}/pagamento") < bloco.index(f"/planos/{boleto.id}/pagamento")
-    assert "Pague até 13/11/2026 (vencimento do boleto)." in bloco
+    assert "Pague até 13/11, às 23:59." in bloco
     assert main.count("Pagar agora") == 2 == bloco.count("Pagar agora")
 
 

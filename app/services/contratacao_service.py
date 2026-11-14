@@ -1,8 +1,9 @@
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
 from app.core.ids import ler_inteiro
@@ -26,6 +27,7 @@ from app.services.plano_service import (
 )
 
 LIMITE_OBSERVACAO = 500
+LIMITE_PRAZO_COM_HORA = timedelta(hours=24)  # boleto: "restam" só no último dia
 
 MSG_PACIENTE_OBRIGATORIO = "Selecione a pessoa que será atendida."
 MSG_FREQUENCIA = "Escolha a frequência: 1, 2 ou 3 vezes por semana."
@@ -41,9 +43,10 @@ MSG_PROFISSIONAL_INDISPONIVEL = (
     "{nome} não está mais disponível para novos planos de {especialidade}. Escolha outro profissional para renovar."
 )
 MSG_HORARIO_OCUPADO = (
-    "O horário do plano anterior ({dias}, às {hora}) não está mais livre com {nome} em todo o novo período. "
-    "Escolha um novo horário na grade ou outro profissional."
+    "O horário do plano anterior ({dias}, às {hora}) não está mais livre com {nome} em alguma data do novo período. "
+    "Escolha outro dia ou horário{alternativa}."
 )
+ALTERNATIVA_OUTRO_PROFISSIONAL = ", ou outro profissional"
 MSG_CONFIGURACAO_ANTIGA = "A configuração do plano anterior não é mais oferecida. Escolha os dias, o horário e a duração."
 
 
@@ -104,6 +107,50 @@ def prazo_previsto(criado_em_utc: datetime, data_primeira_sessao: date, agora: d
     pix = plano_service.prazo_pagamento(criado_em_utc, data_primeira_sessao, FormaPagamento.PIX)
     boleto = plano_service.prazo_pagamento(criado_em_utc, data_primeira_sessao, FormaPagamento.BOLETO).date()
     return PrazoPrevisto(pix, boleto if plano_service.boleto_disponivel(boleto, agora) else None)
+
+
+@dataclass(frozen=True)
+class TextoPrazo:
+    acao: str
+    quando: str
+    restam: str | None
+    prazo: datetime
+    sem_cobranca: bool
+    vencimento_boleto: date | None
+    neutro: str
+
+    @property
+    def titulo(self) -> str:
+        return f"{self.acao} {self.quando}"
+
+    @property
+    def linha(self) -> str:
+        return self.titulo + (f" (restam {self.restam})" if self.restam else "")
+
+    @property
+    def vencimento(self) -> str | None:
+        return f"Vence em {self.vencimento_boleto:%d/%m/%Y}" if self.vencimento_boleto else None
+
+
+def texto_prazo_pagamento(
+    criado_em_utc: datetime, data_primeira_sessao: date, forma: FormaPagamento | None, agora: datetime
+) -> TextoPrazo:
+    if forma == FormaPagamento.BOLETO:
+        prazo = plano_service.prazo_pagamento(criado_em_utc, data_primeira_sessao, forma)
+        restam = tempo_restante(prazo, agora) if prazo - agora < LIMITE_PRAZO_COM_HORA else None
+        return TextoPrazo(
+            "Pague até", texto_dia_hora(prazo, agora), restam, prazo, False, prazo.date(),
+            f"Boleto vence em {prazo:%d/%m/%Y}",
+        )
+    previsto = prazo_previsto(criado_em_utc, data_primeira_sessao, agora)
+    quando = texto_dia_hora(previsto.pix, agora)
+    restam = tempo_restante(previsto.pix, agora)
+    if forma is None:
+        return TextoPrazo(
+            "Gere a cobrança até", quando, restam, previsto.pix, True, previsto.vencimento_boleto,
+            f"Reserva até {quando} (sem cobrança gerada)",
+        )
+    return TextoPrazo("Pague até", quando, restam, previsto.pix, False, None, f"Pix até {quando}")
 
 
 def ler_celulas(celulas: list[str]) -> tuple[list[int], time]:
@@ -334,6 +381,16 @@ class DetalhePlano:
     sessoes: list[datetime]
     situacao: str | None
     prazo_pagamento: datetime
+    proxima: datetime | None = None
+
+
+def proxima_sessao(sessoes: list[tuple[datetime, StatusSessao]], agora: datetime) -> datetime | None:
+    return min((data_hora for data_hora, status in sessoes if status == StatusSessao.AGENDADA and data_hora >= agora),
+               default=None)
+
+
+def texto_sessao(momento: datetime) -> str:
+    return f"{NOMES_DIAS[momento.weekday()].lower()}, {momento:%d/%m}, às {momento:%H:%M}"
 
 
 def buscar_plano_do_cliente(db: Session, cliente_id: int, plano_id: int) -> Plano:
@@ -363,6 +420,7 @@ def detalhar_plano(db: Session, cliente_id: int, plano_id: int, agora: datetime)
             plano.data_fim, Counter(status for _, status in sessoes), plano.criado_em, agora, plano.data_inicio, forma
         ),
         prazo_pagamento=plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, forma),
+        proxima=proxima_sessao(sessoes, agora),
     )
 
 
@@ -379,6 +437,12 @@ class Renovacao:
     dados: dict
     simulacao: SimulacaoPlano | None
     aviso: str | None
+    quantidade_anterior: int = 0
+
+    @property
+    def valor_sessao_anterior(self) -> Decimal:
+        bruto = self.plano_anterior.valor_total + self.plano_anterior.valor_desconto
+        return (bruto / max(self.quantidade_anterior, 1)).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
     @property
     def mesma_configuracao_livre(self) -> bool:
@@ -409,6 +473,7 @@ def preparar_renovacao(
         "observacao": "",
     }
 
+    outros = [usuario for usuario in ativos if usuario.id != escolhido_id]
     profissional = simulacao = aviso = None
     if escolhido is None:
         nome = (db.get(Usuario, escolhido_id) or db.get(Usuario, anterior.funcionario_id)).nome
@@ -426,6 +491,7 @@ def preparar_renovacao(
         if simulacao is not None and simulacao.conflitos:
             aviso = MSG_HORARIO_OCUPADO.format(
                 dias=descrever_dias(anterior.dias_semana), hora=anterior.horario.strftime("%H:%M"), nome=escolhido.nome,
+                alternativa=ALTERNATIVA_OUTRO_PROFISSIONAL if outros else "",  # só com o link de troca na tela
             )
             dados["celulas"] = []
 
@@ -435,8 +501,9 @@ def preparar_renovacao(
         especialidade=especialidade,
         profissional_anterior=db.get(Usuario, anterior.funcionario_id),
         profissional=profissional,
-        outros_profissionais=[usuario for usuario in ativos if usuario.id != escolhido_id],
+        outros_profissionais=outros,
         dados=dados,
         simulacao=simulacao,
         aviso=aviso,
+        quantidade_anterior=db.scalar(select(func.count()).where(Sessao.plano_id == anterior.id)),
     )

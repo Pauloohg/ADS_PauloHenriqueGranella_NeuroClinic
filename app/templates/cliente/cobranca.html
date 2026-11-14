@@ -6,11 +6,12 @@
 {% set pagamento = tela.pagamento %}
 {% set cobranca = tela.cobranca %}
 {% set aguardando = not tela.confirmado and tela.no_prazo %}
+{% set eh_pix = pagamento.forma_pagamento.value == "pix" %}
 
 {% block title %}Cobrança do plano — NeuroClinic{% endblock %}
 {% block head %}{% if aguardando %}<meta http-equiv="refresh" content="{{ intervalo_atualizacao }}">{% endif %}{% endblock %}
 {% block voltar %}{{ voltar("/planos/" ~ plano.id, "Plano") }}{% endblock %}
-{% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else ("Pagamento via Pix" if pagamento.forma_pagamento.value == "pix" else "Pagamento via boleto") }}{% endblock %}
+{% block titulo_pagina %}{{ "Pagamento confirmado" if tela.confirmado else ("Pagamento via Pix" if eh_pix else "Pagamento via boleto") }}{% endblock %}
 {% block conteudo %}
 {{ cabecalho_plano(detalhe) }}
 {{ alertas(erro=tela.erro) }}
@@ -32,64 +33,61 @@
         </section>
         {% elif cobranca %}
         <section class="cartao" aria-labelledby="titulo-cobranca">
-            {% if pagamento.forma_pagamento.value == "pix" %}
+            {% if eh_pix %}
             <h2 class="cartao-titulo" id="titulo-cobranca">Pague com Pix</h2>
-            <div class="cobranca-pix">
+            <div class="cob-pix">
                 {% if cobranca.br_code_base64 %}
                 <img src="{{ cobranca.br_code_base64 }}" alt="QR Code do Pix de {{ plano.valor_total | moeda }}" class="cobranca-qrcode" width="220" height="220">
                 {% endif %}
-                <div class="flex-grow-1">
-                    <p class="small text-muted">Abra o app do seu banco, escolha Pix e leia o QR Code, ou use o código copia e cola:</p>
-                    <p class="form-label" id="rotulo-pix-copia-cola">Pix copia e cola</p>
-                    <p id="pix-copia-cola" class="cobranca-codigo mb-0" aria-labelledby="rotulo-pix-copia-cola" aria-describedby="ajuda-pix-copia-cola">{{ cobranca.br_code or "" }}</p>
-                    <p class="form-text" id="ajuda-pix-copia-cola">Clique no código para selecioná-lo e copie.</p>
-                </div>
+                <ol class="cob-passos" id="passos-pix">
+                    <li>Abra o app do seu banco e escolha Pix.</li>
+                    <li>Leia o QR Code ou use o código copia e cola.</li>
+                    <li>Confira o valor e confirme.</li>
+                </ol>
             </div>
+            <p class="form-label mt-3" id="rotulo-pix-copia-cola">Pix copia e cola</p>
+            <p id="pix-copia-cola" class="cobranca-codigo mb-0" aria-labelledby="rotulo-pix-copia-cola" aria-describedby="ajuda-pix-copia-cola">{{ cobranca.br_code or "" }}</p>
+            <p class="form-text" id="ajuda-pix-copia-cola">Toque no código para selecioná-lo e copie.</p>
             {% else %}
             <h2 class="cartao-titulo" id="titulo-cobranca">Pague com boleto</h2>
             <p class="form-label" id="rotulo-linha-digitavel">{{ "Linha digitável" if cobranca.linha_digitavel else "Código de barras" }}</p>
             <p id="linha-digitavel" class="cobranca-codigo mb-0" aria-labelledby="rotulo-linha-digitavel" aria-describedby="ajuda-linha-digitavel">{{ cobranca.linha_digitavel or cobranca.codigo_barras or '' }}</p>
-            <p class="form-text" id="ajuda-linha-digitavel">Clique no código para selecioná-lo e copie, ou abra o boleto para imprimir.</p>
-            <p class="small mb-0" id="vencimento-boleto"><i class="bi bi-calendar-event me-1"></i>Vence em {{ tela.prazo | data_br }}. O horário fica reservado até o vencimento.</p>
+            <p class="form-text" id="ajuda-linha-digitavel">Toque no código para selecioná-lo e copie, ou abra o boleto para imprimir.</p>
             {% if cobranca.url_boleto %}
-            <a href="{{ cobranca.url_boleto }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary mt-2"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir boleto</a>
+            <a href="{{ cobranca.url_boleto }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>Abrir boleto</a>
             {% endif %}
+            <p class="rev-prazo mb-0" id="vencimento-boleto"><strong>{{ prazo.vencimento }}.</strong> Depois de pagar, o banco pode levar até 1 dia útil para avisar; esta página atualiza quando o aviso chegar.</p>
             {% endif %}
             {% if cobranca.dev_mode %}
-            <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Ambiente de testes (Dev mode): nenhum valor real é cobrado.</p>
+            <p class="cob-teste" id="ambiente-testes">Ambiente de testes (Dev mode): nenhum valor real é cobrado.</p>
             {% endif %}
         </section>
         {% endif %}
     </div>
 
     <div class="col-lg-4">
-        <aside class="cartao resumo-plano" aria-labelledby="titulo-situacao-cobranca">
-            <h2 class="cartao-titulo d-flex justify-content-between align-items-center gap-2" id="titulo-situacao-cobranca">
-                Situação
-                {% if tela.confirmado %}
-                <span class="badge rounded-pill status-ativo">Pagamento confirmado</span>
-                {% elif tela.no_prazo %}
-                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
-                {% else %}
-                <span class="badge rounded-pill status-inativo">Prazo encerrado</span>
-                {% endif %}
-            </h2>
+        <aside class="cartao resumo-plano" aria-labelledby="titulo-valor-cobranca">
+            <h2 class="cartao-titulo" id="titulo-valor-cobranca">Valor</h2>
             <dl class="resumo-valores">
                 <dt>Forma</dt><dd>{{ rotulos_forma[pagamento.forma_pagamento] }}</dd>
                 {{ linhas_desconto_plano(plano) }}
-                <dt class="resumo-total-rotulo">Valor</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
+                <dt class="resumo-total-rotulo">Total</dt><dd class="resumo-total font-monospace-num">{{ plano.valor_total | moeda }}</dd>
             </dl>
             {% if aguardando %}
-            <div class="prazo-pagamento" role="note">
-                <i class="bi bi-hourglass-split me-1"></i>Prazo limite:
-                <strong>{{ tela.prazo | data_br }} às {{ tela.prazo.strftime("%H:%M") }}</strong>
-                <span class="small">(horário de Brasília).</span>
+            <div class="prazo-pagamento" role="note" id="prazo-cobranca">
+                {% if eh_pix %}
+                {{ prazo.acao }} <strong>{{ prazo.quando }}</strong>
+                <span class="small">{% if prazo.restam %}Restam {{ prazo.restam }}. {% endif %}Horário de Brasília.</span>
+                {% else %}
+                Vence em <strong>{{ prazo.vencimento_boleto | data_br }}</strong>
+                <span class="small">O horário fica reservado até o vencimento.</span>
+                {% endif %}
             </div>
             <div class="mt-3" id="depois-do-pagamento">
-                <p class="fw-semibold small mb-1"><i class="bi bi-check2-circle me-1"></i>Depois do pagamento</p>
-                <p class="small mb-0">As sessões passam a ficar confirmadas e você recebe um e-mail com as datas. Tudo aparece também na sua página inicial.</p>
+                <p class="fw-semibold small mb-1"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Depois do pagamento</p>
+                <p class="small mb-0">As sessões passam a ficar confirmadas e você recebe um e-mail com as datas. Tudo aparece também no Início.</p>
             </div>
-            <p class="small text-muted mt-3 mb-0"><i class="bi bi-arrow-clockwise me-1"></i>Esta página se atualiza sozinha a cada {{ intervalo_atualizacao }} segundos e mostra a confirmação assim que o pagamento for recebido.</p>
+            <p class="small text-muted mt-3 mb-0"><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>Esta página se atualiza sozinha a cada {{ intervalo_atualizacao }} segundos.</p>
             {% endif %}
             <a href="/" class="btn btn-outline-primary w-100 mt-4">Voltar ao início</a>
         </aside>

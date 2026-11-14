@@ -95,11 +95,12 @@ def test_texto_resumo_do_cliente(atendidos, ativos, esperado):
 
 
 def test_texto_prazo_por_forma():
-    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), None, AGORA) == "10/03/2026, 14:00"
-    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), FormaPagamento.PIX, AGORA) == "10/03/2026, 14:00"
+    # Texto neutro (decisão de 14/11): quem lê é o Admin, que não gera cobrança
+    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), None, AGORA) == "Reserva até hoje, às 14:00 (sem cobrança gerada)"
+    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), FormaPagamento.PIX, AGORA) == "Pix até hoje, às 14:00"
     # boleto: menor entre 3 dias úteis (13/03) e o 2º dia útil antes da 1ª sessão (17/03); só a data
-    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), FormaPagamento.BOLETO, AGORA) == "13/03/2026"
-    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 13), FormaPagamento.BOLETO, AGORA) == "11/03/2026"
+    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 19), FormaPagamento.BOLETO, AGORA) == "Boleto vence em 13/03/2026"
+    assert servico.texto_prazo(CRIADO_NO_PRAZO, date(2026, 3, 13), FormaPagamento.BOLETO, AGORA) == "Boleto vence em 11/03/2026"
 
 
 def test_descrever_configuracao_continua_disponivel_em_meus_atendidos():
@@ -267,21 +268,22 @@ def test_detalhe_aguardando_pagamento_sem_cobranca_usa_o_prazo_previsto(admin, d
     html = _html(admin.get(f"{URL}/{cliente.id}"))
     cartao = re.search(r'<article class="cli-plano esp-fonoaudiologia"[^>]*>(?:(?!</article>).)*Aguardando pagamento.*?</article>', html).group(0)
     assert '<span class="badge rounded-pill status-pendente">Aguardando pagamento</span>' in cartao
-    assert 'Pagar até <span class="font-monospace-num">10/03/2026, 14:00</span>' in cartao
+    assert '<p class="cli-plano-prazo">Reserva até hoje, às 14:00 (sem cobrança gerada)</p>' in cartao
+    assert "Gere a cobrança" not in cartao
     assert "Quinzenal, 1 vez por semana, quintas às 13:00" in cartao
     assert "R$ 300,00</strong> <span>sem desconto</span>" in cartao
     assert "consultas realizadas" not in cartao and "progressbar" not in cartao
 
 
 @pytest.mark.parametrize("forma, prazo", [
-    (FormaPagamento.PIX, "10/03/2026, 14:00"),
-    (FormaPagamento.BOLETO, "13/03/2026"),
+    (FormaPagamento.PIX, "Pix até hoje, às 14:00"),
+    (FormaPagamento.BOLETO, "Boleto vence em 13/03/2026"),
 ])
 def test_detalhe_aguardando_pagamento_pix_e_boleto(admin, db, juliana, carlos, forma, prazo):
     cliente, _, _, aguardando = _maria(db, juliana, carlos)
     _pagamento(db, aguardando, forma)
     html = _html(admin.get(f"{URL}/{cliente.id}"))
-    assert f'Pagar até <span class="font-monospace-num">{prazo}</span>' in html
+    assert f'<p class="cli-plano-prazo">{prazo}</p>' in html and "Gere a cobrança" not in html
     if forma == FormaPagamento.BOLETO:
         assert "13/03/2026," not in html  # boleto mostra só a data
 

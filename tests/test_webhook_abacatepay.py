@@ -334,8 +334,7 @@ def test_apos_o_webhook_a_pagina_do_plano_mostra_forma_e_data(client, db, plano,
 
     html = " ".join(client.get(f"/planos/{plano.id}").text.split())
     assert "Plano de atendimento" in html and 'status-ativo">Ativo' in html
-    assert "<dt>Pagamento</dt><dd>Pix</dd>" in html.replace("> <", "><")
-    assert "<dt>Confirmado em</dt><dd>01/08/2026 às 10:00</dd>" in html.replace("> <", "><")
+    assert "Recebido via Pix em 01/08/2026, às 10:00." in html  # bloco verde do plano pago (Semana 8)
     assert "Pagar agora" not in html
 
     cobranca = " ".join(client.get(f"/planos/{plano.id}/cobranca").text.split())

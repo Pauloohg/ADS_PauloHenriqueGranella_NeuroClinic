@@ -183,7 +183,7 @@ def test_resumo_mostra_etapa_3_sessoes_e_prazo_da_rn09(client, db, carla, maria_
         "Fonoaudiologia", "Carla Fono", "Pessoa atendida</dt> <dd>Pedro Souza", "Segunda, às 14:00",
         "Período</dt> <dd>03/08/2026 a 31/08/2026 · 5 sessões", "1x por semana · Mensal", "R$ 750,00",
         "Depois de confirmar, é preciso pagar dentro do prazo.",
-        "Pix: pague até hoje, às 14:00 (4 horas).",
+        "Pix: pague até hoje, às 14:00.",
     ):
         assert trecho in html, trecho
     # Primeira sessão na segunda 03/08: o 2º dia útil antes dela já passou (RN09)
