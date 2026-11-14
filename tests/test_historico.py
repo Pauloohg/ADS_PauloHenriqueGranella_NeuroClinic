@@ -370,7 +370,8 @@ def test_historico_usa_uma_unica_consulta_sql(db, cliente, cenario, pedro):
 def test_consultas_do_rf07_continuam_filtrando_por_aba(db, cliente, cenario):
     proximas = consultas_service.consultas_do_cliente(db, cliente.id, AGORA)
     anteriores = consultas_service.consultas_do_cliente(db, cliente.id, AGORA, consultas_service.ANTERIORES)
-    assert all(c.data_hora >= AGORA for c in proximas.consultas) and proximas.total == 2
+    # Semana 8: a sessão aguardando pagamento saiu da lista (vai para o bloco âmbar)
+    assert all(c.data_hora >= AGORA for c in proximas.consultas) and proximas.total == 1
     assert all(c.data_hora < AGORA for c in anteriores.consultas) and anteriores.total == 4
 
 

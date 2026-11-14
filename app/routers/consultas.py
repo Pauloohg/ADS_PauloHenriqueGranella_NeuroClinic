@@ -1,17 +1,17 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.core.config import JANELA_REMARCACAO_DIAS
+from app.core.config import ANTECEDENCIA_REMARCACAO_HORAS, HORARIOS_ATENDIMENTO, JANELA_REMARCACAO_DIAS
 from app.core.ids import inteiro_positivo
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, get_usuario_por_tipo
-from app.services import consultas_service, plano_service, remarcacao_service
+from app.services import consultas_service, paciente_service, plano_service, remarcacao_service
 from app.services.admin_clientes_service import interpretar_pagina
 from app.services.remarcacao_service import RemarcacaoInvalida, SessaoNaoEncontrada
 
@@ -55,11 +55,22 @@ def _mensagem_da_lista(db: Session, usuario: Usuario, sessao_id: str | None, rep
     return f"Consulta de {consulta.atendido} remarcada de {de} para {para}."
 
 
+def _atendido_do_filtro(atendidos: list, texto: str | None):
+    if not (texto or "").strip():
+        return None
+    numero = inteiro_positivo(texto)
+    escolhido = next((a for a in atendidos if a.id == numero), None) if numero is not None else None
+    if escolhido is None:  # inexistente, não numérico ou de outro Cliente
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.")
+    return escolhido
+
+
 @router.get("")
 def listar(
     request: Request,
     aba: str = consultas_service.PROXIMAS,
     pagina: str | None = None,
+    atendido: str | None = None,
     remarcada: str | None = None,
     repetido: str | None = None,
     usuario: Usuario = Depends(somente_cliente),
@@ -67,21 +78,38 @@ def listar(
 ):
     agora = agora_local()
     plano_service.remover_planos_vencidos(db, agora)
-    resultado = consultas_service.consultas_do_cliente(db, usuario.id, agora, aba, interpretar_pagina(pagina))
+    atendidos = paciente_service.listar_do_cliente(db, usuario.id)
+    filtro = _atendido_do_filtro(atendidos, atendido)
+    filtro_id = filtro.id if filtro else None
+    resultado = consultas_service.consultas_do_cliente(
+        db, usuario.id, agora, aba, interpretar_pagina(pagina), paciente_id=filtro_id,
+    )
+    planos = consultas_service.planos_do_filtro(db, usuario.id, agora, filtro_id) if resultado.aba == consultas_service.PROXIMAS else []
     contexto = {
         "usuario": usuario,
         "resultado": resultado,
-        "aguardando_pagamento": (
-            consultas_service.planos_aguardando_pagamento(db, usuario.id, agora)
-            if resultado.aba == consultas_service.PROXIMAS else []
-        ),
+        "atendidos": atendidos,
+        "filtro": filtro,
+        "parametros_filtro": {"atendido": filtro_id} if filtro else {},
+        "aguardando_pagamento": consultas_service.aguardando_pagamento(planos, agora),
+        "filtro_sem_plano": filtro is not None and resultado.aba == consultas_service.PROXIMAS and not planos,
         "sucesso": _mensagem_da_lista(db, usuario, remarcada, repetido == "1"),
         "repetido": repetido == "1",
     }
     return templates.TemplateResponse(request, TEMPLATE_CONSULTAS, contexto)
 
 
-def _tela_remarcar(request, usuario, db, consulta, agora, data_texto="", escolhido="", erro=None, status_code=200):
+def _novo_escolhido(escolhido: str, horarios) -> datetime | None:
+    try:
+        novo = remarcacao_service.interpretar_horario(escolhido)
+    except RemarcacaoInvalida:
+        return None
+    return novo if horarios and novo in horarios.horarios else None
+
+
+def _tela_remarcar(
+    request, usuario, db, consulta, agora, data_texto="", escolhido="", erro=None, status_code=200, conflito=False,
+):
     inicio, fim = remarcacao_service.janela(agora)
     dia = _ler_data(data_texto) if data_texto else None
     bloqueio = None
@@ -101,9 +129,20 @@ def _tela_remarcar(request, usuario, db, consulta, agora, data_texto="", escolhi
         "data_texto": data_texto,
         "data_invalida": bool(data_texto) and dia is None,
         "horarios": horarios,
-        "feriado": plano_service.nome_do_feriado(dia) if horarios and horarios.motivo == remarcacao_service.DIA_FERIADO else "",
+        "feriado": (
+            remarcacao_service.MSG_FERIADO.format(data=dia.strftime("%d/%m/%Y"), nome=plano_service.nome_do_feriado(dia))
+            if horarios and horarios.motivo == remarcacao_service.DIA_FERIADO else ""
+        ),
+        "dia_lotado": remarcacao_service.MSG_DIA_LOTADO,
+        "motivo_feriado": remarcacao_service.DIA_FERIADO,
+        "motivo_lotado": remarcacao_service.DIA_SEM_HORARIOS,
         "escolhido": escolhido,
         "erro": erro,
+        "conflito": conflito,
+        "antecedencia_horas": ANTECEDENCIA_REMARCACAO_HORAS,
+        "horas_atendimento": HORARIOS_ATENDIMENTO,
+        "texto_troca": remarcacao_service.texto_troca(consulta.data_hora, _novo_escolhido(escolhido, horarios)),
+        "nada_alterado": remarcacao_service.texto_nada_alterado(consulta.data_hora),
     }
     return templates.TemplateResponse(request, TEMPLATE_REMARCAR, contexto, status_code=status_code)
 
@@ -162,11 +201,12 @@ def remarcar(
     except RemarcacaoInvalida as exc:
         consulta = _sessao_ou_404(db, usuario, sessao_id)
         data_texto = _data_do_horario(novo_horario)
-        codigo = (
-            status.HTTP_409_CONFLICT if isinstance(exc, remarcacao_service.ConflitoRemarcacao)
-            else status.HTTP_400_BAD_REQUEST
+        conflito = isinstance(exc, remarcacao_service.ConflitoRemarcacao)
+        codigo = status.HTTP_409_CONFLICT if conflito else status.HTTP_400_BAD_REQUEST
+        return _tela_remarcar(
+            request, usuario, db, consulta, agora, data_texto, novo_horario, None if conflito else exc.mensagem, codigo,
+            conflito,
         )
-        return _tela_remarcar(request, usuario, db, consulta, agora, data_texto, novo_horario, exc.mensagem, codigo)
     except SessaoNaoEncontrada:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consulta não encontrada.") from None
     sufixo = "&repetido=1" if resultado.repetido else ""

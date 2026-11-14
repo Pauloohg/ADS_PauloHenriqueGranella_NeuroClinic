@@ -441,3 +441,27 @@ def test_bordas_dos_blocos_verde_e_cinza_se_distinguem_do_fundo():
 @pytest.mark.parametrize("seletor", [".plano-proxima", ".renov-total-novo", ".renov-desconto", ".renov-comparacao thead th"])
 def test_textos_do_plano_e_da_renovacao_no_branco(seletor):
     assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+# --- Consultas e Remarcar consulta do Cliente (refinamento da Semana 8, RF07) ----------------------------
+
+@pytest.mark.parametrize("seletor", [".cons-hora", ".cons-dia-semana", ".cons-dia-num", ".remarcar-regras",
+                                     ".remarcar-turno-rotulo", ".remarcar-dia-titulo"])
+def test_textos_da_linha_e_do_cartao_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+@pytest.mark.parametrize("seletor", [".cons-filtro-rotulo", ".cons-nota", ".cons-mes"])
+def test_textos_das_consultas_no_creme(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), CREME) >= 4.5
+
+
+def test_frase_da_troca_tem_contraste_de_4_5():
+    fundo, texto = _cores_da_regra(".remarcar-troca")
+    assert razao_contraste(texto, fundo) >= 4.5
+
+
+def test_regras_da_consulta_atual_tem_divisoria_visivel():
+    corpo = re.search(r"(?m)^\.remarcar-regras\s*\{([^}]*)\}", CSS).group(1)
+    borda = re.search(r"border-top:\s*\d+px solid (var\(--[\w-]+\));", corpo).group(1)
+    assert razao_contraste(_cor(borda), BRANCO) >= 3

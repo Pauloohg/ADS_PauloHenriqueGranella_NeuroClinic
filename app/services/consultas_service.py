@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.core.fuso import utc_para_local
+from app.core.templating import NOMES_MESES
 from app.models.avaliacao import Avaliacao
 from app.models.especialidade import Especialidade
 from app.models.paciente import Paciente
@@ -12,13 +13,19 @@ from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
 from app.services.admin_clientes_service import POR_PAGINA
-from app.services.inicio_service import AGUARDANDO_PAGAMENTO, planos_do_cliente
+from app.services.inicio_cliente_service import PagamentoPendente, pagamentos_pendentes, quando_em_dias
+from app.services.inicio_service import ResumoPlano, planos_do_cliente
 from app.services.plano_service import DURACAO_SESSAO
 from app.services.remarcacao_service import motivo_bloqueio
 
 PROXIMAS = "proximas"
 ANTERIORES = "anteriores"
 ABAS = (PROXIMAS, ANTERIORES)
+
+REALIZADA = "Realizada"
+NAO_COMPARECEU = "Não compareceu"
+AGUARDANDO_REGISTRO = "Aguardando registro do profissional"
+EM_ANDAMENTO = "Em andamento"
 
 
 @dataclass(frozen=True)
@@ -32,6 +39,8 @@ class ConsultaCliente:
     status: StatusSessao
     remarcada: bool
     motivo_bloqueio: str | None
+    quando: str | None = None
+    estado: str | None = None
 
     @property
     def pode_remarcar(self) -> bool:
@@ -39,11 +48,9 @@ class ConsultaCliente:
 
 
 @dataclass(frozen=True)
-class PlanoAguardandoPagamento:
-    plano_id: int
-    atendido: str
-    especialidade: str
-    sessoes: int
+class MesDeConsultas:
+    titulo: str
+    consultas: list[ConsultaCliente]
 
 
 @dataclass(frozen=True)
@@ -53,7 +60,37 @@ class PaginaConsultas:
     pagina: int
     total_paginas: int
     total: int
+    total_proximas: int = 0
+    total_anteriores: int = 0
 
+    @property
+    def meses(self) -> list[MesDeConsultas]:
+        return agrupar_por_mes(self.consultas)
+
+
+# --- Funções puras (RNF14: `agora` por parâmetro) --------------------------------------------------
+
+def titulo_mes(dia: date) -> str:
+    return f"{NOMES_MESES[dia.month - 1].capitalize()} de {dia.year}"
+
+
+def agrupar_por_mes(consultas: list[ConsultaCliente]) -> list[MesDeConsultas]:
+    grupos: list[MesDeConsultas] = []
+    for consulta in consultas:
+        titulo = titulo_mes(consulta.data_hora.date())
+        if not grupos or grupos[-1].titulo != titulo:
+            grupos.append(MesDeConsultas(titulo, []))
+        grupos[-1].consultas.append(consulta)
+    return grupos
+
+
+def estado_anterior(status: StatusSessao, comparecimento: bool | None, fim: datetime, agora: datetime) -> str:
+    if status == StatusSessao.REALIZADA:
+        return NAO_COMPARECEU if comparecimento is False else REALIZADA
+    return AGUARDANDO_REGISTRO if fim <= agora else EM_ANDAMENTO
+
+
+# --- Consultas do Cliente (RF07) --------------------------------------------------------------------
 
 def _consulta(cliente_id: int, aba: str | None, agora: datetime, *colunas, paciente_id: int | None = None):
     condicoes = [Paciente.cliente_id == cliente_id]
@@ -70,48 +107,68 @@ def _consulta(cliente_id: int, aba: str | None, agora: datetime, *colunas, pacie
     )
 
 
-def consultas_do_cliente(db: Session, cliente_id: int, agora: datetime, aba: str = PROXIMAS, pagina: int = 1) -> PaginaConsultas:
+def _sem_pendentes(consulta):
+    return consulta.where(Sessao.status != StatusSessao.PENDENTE_PAGAMENTO)
+
+
+def _total_da_aba(cliente_id: int, aba: str, agora: datetime, paciente_id: int | None):
+    return _sem_pendentes(_consulta(cliente_id, aba, agora, func.count(Sessao.id), paciente_id=paciente_id)).scalar_subquery()
+
+
+def consultas_do_cliente(
+    db: Session, cliente_id: int, agora: datetime, aba: str = PROXIMAS, pagina: int = 1, paciente_id: int | None = None,
+) -> PaginaConsultas:
     aba = aba if aba in ABAS else PROXIMAS
     pagina = max(pagina, 1)
     ordem = (Sessao.data_hora, Sessao.id) if aba == PROXIMAS else (Sessao.data_hora.desc(), Sessao.id.desc())
     colunas = (
         Sessao.id, Sessao.data_hora, Paciente.nome, Usuario.nome, Especialidade.nome, Sessao.status,
-        Sessao.foi_remarcada, func.count().over(),
+        Sessao.foi_remarcada, Avaliacao.comparecimento,
+        _total_da_aba(cliente_id, PROXIMAS, agora, paciente_id), _total_da_aba(cliente_id, ANTERIORES, agora, paciente_id),
     )
 
     def buscar(numero: int):
+        # As contagens das duas abas vêm em subconsultas do mesmo SELECT: a lista continua com 1 comando SQL
         return db.execute(
-            _consulta(cliente_id, aba, agora, *colunas)
+            _sem_pendentes(_consulta(cliente_id, aba, agora, *colunas, paciente_id=paciente_id))
             .join(Especialidade, Especialidade.id == Plano.especialidade_id)
             .join(Usuario, Usuario.id == Plano.funcionario_id)
+            .outerjoin(Avaliacao, Avaliacao.sessao_id == Sessao.id)
             .order_by(*ordem)
             .limit(POR_PAGINA)
             .offset((numero - 1) * POR_PAGINA)
         ).all()
 
     linhas = buscar(pagina)
-    if not linhas and pagina > 1:
-        total = db.scalar(_consulta(cliente_id, aba, agora, func.count(Sessao.id)))
+    if linhas:
+        proximas, anteriores = linhas[0][-2:]
+    else:
+        proximas, anteriores = db.execute(
+            select(_total_da_aba(cliente_id, PROXIMAS, agora, paciente_id), _total_da_aba(cliente_id, ANTERIORES, agora, paciente_id))
+        ).one()
+    total = proximas if aba == PROXIMAS else anteriores
+    if not linhas and total:
         pagina = max(1, -(-total // POR_PAGINA))
-        linhas = buscar(pagina) if total else []
+        linhas = buscar(pagina)
 
-    total = linhas[0][-1] if linhas else 0
-    consultas = [
-        ConsultaCliente(
-            id_, data_hora, data_hora + DURACAO_SESSAO, atendido, profissional, especialidade, status, remarcada,
+    consultas = []
+    for id_, data_hora, atendido, profissional, especialidade, status, remarcada, comparecimento, *_ in linhas:
+        fim = data_hora + DURACAO_SESSAO
+        consultas.append(ConsultaCliente(
+            id_, data_hora, fim, atendido, profissional, especialidade, status, bool(remarcada),
             motivo_bloqueio(status, data_hora, agora),
-        )
-        for id_, data_hora, atendido, profissional, especialidade, status, remarcada, _ in linhas
-    ]
-    return PaginaConsultas(consultas, aba, pagina, max(1, -(-total // POR_PAGINA)), total)
+            quando_em_dias(data_hora, agora) if aba == PROXIMAS else None,
+            estado_anterior(status, comparecimento, fim, agora) if aba == ANTERIORES else None,
+        ))
+    return PaginaConsultas(consultas, aba, pagina, max(1, -(-total // POR_PAGINA)), total, proximas, anteriores)
 
 
-def planos_aguardando_pagamento(db: Session, cliente_id: int, agora: datetime) -> list[PlanoAguardandoPagamento]:
-    return [
-        PlanoAguardandoPagamento(r.plano.id, r.paciente, r.especialidade, r.total_sessoes)
-        for r in planos_do_cliente(db, cliente_id, agora)
-        if r.situacao == AGUARDANDO_PAGAMENTO
-    ]
+def planos_do_filtro(db: Session, cliente_id: int, agora: datetime, paciente_id: int | None = None) -> list[ResumoPlano]:
+    return [r for r in planos_do_cliente(db, cliente_id, agora) if paciente_id is None or r.plano.paciente_id == paciente_id]
+
+
+def aguardando_pagamento(planos: list[ResumoPlano], agora: datetime) -> list[PagamentoPendente]:
+    return pagamentos_pendentes(planos, agora)  # um grupo por plano, menor prazo primeiro
 
 
 # --- Histórico de um atendido (RF10 / HU13) ------------------------------------------------------

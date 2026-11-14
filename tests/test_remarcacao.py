@@ -448,7 +448,8 @@ def test_tela_sem_js_mostra_horarios_pela_query(db, logado, plano):
 
 def test_tela_mostra_feriado_com_nome(db, logado, plano):
     html = _html(logado.get(f"/consultas/{_sessao(db, plano, QUI).id}/remarcar", params={"data": "2026-11-20"}))
-    assert "Feriado nacional (" in html and 'name="novo_horario"' not in html
+    assert "20/11/2026 é feriado nacional (Dia Nacional de Zumbi e da Consciência Negra)" in html and 'name="novo_horario"' not in html
+    assert '<div class="rev-prazo remarcar-aviso" role="status" id="horarios-motivo">' in html  # bloco âmbar
 
 
 def test_tela_com_data_invalida_avisa(db, logado, plano):
@@ -466,13 +467,13 @@ def test_lista_proximas_com_status_botao_e_motivos(db, logado, paciente, fono, p
     db.commit()
 
     html = _html(logado.get("/consultas"))
-    datas = re.findall(r'consulta-data">\w+, <span class="font-monospace-num">([\d/]+)</span></span> <span[^>]*>(\d\d:\d\d)', html)
-    assert datas == [("03/11/2026", "13:00"), ("04/11/2026", "09:00"), ("05/11/2026", "14:00"),
-                     ("10/11/2026", "14:00"), ("12/11/2026", "14:00")]
+    datas = re.findall(r'<time class="cons-dia" datetime="([\d-]+)T(\d\d:\d\d)', html)
+    # A sessão aguardando pagamento (04/11) saiu da lista e foi para o bloco âmbar (Semana 8)
+    assert datas == [("2026-11-03", "13:00"), ("2026-11-05", "14:00"), ("2026-11-10", "14:00"), ("2026-11-12", "14:00")]
     assert "Remarcação indisponível: menos de 4 h para a consulta" in html
-    assert "Após o pagamento" in html
+    assert "Após o pagamento" not in html and 'id="aviso-pagamento-pendente"' in html
     assert html.count(">Remarcar</a>") == 3
-    assert html.count('status-pendente">Aguardando pagamento<') == 1
+    assert 'status-pendente">Aguardando pagamento<' not in html
     assert html.count('status-remarcada">Remarcada<') == 1
     assert "com Carlos Fono" in html and 'chip-especialidade">Fonoaudiologia<' in html
 
@@ -483,8 +484,10 @@ def test_lista_anteriores_em_ordem_decrescente(db, logado, paciente, fono):
         (datetime(2026, 11, 2, 9, 0), AGENDADA),
     ], criado_em=CRIADO_PAGO)
     html = _html(logado.get("/consultas", params={"aba": "anteriores"}))
-    assert re.findall(r"(\d\d/\d\d/2026)</span></span>", html) == ["02/11/2026", "27/10/2026", "20/10/2026"]
-    assert html.count("Consulta já realizada") == 2 and "Horário já passou" in html
+    assert re.findall(r'<time class="cons-dia" datetime="([\d-]+)T', html) == ["2026-11-02", "2026-10-27", "2026-10-20"]
+    # Selos da Semana 8 no lugar dos motivos de bloqueio
+    assert html.count('status-inativo">Realizada<') == 2
+    assert 'status-pendente">Aguardando registro do profissional<' in html
     assert ">Remarcar</a>" not in html
 
 
@@ -539,10 +542,10 @@ def test_aviso_unico_de_sessoes_aguardando_pagamento_com_link_por_plano(db, loga
     html = _html(logado.get("/consultas"))
     assert html.count('id="aviso-pagamento-pendente"') == 1
     assert "3 sessões aguardando pagamento" in html
-    for p in (fono_pendente, psico_pendente):
-        assert html.count(f'href="/planos/{p.id}" class="btn btn-primary btn-sm">Pagar agora') == 1
-    assert f'href="/planos/{plano.id}"' not in html  # plano pago não ganha link de pagamento
-    assert html.count(">Após o pagamento<") == 3
+    for p in (fono_pendente, psico_pendente):  # mesmo destino do Início (Semana 8)
+        assert html.count(f'href="/planos/{p.id}/pagamento" class="btn btn-primary btn-sm">') == 1
+    assert f'href="/planos/{plano.id}/pagamento"' not in html  # plano pago não ganha link de pagamento
+    assert ">Após o pagamento<" not in html  # as pendentes saíram da lista
     assert html.count(">Remarcar</a>") == 3  # a regra não muda: só sessão agendada é remarcável
 
 
@@ -560,10 +563,10 @@ def test_sem_aviso_de_pagamento_quando_nada_esta_pendente_ou_o_prazo_venceu(db, 
 
 def test_tela_de_remarcar_mostra_o_limite_da_janela(db, logado, plano, monkeypatch):
     html = _html(logado.get(f"/consultas/{_sessao(db, plano, QUI).id}/remarcar"))
-    assert "até 02/01/2027 (60 dias a partir de hoje)" in html
+    assert 'Novas datas até <span class="font-monospace-num">02/01/2027</span>.' in html
 
     monkeypatch.setattr(remarcacao_service, "JANELA_REMARCACAO_DIAS", 30)
     monkeypatch.setattr(consultas_router, "JANELA_REMARCACAO_DIAS", 30)
     monkeypatch.setattr(remarcacao_service, "janela", lambda agora: (agora.date(), agora.date() + timedelta(days=30)))
     html = _html(logado.get(f"/consultas/{_sessao(db, plano, QUI).id}/remarcar"))
-    assert "até 03/12/2026 (30 dias a partir de hoje)" in html
+    assert 'Novas datas até <span class="font-monospace-num">03/12/2026</span>.' in html

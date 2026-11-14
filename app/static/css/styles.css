@@ -5114,3 +5114,168 @@
         width: 100%;
     }
 }
+
+/* --- Consultas do Cliente: refinamento da Semana 8 (RF07) ---------------------------------------------- */
+
+.cons-barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.cons-abas,
+.cons-filtro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cons-filtro-rotulo {
+    font-size: 0.9rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.cons-nota {
+    margin: 0 0 1rem;
+    font-size: 0.93rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.cons-mes {
+    margin: 1.5rem 0 0.75rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.cons-barra + .cons-mes,
+.cons-nota + .cons-mes {
+    margin-top: 0;
+}
+
+.consulta-item.cons-linha {
+    grid-template-columns: 3.75rem 1fr auto;
+}
+
+.cons-dia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.cons-dia-semana {
+    font-size: 0.8rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.cons-dia-num {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+    font-variant-numeric: tabular-nums;
+}
+
+.cons-hora {
+    font-size: 0.9rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.cons-pagar {
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .consulta-item.cons-linha {
+        grid-template-columns: 3.25rem 1fr;
+    }
+
+    .consulta-item.cons-linha .consulta-acao {
+        grid-column: 2;
+    }
+
+    .consulta-item.cons-linha .consulta-acao:empty {
+        display: none;
+    }
+}
+
+/* --- Remarcar consulta: refinamento da Semana 8 (RF07) ------------------------------------------------- */
+
+.remarcar-regras {
+    margin: 1rem 0 0;
+    padding: 0.85rem 0 0 1.1rem;
+    border-top: 1px solid var(--cor-borda-campo);
+    font-size: 0.9rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.remarcar-regras li + li {
+    margin-top: 0.35rem;
+}
+
+.remarcar-dia-titulo {
+    margin: 0 0 0.75rem;
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.remarcar-turno {
+    margin: 0 0 0.85rem;
+    padding: 0;
+    border: 0;
+}
+
+.remarcar-turno-rotulo {
+    float: none;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.remarcar-celulas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-width: 28rem;
+}
+
+.remarcar-celulas .celula {
+    height: 2.75rem;
+}
+
+.remarcar-aviso {
+    margin: 0 0 1rem;
+}
+
+.remarcar-troca {
+    margin: 1rem 0 0;
+    padding: 0.7rem 0.95rem;
+    border-radius: 8px;
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+    font-size: 0.93rem;
+}
+
+/* A frase só acompanha o botão: sem horários na tela, os dois somem (também quando o remarcar.js esconde o botão) */
+.remarcar-troca:has(+ #btn-confirmar.d-none) {
+    display: none;
+}
+
+#form-remarcar #btn-confirmar {
+    margin-top: 1rem;
+}
+
+/* Horário escolhido com o mouse em cima: mantém o verde cheio (o hover comum da .celula deixaria texto branco no claro) */
+.remarcar-celulas .btn-check:checked + .celula:hover {
+    background-color: var(--bs-primary);
+    color: #fff;
+}

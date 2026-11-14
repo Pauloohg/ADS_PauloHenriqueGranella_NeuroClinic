@@ -9,6 +9,28 @@
 {% block titulo_pagina %}Remarcar consulta{% endblock %}
 {% block subtitulo_pagina %}{% if consulta %}{{ consulta.atendido }} · {{ consulta.especialidade }} com {{ consulta.profissional }}{% endif %}{% endblock %}
 
+{% macro celula(h) %}
+{% set valor = h.data_hora.isoformat(timespec='minutes') %}
+{% set hora = h.data_hora.strftime('%H:%M') %}
+<input type="radio" class="btn-check" name="novo_horario" id="h-{{ h.data_hora.hour }}" value="{{ valor }}" autocomplete="off" required
+       {% if not h.livre %}disabled{% elif valor == escolhido %}checked{% endif %}>
+<label class="celula {% if not h.livre %}celula-ocupada{% endif %}" for="h-{{ h.data_hora.hour }}">
+    <span class="celula-livre font-monospace-num">{{ hora }}</span>
+    <span class="celula-indisponivel">ocupado</span>
+    {% if not h.livre %}<span class="visually-hidden">{{ hora }}, </span>{% endif %}
+</label>
+{% endmacro %}
+
+{% macro grade(horarios, titulo="Horários livres") %}
+<h3 class="remarcar-dia-titulo" id="titulo-horarios">{{ titulo }} na {{ horarios.data.weekday() | nome_dia | lower }}, {{ horarios.data.strftime('%d/%m') }}</h3>
+{% for rotulo, lista in (('Manhã', horarios.manha), ('Tarde', horarios.tarde)) %}
+<fieldset class="remarcar-turno">
+    <legend class="remarcar-turno-rotulo">{{ rotulo }}</legend>
+    <div class="remarcar-celulas">{% for h in lista %}{{ celula(h) }}{% endfor %}</div>
+</fieldset>
+{% endfor %}
+{% endmacro %}
+
 {% block conteudo %}
 {{ alertas(erro=erro) }}
 {% if not consulta %}
@@ -16,17 +38,24 @@
 {% else %}
 <div class="row g-4">
     <div class="col-lg-4 order-lg-2">
-        <section class="cartao consulta-atual {{ consulta.especialidade | classe_especialidade }}">
-            <h2 class="cartao-especialidade-rotulo mt-0">Horário atual</h2>
-            <p class="consulta-atual-quando mb-1">
+        <aside class="cartao consulta-atual {{ consulta.especialidade | classe_especialidade or 'esp-neutra' }}" aria-labelledby="titulo-consulta-atual">
+            <h2 class="cartao-titulo" id="titulo-consulta-atual">Consulta atual</h2>
+            <p class="consulta-atual-quando mb-0">
                 {{ consulta.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ consulta.data_hora | data_br }}</span>
             </p>
-            <p class="font-monospace-num mb-3">{{ consulta.data_hora.strftime('%H:%M') }} – {{ fim_atual.strftime('%H:%M') }}</p>
+            <p class="font-monospace-num mb-2">{{ consulta.data_hora.strftime('%H:%M') }} às {{ fim_atual.strftime('%H:%M') }}</p>
+            <p class="mb-1"><strong>{{ consulta.atendido }}</strong> <span class="text-muted">com {{ consulta.profissional }}</span></p>
             <p class="agenda-consulta-selos mb-0">
                 <span class="chip-especialidade">{{ consulta.especialidade }}</span>
                 {% if consulta.foi_remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
             </p>
-        </section>
+            <ul class="remarcar-regras" id="regras-remarcacao">
+                <li>Até {{ antecedencia_horas }} horas antes da consulta.</li>
+                <li>Novas datas até <span class="font-monospace-num">{{ janela_fim | data_br }}</span>.</li>
+                <li>Só horários livres do profissional, de segunda a sexta, fora de feriados nacionais.</li>
+                <li>As outras sessões do plano não mudam.</li>
+            </ul>
+        </aside>
     </div>
 
     <div class="col-lg-8 order-lg-1">
@@ -36,15 +65,12 @@
             <a href="/consultas" class="btn btn-outline-primary">Voltar para as consultas</a>
         </section>
         {% else %}
-        <section class="cartao">
-            <h2 class="cartao-titulo">Escolha o novo horário</h2>
-            <p class="text-muted small">
-                A consulta continua com {{ consulta.profissional }}, no mesmo plano; as demais sessões não mudam.
-                Escolha uma nova data até {{ janela_fim | data_br }} ({{ janela_dias }} dias a partir de hoje).
-            </p>
+        <section class="cartao" aria-labelledby="titulo-nova-data">
+            <h2 class="cartao-titulo" id="titulo-nova-data">Escolha a nova data</h2>
+            <p class="text-muted small">Digite ou escolha no calendário. Depois veja os horários livres desse dia.</p>
 
             <form method="get" action="/consultas/{{ consulta.id }}/remarcar" id="form-data" class="remarcar-data"
-                  data-url-horarios="/consultas/{{ consulta.id }}/horarios">
+                  data-url-horarios="/consultas/{{ consulta.id }}/horarios" data-horas="{{ horas_atendimento | join(',') }}">
                 <div>
                     <label for="data" class="form-label">Nova data</label>
                     <input type="date" id="data" name="data" class="form-control {% if data_invalida %}is-invalid{% endif %}"
@@ -57,29 +83,31 @@
             <form method="post" action="/consultas/{{ consulta.id }}/remarcar" id="form-remarcar" class="mt-4">
                 <div id="horarios" aria-live="polite">
                     {% if horarios %}
-                    {% if horarios.motivo %}
-                    <p class="remarcar-motivo mb-0" id="horarios-motivo">
-                        <i class="bi bi-calendar-x me-1"></i>{{ horarios.motivo }}{% if feriado %} ({{ feriado }}){% endif %}.
-                        Escolha outra data.
-                    </p>
+                    {% if horarios.motivo == motivo_feriado %}
+                    <div class="rev-prazo remarcar-aviso" role="status" id="horarios-motivo">{{ feriado }}</div>
+                    {% elif horarios.motivo == motivo_lotado %}
+                    <div class="rev-feriado remarcar-aviso" role="status" id="horarios-motivo">{{ dia_lotado }}</div>
+                    {{ grade(horarios, "Horários") }}
+                    {% elif horarios.motivo %}
+                    <div class="rev-feriado remarcar-aviso" role="status" id="horarios-motivo">{{ horarios.motivo }}. Escolha outra data.</div>
                     {% else %}
-                    <fieldset>
-                        <legend class="form-label fs-6">Horários livres em {{ horarios.data | data_br }}</legend>
-                        <div class="remarcar-horarios">
-                            {% for h in horarios.horarios %}
-                            {% set valor = h.isoformat(timespec='minutes') %}
-                            <input type="radio" class="btn-check" name="novo_horario" id="h-{{ loop.index }}" value="{{ valor }}"
-                                   {% if valor == escolhido %}checked{% endif %} required>
-                            <label class="btn btn-outline-primary font-monospace-num" for="h-{{ loop.index }}">{{ h.strftime('%H:%M') }}</label>
-                            {% endfor %}
-                        </div>
-                    </fieldset>
+                    {{ grade(horarios) }}
                     {% endif %}
                     {% else %}
-                    <p class="text-muted small mb-0" id="horarios-instrucao">Escolha uma data para ver os horários livres.</p>
+                    <p class="text-muted small mb-0" id="horarios-instrucao">Escolha uma data para ver os horários livres de {{ consulta.profissional }}.</p>
                     {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary mt-4 {% if not horarios or horarios.motivo %}d-none{% endif %}" id="btn-confirmar">
+
+                {% if conflito %}
+                <div class="rev-conflito remarcar-aviso" role="alert" id="aviso-conflito">
+                    <p class="rev-conflito-titulo">Esse horário foi ocupado enquanto você escolhia.</p>
+                    <p class="mb-2">{{ nada_alterado }}</p>
+                    <a href="/consultas/{{ consulta.id }}/remarcar{% if data_texto %}?data={{ data_texto }}{% endif %}" class="btn btn-outline-primary btn-sm" id="link-outro-horario">Escolher outro horário</a>
+                </div>
+                {% endif %}
+
+                <p class="remarcar-troca" id="texto-troca">{{ texto_troca }}</p>
+                <button type="submit" class="btn btn-primary {% if not horarios or horarios.motivo %}d-none{% endif %}" id="btn-confirmar">
                     Confirmar remarcação
                 </button>
             </form>

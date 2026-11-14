@@ -1,10 +1,17 @@
 {% extends "_interno.html" %}
 {% from "_formulario.html" import alertas %}
 {% set r = resultado %}
+{% set proximas = r.aba == 'proximas' %}
+{% set SELOS = {
+        'Realizada': 'status-inativo',
+        'Não compareceu': 'status-nao-compareceu',
+        'Aguardando registro do profissional': 'status-pendente',
+        'Em andamento': 'status-ativo',
+} %}
 
 {% block title %}Consultas — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Consultas{% endblock %}
-{% block subtitulo_pagina %}Todas as consultas dos seus atendidos, passadas e futuras.{% endblock %}
+{% block subtitulo_pagina %}{{ "Consultas confirmadas dos seus atendidos. É daqui que você remarca." if proximas else "As consultas que já aconteceram." }}{% endblock %}
 
 {% block conteudo %}
 {% if repetido %}
@@ -13,91 +20,122 @@
 {{ alertas(sucesso) }}
 {% endif %}
 
-<nav class="agenda-visoes mb-4" aria-label="Escolher consultas">
-    <a href="/consultas?aba=proximas" class="btn btn-sm {{ 'btn-primary' if r.aba == 'proximas' else 'btn-outline-primary' }}"
-       {% if r.aba == 'proximas' %}aria-current="page"{% endif %}>Próximas</a>
-    <a href="/consultas?aba=anteriores" class="btn btn-sm {{ 'btn-primary' if r.aba == 'anteriores' else 'btn-outline-primary' }}"
-       {% if r.aba == 'anteriores' %}aria-current="page"{% endif %}>Anteriores</a>
-</nav>
-
-{% if aguardando_pagamento %}
-{% set total_pendentes = aguardando_pagamento | sum(attribute="sessoes") %}
-<section class="aviso-consultas-pendentes mb-4" id="aviso-pagamento-pendente" aria-labelledby="titulo-aviso-pendente">
-    <p class="fw-semibold mb-1" id="titulo-aviso-pendente">
-        <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ total_pendentes }} {{ "sessão aguardando pagamento" if total_pendentes == 1 else "sessões aguardando pagamento" }}
-    </p>
-    <p class="small mb-2">Depois que o pagamento do plano for recebido, elas ficam confirmadas e podem ser remarcadas.</p>
-    <ul class="aviso-consultas-planos">
-        {% for p in aguardando_pagamento %}
-        <li>
-            <span>{{ p.atendido }} · {{ p.especialidade }} <span class="small">({{ p.sessoes }} {{ "sessão" if p.sessoes == 1 else "sessões" }})</span></span>
-            <a href="/planos/{{ p.plano_id }}" class="btn btn-primary btn-sm">Pagar agora<span class="visually-hidden"> o plano de {{ p.atendido }} ({{ p.especialidade }})</span></a>
-        </li>
+<div class="cons-barra">
+    <nav class="cons-abas" aria-label="Escolher consultas">
+        {% for chave, rotulo, total in (('proximas', 'Próximas', r.total_proximas), ('anteriores', 'Anteriores', r.total_anteriores)) %}
+        <a href="/consultas?{{ dict(aba=chave, **parametros_filtro) | urlencode }}" class="btn btn-sm rounded-pill {{ 'btn-primary' if r.aba == chave else 'btn-outline-primary' }}"
+           {% if r.aba == chave %}aria-current="page"{% endif %}>{{ rotulo }} <span class="font-monospace-num">{{ total }}</span></a>
         {% endfor %}
-    </ul>
-</section>
+    </nav>
+    {% if atendidos | length > 1 %}
+    <nav class="cons-filtro" aria-label="Filtrar por atendido">
+        <span class="cons-filtro-rotulo">Atendido:</span>
+        <a href="/consultas?{{ dict(aba=r.aba) | urlencode }}" class="btn btn-sm rounded-pill {{ 'btn-primary' if not filtro else 'btn-outline-primary' }}"
+           {% if not filtro %}aria-current="page"{% endif %}>Todos</a>
+        {% for a in atendidos %}
+        <a href="/consultas?{{ dict(aba=r.aba, atendido=a.id) | urlencode }}" class="btn btn-sm rounded-pill {{ 'btn-primary' if filtro and filtro.id == a.id else 'btn-outline-primary' }}"
+           {% if filtro and filtro.id == a.id %}aria-current="page"{% endif %}>{{ a.nome }}</a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+</div>
+
+{% if not proximas %}
+<p class="cons-nota" id="nota-historico"><i class="bi bi-journal-text me-1" aria-hidden="true"></i>As avaliações ficam no <a href="/historico{% if filtro %}?atendido={{ filtro.id }}{% endif %}">Histórico</a>.</p>
 {% endif %}
 
 {% if r.consultas %}
-<p class="small text-muted mb-2">{{ r.total }} {{ "consulta" if r.total == 1 else "consultas" }}{% if r.aba == 'proximas' %} a partir de agora{% endif %}.</p>
+{% for mes in r.meses %}
+<h2 class="cons-mes">{{ mes.titulo }}</h2>
 <ul class="lista-consultas">
-    {% for c in r.consultas %}
-    <li class="consulta-item {{ c.especialidade | classe_especialidade }}">
-        <div class="consulta-quando">
-            <span class="consulta-data">{{ c.data_hora.weekday() | nome_dia }}, <span class="font-monospace-num">{{ c.data_hora | data_br }}</span></span>
-            <span class="font-monospace-num text-muted small">{{ c.data_hora.strftime('%H:%M') }} – {{ c.fim.strftime('%H:%M') }}</span>
-        </div>
+    {% for c in mes.consultas %}
+    <li class="consulta-item cons-linha {{ c.especialidade | classe_especialidade or 'esp-neutra' }}">
+        <time class="cons-dia" datetime="{{ c.data_hora.isoformat() }}">
+            <span class="cons-dia-semana" aria-hidden="true">{{ ((c.data_hora.weekday() | nome_dia)[:3] | lower) ~ "." }}</span>
+            <span class="cons-dia-num" aria-hidden="true">{{ "%02d" | format(c.data_hora.day) }}</span>
+            <span class="visually-hidden">{{ c.data_hora.weekday() | nome_dia }}, {{ c.data_hora | data_br }}</span>
+        </time>
         <div class="consulta-dados">
-            <p class="mb-1"><span class="fw-medium">{{ c.atendido }}</span> <span class="text-muted small">com {{ c.profissional }}</span></p>
+            <p class="mb-1"><span class="fw-semibold">{{ c.atendido }}</span> <span class="text-muted small">com {{ c.profissional }}</span></p>
+            <p class="cons-hora mb-1"><span class="font-monospace-num">{{ c.data_hora.strftime('%H:%M') }} às {{ c.fim.strftime('%H:%M') }}</span>{% if c.quando %} · <span class="cons-quando">{{ c.quando }}</span>{% endif %}</p>
             <p class="agenda-consulta-selos mb-0">
                 <span class="chip-especialidade">{{ c.especialidade }}</span>
-                {% if c.status.value == 'pendente_pagamento' %}
-                <span class="badge rounded-pill status-pendente">Aguardando pagamento</span>
-                {% elif c.status.value == 'realizada' %}
-                <span class="badge rounded-pill status-inativo">Realizada</span>
-                {% else %}
-                <span class="badge rounded-pill status-ativo">Agendada</span>
-                {% endif %}
+                {% if c.estado %}<span class="badge rounded-pill {{ SELOS[c.estado] }}">{{ c.estado }}</span>{% endif %}
                 {% if c.remarcada %}<span class="badge rounded-pill status-remarcada">Remarcada</span>{% endif %}
             </p>
         </div>
         <div class="consulta-acao">
+            {% if proximas %}
             {% if c.pode_remarcar %}
-            <a href="/consultas/{{ c.id }}/remarcar" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar-event me-1"></i>Remarcar</a>
+            <a href="/consultas/{{ c.id }}/remarcar" class="btn btn-outline-primary btn-sm"><i class="bi bi-calendar-event me-1" aria-hidden="true"></i>Remarcar</a>
             {% else %}
             <span class="consulta-motivo">{{ c.motivo_bloqueio }}</span>
+            {% endif %}
             {% endif %}
         </div>
     </li>
     {% endfor %}
 </ul>
+{% endfor %}
 
 {% if r.total_paginas > 1 %}
 <nav class="paginacao mt-4" aria-label="Paginação das consultas">
     {% if r.pagina > 1 %}
-    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ {'aba': r.aba, 'pagina': r.pagina - 1} | urlencode }}" rel="prev">
+    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ dict(aba=r.aba, pagina=r.pagina - 1, **parametros_filtro) | urlencode }}" rel="prev">
         <i class="bi bi-chevron-left me-1"></i>Anterior
     </a>
     {% else %}<span></span>{% endif %}
     <span class="small text-muted">Página {{ r.pagina }} de {{ r.total_paginas }}</span>
     {% if r.pagina < r.total_paginas %}
-    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ {'aba': r.aba, 'pagina': r.pagina + 1} | urlencode }}" rel="next">
+    <a class="btn btn-outline-primary btn-sm" href="/consultas?{{ dict(aba=r.aba, pagina=r.pagina + 1, **parametros_filtro) | urlencode }}" rel="next">
         Próxima<i class="bi bi-chevron-right ms-1"></i>
     </a>
     {% else %}<span></span>{% endif %}
 </nav>
 {% endif %}
+
+{% elif proximas and aguardando_pagamento %}
+<p class="cons-nota" id="sem-confirmadas">Nenhuma consulta confirmada ainda. As sessões abaixo aguardam o pagamento do plano.</p>
+
 {% else %}
-<section class="cartao estado-vazio">
-    <div class="icone-destaque mb-3"><i class="bi bi-calendar-x"></i></div>
-    {% if r.aba == 'proximas' %}
-    <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
-    <p class="text-muted">As consultas aparecem aqui assim que um plano é contratado.</p>
-    <a href="/especialidades" class="btn btn-primary">Contratar plano</a>
-    {% else %}
+<section class="cartao estado-vazio" id="consultas-vazio">
+    <div class="icone-destaque mb-3"><i class="bi bi-calendar-x" aria-hidden="true"></i></div>
+    {% if not proximas %}
     <h2 class="titulo-serifa h5">Nenhuma consulta anterior</h2>
     <p class="text-muted mb-0">As consultas que já passaram aparecem aqui.</p>
+    {% elif not atendidos %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
+    <p class="text-muted">Para contratar um plano, comece cadastrando a pessoa que será atendida.</p>
+    <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Cadastrar atendido</a>
+    {% elif filtro_sem_plano %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
+    <p class="text-muted">{{ filtro.nome }} ainda não tem plano. Quando você contratar e pagar, as sessões aparecem aqui.</p>
+    <a href="/especialidades?atendido={{ filtro.id }}" class="btn btn-primary">Contratar plano para {{ filtro.nome.split()[0] }}</a>
+    {% else %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
+    <p class="text-muted">As consultas aparecem aqui assim que um plano é pago. Para começar, escolha uma especialidade e um profissional.</p>
+    <a href="/especialidades" class="btn btn-primary">Contratar plano</a>
     {% endif %}
+</section>
+{% endif %}
+
+{% if proximas and aguardando_pagamento %}
+{% set total_pendentes = aguardando_pagamento | sum(attribute="resumo.total_sessoes") %}
+<section class="ini-pagar cons-pagar" id="aviso-pagamento-pendente" aria-labelledby="titulo-aviso-pendente">
+    <h2 class="ini-pagar-titulo" id="titulo-aviso-pendente">{{ total_pendentes }} {{ "sessão aguardando pagamento" if total_pendentes == 1 else "sessões aguardando pagamento" }}</h2>
+    <p class="mb-1">Elas ficam confirmadas, e podem ser remarcadas, depois que o pagamento do plano for recebido.</p>
+    <ul class="ini-pagar-lista">
+        {% for p in aguardando_pagamento %}
+        {% set n = p.resumo.total_sessoes %}
+        <li>
+            <div>
+                <strong>{{ p.resumo.paciente }}</strong>, {{ p.resumo.especialidade }} com {{ p.resumo.profissional }}
+                <span class="ini-pagar-prazo">{{ n }} {{ "sessão" if n == 1 else "sessões" }}, a primeira em {{ p.resumo.plano.data_inicio.strftime('%d/%m') }}. {{ p.texto }}.</span>
+            </div>
+            <a href="/planos/{{ p.resumo.plano.id }}/pagamento" class="btn btn-primary btn-sm"><i class="bi bi-credit-card me-1" aria-hidden="true"></i>Pagar agora<span class="visually-hidden"> o plano de {{ p.resumo.especialidade }} de {{ p.resumo.paciente }}</span></a>
+        </li>
+        {% endfor %}
+    </ul>
 </section>
 {% endif %}
 {% endblock %}

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import func, select
@@ -12,6 +12,7 @@ from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
 from app.services import plano_service
+from app.services.contratacao_service import texto_sessao
 
 ANTECEDENCIA_REMARCACAO = timedelta(hours=ANTECEDENCIA_REMARCACAO_HORAS)
 
@@ -39,6 +40,7 @@ MSG_CONFLITO = (
     "Este horário não está mais livre na agenda do Profissional. Nada foi alterado: escolha outro horário."
 )
 MSG_ESCOLHA_HORARIO = "Escolha um dos horários livres."
+MSG_DIA_LOTADO = "Não há horários livres neste dia. Escolha outra data."
 
 DIA_FORA_DA_JANELA = f"Fora da janela de {JANELA_REMARCACAO_DIAS} dias"
 DIA_FIM_DE_SEMANA = "Fim de semana"
@@ -74,10 +76,25 @@ class SessaoDoCliente:
 
 
 @dataclass(frozen=True)
+class HorarioDoDia:
+    data_hora: datetime
+    livre: bool
+
+
+@dataclass(frozen=True)
 class HorariosDoDia:
     data: date
     horarios: list[datetime]
     motivo: str | None
+    grade: list[HorarioDoDia] = field(default_factory=list)  # os 8 horários da RN08, livres e ocupados
+
+    @property
+    def manha(self) -> list[HorarioDoDia]:
+        return [h for h in self.grade if h.data_hora.hour < 12]
+
+    @property
+    def tarde(self) -> list[HorarioDoDia]:
+        return [h for h in self.grade if h.data_hora.hour >= 12]
 
 
 @dataclass(frozen=True)
@@ -112,6 +129,15 @@ def validar_sessao_remarcavel(status: StatusSessao, data_hora: datetime, agora: 
     bloqueio = _bloqueio(status, data_hora, agora)
     if bloqueio:
         raise RemarcacaoInvalida(bloqueio[1])
+
+
+def texto_troca(atual: datetime, novo: datetime | None = None) -> str:
+    escolhido = f" ({texto_sessao(novo)})" if novo else ""
+    return f"Você vai trocar a consulta de {texto_sessao(atual)} pelo horário escolhido{escolhido}."
+
+
+def texto_nada_alterado(atual: datetime) -> str:
+    return f"Nada foi alterado. A consulta continua na {texto_sessao(atual)}."
 
 
 def janela(agora: datetime) -> tuple[date, date]:
@@ -179,7 +205,10 @@ def horarios_livres(db: Session, sessao: SessaoDoCliente, dia: date, agora: date
             db, sessao.funcionario_id, candidatos[0], candidatos[-1], agora, ignorar_sessao_id=sessao.id
         )
         livres = [c for c in candidatos if not plano_service.comparar_conflitos([c], ocupados)]
-    return HorariosDoDia(dia, livres, None if livres else DIA_SEM_HORARIOS)
+    # Já passou, é o horário atual da consulta ou conflita (RN01): tudo aparece como "ocupado", como no JS
+    grade = [HorarioDoDia(datetime.combine(dia, time(hora)), datetime.combine(dia, time(hora)) in livres)
+             for hora in HORARIOS_ATENDIMENTO]
+    return HorariosDoDia(dia, livres, None if livres else DIA_SEM_HORARIOS, grade)
 
 
 def ultima_remarcacao(db: Session, sessao_id: int) -> HistoricoRemarcacao | None:
