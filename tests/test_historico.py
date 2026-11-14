@@ -128,12 +128,13 @@ def cenario(db, fono, pedro):
     return avaliacao
 
 
+# Semana 8 (14/11): linhas compactas "hist-linha" no lugar de "consulta-item"
 def _itens(html: str) -> list[str]:
-    return re.findall(r'<li class="consulta-item.*?</li>', html)
+    return re.findall(r'<li class="hist-linha.*?</li>', html)
 
 
 def _item_do_dia(html: str, quando: datetime) -> str:
-    data = re.compile(rf'consulta-data">[^<]*<span class="font-monospace-num">{quando:%d/%m/%Y}<')
+    data = re.compile(rf'hist-data">[^<]*<span class="font-monospace-num">{quando:%d/%m/%Y}<')
     [item] = [i for i in _itens(html) if data.search(i)]
     return item
 
@@ -195,8 +196,9 @@ def test_seletor_so_aparece_com_mais_de_um_atendido(db, logado, cliente, pedro):
     ana = criar_paciente(db, cliente.id, nome="Ana Souza")
     html = _html(logado.get(f"/historico?atendido={pedro.id}"))
     assert 'aria-label="Escolher o atendido"' in html
-    assert f'href="/historico?atendido={ana.id}" class="btn btn-sm btn-outline-primary"' in html
-    assert re.search(rf'href="/historico\?atendido={pedro.id}" class="btn btn-sm btn-primary"\s*aria-current="page"', html)
+    # Semana 8: pílulas (rounded-pill) com a idade
+    assert f'href="/historico?atendido={ana.id}" class="btn btn-sm rounded-pill btn-outline-primary"' in html
+    assert re.search(rf'href="/historico\?atendido={pedro.id}" class="btn btn-sm rounded-pill btn-primary"\s*aria-current="page"', html)
     assert "Todos" not in html
 
 
@@ -219,7 +221,9 @@ def test_tres_status_com_selo_correto(logado, cenario):
     assert 'status-pendente">Aguardando pagamento' in _item_do_dia(html, PENDENTE_FUTURA)
     assert 'status-ativo">Agendada' in _item_do_dia(html, AGENDADA_FUTURA)
     assert 'status-inativo">Realizada' in _item_do_dia(html, REALIZADA_COM_AVALIACAO)
-    assert 'status-inativo">Realizada' in _item_do_dia(html, NAO_COMPARECEU)
+    # Semana 8: "Não compareceu" é selo próprio, no lugar de "Realizada"
+    assert 'status-nao-compareceu">Não compareceu' in _item_do_dia(html, NAO_COMPARECEU)
+    assert 'status-inativo">Realizada' not in _item_do_dia(html, NAO_COMPARECEU)
 
 
 def test_selo_remarcada_so_na_sessao_remarcada(logado, cenario):
@@ -230,13 +234,14 @@ def test_selo_remarcada_so_na_sessao_remarcada(logado, cenario):
 
 def test_mostra_profissional_e_especialidade(logado, cenario):
     item = _item_do_dia(_html(logado.get("/historico")), AGENDADA_FUTURA)
-    assert "Carlos Fono" in item and 'chip-especialidade">Fonoaudiologia' in item
+    assert "<strong>Fonoaudiologia</strong> com Carlos Fono" in item  # Semana 8: linha compacta, sem chip
 
 
 def test_link_da_avaliacao_so_para_realizada_com_arquivo(logado, cenario):
     html = _html(logado.get("/historico"))
     item = _item_do_dia(html, REALIZADA_COM_AVALIACAO)
-    assert "Avaliação disponível" in item and "Liberada em" in item and "28/10/2026" in item
+    # Semana 8: selo "Realizada" + "Ver avaliação" + "Liberada em" (sem o selo "Avaliação disponível")
+    assert 'status-inativo">Realizada' in item and "Liberada em" in item and "28/10/2026" in item
     assert f'href="/avaliacoes/{cenario.id}/arquivo" target="_blank" rel="noopener"' in item
     assert html.count("/avaliacoes/") == 1 and html.count("Ver avaliação") == 1
 
@@ -268,15 +273,15 @@ def test_aguardando_registro_so_para_agendada_ja_encerrada(logado, cenario):
 
 def test_ordem_da_mais_recente_para_a_mais_antiga(logado, cenario):
     html = _html(logado.get("/historico"))
-    datas = [datetime.strptime(m, "%d/%m/%Y") for m in re.findall(r'consulta-data">[^<]*<span class="font-monospace-num">([\d/]+)', html)]
+    datas = [datetime.strptime(m, "%d/%m/%Y") for m in re.findall(r'hist-data">[^<]*<span class="font-monospace-num">([\d/]+)', html)]
     assert datas == sorted(datas, reverse=True) and len(datas) == 6
 
 
 def test_resumo_com_as_contagens(db, logado, cliente, pedro, cenario):
     html = _html(logado.get("/historico"))
-    resumo = re.search(r'<ul class="historico-resumo.*?</ul>', html).group(0)
+    resumo = re.search(r'<ul class="hist-resumo.*?</ul>', html).group(0)
     textos = re.sub(r"<[^>]+>", "", resumo)
-    assert "2 realizadas" in textos
+    assert "2 consultas realizadas" in textos
     assert "3 agendadas" in textos  # aguardando registro, em andamento e a futura remarcada
     assert "1 aguardando pagamento" in textos
     assert "1 avaliação disponível" in textos
@@ -288,14 +293,14 @@ def test_paginacao_de_20_em_20(db, logado, fono, pedro):
     inicio = datetime(2026, 6, 1, 9, 0)
     criar_plano(db, pedro, fono, [(inicio + timedelta(days=i), REALIZADA) for i in range(21)])
     primeira = _html(logado.get("/historico"))
-    assert len(_itens(primeira)) == 20 and "Página 1 de 2" in primeira
+    assert len(_itens(primeira)) == 20 and "Consultas 1 a 20 de 21" in primeira
     assert f"/historico?atendido={pedro.id}&amp;pagina=2" in primeira
     assert "21/06/2026" in primeira and "01/06/2026" not in primeira
     segunda = _html(logado.get(f"/historico?atendido={pedro.id}&pagina=2"))
-    assert len(_itens(segunda)) == 1 and "01/06/2026" in segunda and "Página 2 de 2" in segunda
-    assert "21 realizadas" in re.sub(r"<[^>]+>", "", segunda)  # o resumo conta o atendido inteiro, não só a página
+    assert len(_itens(segunda)) == 1 and "01/06/2026" in segunda and "Consultas 21 a 21 de 21" in segunda
+    assert "21 consultas realizadas" in re.sub(r"<[^>]+>", "", segunda)  # o resumo conta o atendido inteiro, não só a página
     alem = _html(logado.get(f"/historico?atendido={pedro.id}&pagina=9"))
-    assert "Página 2 de 2" in alem and len(_itens(alem)) == 1
+    assert "Consultas 21 a 21 de 21" in alem and len(_itens(alem)) == 1
 
 
 def test_pagina_invalida_volta_para_a_primeira(db, logado, fono, pedro):
@@ -311,8 +316,9 @@ def test_pagina_fora_do_intervalo_nunca_zera_o_resumo(db, logado, fono, pedro, v
     assert resposta.status_code == 200
     html = _html(resposta)
     texto = re.sub(r"<[^>]+>", "", html)
-    assert f"Página {pagina_esperada} de 2" in html and len(_itens(html)) == itens
-    assert "21 realizadas" in texto and "Ainda não há consultas" not in html
+    primeira = (pagina_esperada - 1) * 20 + 1
+    assert f"Consultas {primeira} a {primeira + itens - 1} de 21" in html and len(_itens(html)) == itens
+    assert "21 consultas realizadas" in texto and "Ainda não há consultas" not in html
 
 
 # --- Estados vazios ----------------------------------------------------------------------------
@@ -326,8 +332,8 @@ def test_cliente_sem_atendidos(logado):
 def test_atendido_sem_consultas(logado, pedro):
     html = _html(logado.get("/historico"))
     assert "Ainda não há consultas para Pedro Souza" in html
-    assert 'href="/especialidades" class="btn btn-primary">Contratar plano' in html
-    assert "historico-resumo" not in html
+    assert f'href="/especialidades?atendido={pedro.id}" class="btn btn-primary">Contratar plano para Pedro' in html
+    assert "hist-resumo" not in html
 
 
 # --- Privacidade (RNF09) ------------------------------------------------------------------------
@@ -403,7 +409,7 @@ def test_integracao_registro_historico_e_download(db, client, cliente, fono, ped
 
     logar(client, cliente.email)
     item = _item_do_dia(_html(client.get("/historico")), datetime(2026, 10, 28, 14, 0))
-    assert "Avaliação disponível" in item and f'href="/avaliacoes/{avaliacao_id}/arquivo"' in item
+    assert "Ver avaliação" in item and f'href="/avaliacoes/{avaliacao_id}/arquivo"' in item
     download = client.get(f"/avaliacoes/{avaliacao_id}/arquivo")
     assert download.status_code == 200 and download.content == PDF
     assert download.headers["content-disposition"].startswith("inline;")

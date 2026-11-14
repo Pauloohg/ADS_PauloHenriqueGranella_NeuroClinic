@@ -78,7 +78,7 @@ def test_post_perfil_atualiza_e_reflete_na_tela(client, db):
     resposta = client.post("/perfil", data=FORM, follow_redirects=False)
     assert resposta.status_code == 303
     html = client.get(resposta.headers["location"]).text
-    assert "Dados atualizados com sucesso." in html
+    assert "Dados salvos." in html  # Semana 8
     assert f'value="{CPF_VALIDO}"' in html
     assert 'value="maria.nova@exemplo.com"' in html
 

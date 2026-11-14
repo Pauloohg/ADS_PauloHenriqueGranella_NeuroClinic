@@ -465,3 +465,21 @@ def test_regras_da_consulta_atual_tem_divisoria_visivel():
     corpo = re.search(r"(?m)^\.remarcar-regras\s*\{([^}]*)\}", CSS).group(1)
     borda = re.search(r"border-top:\s*\d+px solid (var\(--[\w-]+\));", corpo).group(1)
     assert razao_contraste(_cor(borda), BRANCO) >= 3
+
+
+# --- Histórico e Meu perfil do Cliente (refinamento da Semana 8, RF10 e RF02) ----------------------------
+
+@pytest.mark.parametrize("seletor", [".hist-resumo li", ".hist-resumo strong", ".hist-data", ".hist-hora", ".hist-quem",
+                                     ".hist-liberada", ".senha-cancelar"])
+def test_textos_do_historico_e_da_senha_no_branco(seletor):
+    assert razao_contraste(_propriedade(seletor, "color"), BRANCO) >= 4.5
+
+
+def test_destaque_das_avaliacoes_e_divisor_hoje():
+    fundo = _propriedade(".hist-resumo-destaque", "background-color")
+    assert razao_contraste(_propriedade(".hist-resumo li", "color"), fundo) >= 4.5
+    assert razao_contraste(_propriedade(".hist-resumo strong", "color"), fundo) >= 4.5
+    fundo_hoje, texto_hoje = _cores_da_regra(".hist-hoje")
+    assert razao_contraste(texto_hoje, fundo_hoje) >= 4.5
+    assert "border-top: 1px solid var(--cor-borda-campo);" in re.search(r"(?m)^\.hist-hoje\s*\{([^}]*)\}", CSS).group(1)
+    assert razao_contraste(_variavel("cor-borda-campo"), fundo_hoje) >= 3

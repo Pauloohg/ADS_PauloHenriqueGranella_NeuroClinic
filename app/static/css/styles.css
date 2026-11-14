@@ -5279,3 +5279,205 @@
     background-color: var(--bs-primary);
     color: #fff;
 }
+
+/* Remarcar: frase e botão só com um horário LIVRE marcado (ocupado é disabled e nunca fica marcado); vale também para o JS */
+#form-remarcar:not(:has(input[name="novo_horario"]:checked:not(:disabled))) .remarcar-troca,
+#form-remarcar:not(:has(input[name="novo_horario"]:checked:not(:disabled))) #btn-confirmar {
+    display: none;
+}
+
+/* --- Histórico do Cliente: refinamento da Semana 8 (RF10) ---------------------------------------------- */
+
+.hist-atendidos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.hist-idade {
+    font-size: 0.85em;
+    opacity: 0.85;
+}
+
+.hist-resumo {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+    border-radius: 1rem;
+    background-color: #fff;
+    box-shadow: var(--bs-box-shadow-sm);
+    overflow: hidden;
+}
+
+.hist-resumo li {
+    display: flex;
+    flex-direction: column;
+    padding: 0.85rem 1.1rem;
+    color: var(--cor-aviso-salvia-texto);
+    font-size: 0.9rem;
+}
+
+.hist-resumo li + li {
+    border-left: 1px solid var(--cor-fundo-creme);
+}
+
+.hist-resumo strong {
+    font-family: "Lora", Georgia, serif;
+    font-size: 1.5rem;
+    color: var(--cor-texto-escuro);
+}
+
+.hist-resumo-destaque {
+    background-color: var(--cor-aviso-salvia-fundo);
+    font-weight: 600;
+}
+
+.hist-pagar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+}
+
+.hist-lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-radius: 1rem;
+    background-color: #fff;
+    box-shadow: var(--bs-box-shadow-sm);
+    overflow: hidden;
+}
+
+.hist-linha {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem 1.25rem;
+    padding: 0.75rem 1.1rem;
+    border-left: 4px solid var(--esp-cor, var(--bs-primary));
+}
+
+.hist-linha + .hist-linha,
+.hist-hoje + .hist-linha {
+    border-top: 1px solid var(--cor-fundo-creme);
+}
+
+.hist-quando {
+    display: flex;
+    flex-direction: column;
+}
+
+.hist-data {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.hist-hora {
+    font-size: 0.85rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.hist-quem {
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.hist-quem strong {
+    color: var(--cor-texto-escuro);
+}
+
+.hist-estado {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    text-align: right;
+}
+
+.hist-liberada {
+    font-size: 0.8rem;
+    color: var(--cor-aviso-salvia-texto);
+}
+
+.hist-hoje {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 1.1rem;
+    border-top: 1px solid var(--cor-borda-campo);
+    background-color: var(--cor-fundo-creme);
+    color: var(--cor-texto-escuro);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.hist-hoje::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--cor-borda-campo);
+}
+
+.hist-paginacao {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.hist-paginacao-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .hist-resumo {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hist-resumo li:nth-child(3) {
+        border-left: 0;
+    }
+
+    .hist-resumo li:nth-child(n + 3) {
+        border-top: 1px solid var(--cor-fundo-creme);
+    }
+
+    .hist-linha {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hist-estado {
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+/* --- Meu perfil e Alterar senha: refinamento da Semana 8 (RF02) -------------------------------------- */
+
+.perfil-coluna {
+    max-width: 44rem;
+}
+
+.perfil-senha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+}
+
+.senha-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+}
+
+.senha-cancelar {
+    font-weight: 600;
+    color: var(--bs-primary);
+}

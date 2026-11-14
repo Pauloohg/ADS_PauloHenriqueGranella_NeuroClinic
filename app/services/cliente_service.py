@@ -48,3 +48,10 @@ def atualizar_perfil(db: Session, usuario: Usuario, dados: PerfilClienteAtualiza
     cliente.cpf = dados.cpf
     db.commit()
     return cliente
+
+
+def texto_dados_faltando(telefone: str | None, cpf: str | None) -> str | None:
+    faltam = [nome for nome, valor in (("o telefone", telefone), ("o CPF", cpf)) if not (valor or "").strip()]
+    if not faltam:
+        return None
+    return f"{'Falta' if len(faltam) == 1 else 'Faltam'} {' e '.join(faltam)} para pagar um plano"

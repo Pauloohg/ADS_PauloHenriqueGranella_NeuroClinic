@@ -95,7 +95,7 @@
 {% endif %}
 
 {% elif proximas and aguardando_pagamento %}
-<p class="cons-nota" id="sem-confirmadas">Nenhuma consulta confirmada ainda. As sessões abaixo aguardam o pagamento do plano.</p>
+<p class="cons-nota" id="sem-confirmadas">{{ "Nenhuma consulta próxima." if r.total_anteriores else "Nenhuma consulta confirmada ainda." }} As sessões abaixo aguardam o pagamento do plano.</p>
 
 {% else %}
 <section class="cartao estado-vazio" id="consultas-vazio">
@@ -107,6 +107,10 @@
     <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
     <p class="text-muted">Para contratar um plano, comece cadastrando a pessoa que será atendida.</p>
     <a href="/pacientes/novo" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Cadastrar atendido</a>
+    {% elif r.total_anteriores %}
+    <h2 class="titulo-serifa h5">Nenhuma consulta próxima.</h2>
+    <p class="text-muted">As consultas que já aconteceram estão em <a href="/consultas?{{ dict(aba='anteriores', **parametros_filtro) | urlencode }}">Anteriores</a>.</p>
+    <a href="/especialidades{% if filtro %}?atendido={{ filtro.id }}{% endif %}" class="btn btn-primary">Contratar plano</a>
     {% elif filtro_sem_plano %}
     <h2 class="titulo-serifa h5">Nenhuma consulta marcada</h2>
     <p class="text-muted">{{ filtro.nome }} ainda não tem plano. Quando você contratar e pagar, as sessões aparecem aqui.</p>
@@ -123,7 +127,7 @@
 {% set total_pendentes = aguardando_pagamento | sum(attribute="resumo.total_sessoes") %}
 <section class="ini-pagar cons-pagar" id="aviso-pagamento-pendente" aria-labelledby="titulo-aviso-pendente">
     <h2 class="ini-pagar-titulo" id="titulo-aviso-pendente">{{ total_pendentes }} {{ "sessão aguardando pagamento" if total_pendentes == 1 else "sessões aguardando pagamento" }}</h2>
-    <p class="mb-1">Elas ficam confirmadas, e podem ser remarcadas, depois que o pagamento do plano for recebido.</p>
+    <p class="mb-1">Elas ficam confirmadas e podem ser remarcadas depois que o pagamento do plano for recebido.</p>
     <ul class="ini-pagar-lista">
         {% for p in aguardando_pagamento %}
         {% set n = p.resumo.total_sessoes %}

@@ -1,5 +1,5 @@
 {% extends "_interno.html" %}
-{% from "_formulario.html" import campo, alertas, voltar with context %}
+{% from "_formulario.html" import campo, alertas, voltar, resumo_erros with context %}
 
 {% block title %}Alterar senha — NeuroClinic{% endblock %}
 {% block voltar %}{% if usuario and usuario.tipo.value == "cliente" %}{{ voltar("/perfil", "Meu perfil") }}{% endif %}{% endblock %}
@@ -9,11 +9,16 @@
 {% block conteudo %}
 <section class="cartao cartao-formulario">
     {{ alertas("Senha alterada com sucesso. Use a nova senha no próximo acesso." if sucesso else none, erro) }}
+    {{ resumo_erros(titulo_erros, rotulos) }}
     <form method="post" action="/conta/alterar-senha" novalidate>
         {{ campo("senha_atual", "Senha atual", tipo="password", autocomplete="current-password") }}
         {{ campo("nova_senha", "Nova senha", tipo="password", autocomplete="new-password", ajuda="Mínimo de 8 caracteres.") }}
         {{ campo("confirmacao_senha", "Confirme a nova senha", tipo="password", autocomplete="new-password") }}
-        <button type="submit" class="btn btn-primary">Alterar senha</button>
+        <div class="senha-acoes">
+            <button type="submit" class="btn btn-primary">Alterar senha</button>
+            {# "/" é a tela inicial de cada perfil (Cliente, Profissional e Admin) #}
+            <a href="/" class="senha-cancelar" id="link-cancelar">Cancelar</a>
+        </div>
     </form>
     <p class="small text-muted mt-3 mb-0">Esqueceu a senha atual? Saia da conta e use “Esqueci minha senha” na tela de login.</p>
 </section>

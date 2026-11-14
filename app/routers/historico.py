@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.core.ids import inteiro_positivo
 from app.core.templating import templates
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, get_usuario_por_tipo
 from app.services import consultas_service, paciente_service, plano_service
-from app.services.admin_clientes_service import interpretar_pagina
+from app.services.admin_clientes_service import calcular_idade, interpretar_pagina
 
 somente_cliente = get_usuario_por_tipo(TipoUsuario.CLIENTE)
 
@@ -19,7 +20,8 @@ def _atendido_escolhido(atendidos: list, atendido: str | None):
     if atendido is None:
         return atendidos[0] if atendidos else None
     # Atendido de outro Cliente ou inexistente responde igual (404), para não revelar que o id existe
-    escolhido = next((a for a in atendidos if str(a.id) == atendido.strip()), None)
+    numero = inteiro_positivo(atendido)
+    escolhido = next((a for a in atendidos if a.id == numero), None) if numero is not None else None
     if escolhido is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atendido não encontrado.")
     return escolhido
@@ -38,15 +40,19 @@ def historico(
     plano_service.remover_planos_vencidos(db, agora)
     atendidos = paciente_service.listar_do_cliente(db, usuario.id)
     escolhido = _atendido_escolhido(atendidos, atendido)
-    resultado = None
+    resultado = pendencia = None
     if escolhido is not None:
         resultado = consultas_service.historico_do_atendido(
             db, usuario.id, escolhido.id, agora, interpretar_pagina(pagina),
         )
+        pendencia = consultas_service.pendencia_do_atendido(db, usuario.id, escolhido.id, agora)
     contexto = {
         "usuario": usuario,
         "atendidos": atendidos,
+        "idades": {a.id: calcular_idade(a.data_nascimento, agora.date()) for a in atendidos},
         "escolhido": escolhido,
         "resultado": resultado,
+        "pendencia": pendencia,
+        "hoje": agora.date(),
     }
     return templates.TemplateResponse(request, TEMPLATE_HISTORICO, contexto)

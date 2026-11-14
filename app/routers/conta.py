@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.core.templating import templates
+from app.core.templating import resumo_corrija, templates
 from app.db.session import get_db
 from app.models.usuario import Usuario
 from app.routers.auth import erros_por_campo, get_usuario_atual
@@ -16,11 +16,14 @@ router = APIRouter(prefix="/conta", tags=["conta"])
 
 TEMPLATE_ALTERAR_SENHA = "conta/alterar_senha.html"
 MSG_SENHA_ATUAL_INCORRETA = "A senha atual está incorreta."
+ROTULOS_CAMPOS_SENHA = {"senha_atual": "Senha atual", "nova_senha": "Nova senha", "confirmacao_senha": "Confirme a nova senha"}
 
 
 @router.get("/alterar-senha")
 def alterar_senha_form(request: Request, usuario: Usuario = Depends(get_usuario_atual)):
-    contexto = {"usuario": usuario, "erros": {}, "sucesso": request.query_params.get("ok") == "1"}
+    contexto = {
+        "usuario": usuario, "erros": {}, "rotulos": ROTULOS_CAMPOS_SENHA, "sucesso": request.query_params.get("ok") == "1",
+    }
     return templates.TemplateResponse(request, TEMPLATE_ALTERAR_SENHA, contexto)
 
 
@@ -42,7 +45,8 @@ def alterar_senha(
         erros = {"senha_atual": MSG_SENHA_ATUAL_INCORRETA}
     else:
         return RedirectResponse("/conta/alterar-senha?ok=1", status_code=status.HTTP_303_SEE_OTHER)
-    return templates.TemplateResponse(
-        request, TEMPLATE_ALTERAR_SENHA, {"usuario": usuario, "erros": erros},
-        status_code=status.HTTP_400_BAD_REQUEST,
-    )
+    contexto = {
+        "usuario": usuario, "erros": erros, "rotulos": ROTULOS_CAMPOS_SENHA,
+        "titulo_erros": resumo_corrija(len(erros), "A senha não foi alterada."),
+    }
+    return templates.TemplateResponse(request, TEMPLATE_ALTERAR_SENHA, contexto, status_code=status.HTTP_400_BAD_REQUEST)

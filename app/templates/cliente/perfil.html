@@ -1,38 +1,40 @@
 {% extends "_interno.html" %}
-{% from "_formulario.html" import campo, alertas with context %}
+{% from "_formulario.html" import campo, alertas, resumo_erros with context %}
 
 {% block title %}Meu perfil — NeuroClinic{% endblock %}
 {% block titulo_pagina %}Meu perfil{% endblock %}
-{% block subtitulo_pagina %}Mantenha seus dados de contato atualizados.{% endblock %}
+{% block subtitulo_pagina %}Seus dados de contato e a senha da conta.{% endblock %}
 
 {% block conteudo %}
-<div class="row g-4">
-    <div class="col-lg-7 col-xl-6">
-        <section class="cartao">
-            <h2 class="cartao-titulo">Dados cadastrais</h2>
-            {{ alertas("Dados atualizados com sucesso." if sucesso else none, erro) }}
-            <form method="post" action="/perfil" novalidate>
-                {{ campo("nome", "Nome completo", autocomplete="name") }}
-                {{ campo("email", "E-mail", tipo="email", autocomplete="email") }}
-                <div class="row g-3">
-                    <div class="col-sm-6">{{ campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") }}</div>
-                    <div class="col-sm-6">{{ campo("cpf", "CPF", obrigatorio=False, ajuda="Será exigido na contratação de um plano.", atributos={"inputmode": "numeric", "placeholder": "000.000.000-00"}) }}</div>
-                </div>
-                <button type="submit" class="btn btn-primary">Salvar alterações</button>
-            </form>
-        </section>
+<div class="perfil-coluna">
+    {{ alertas("Dados salvos." if sucesso else none, erro) }}
+    {% if dados_faltando and not erros %}
+    <div class="ini-pagar perfil-faltando" role="note" id="perfil-faltando">
+        <p class="ini-pagar-titulo">{{ dados_faltando }}</p>
+        <p class="mb-0">Você já pode escolher e reservar um plano. A cobrança precisa desses dados: preencha o que falta abaixo.</p>
     </div>
-    <div class="col-lg-5 col-xl-4">
-        <section class="cartao">
-            <h2 class="cartao-titulo">Segurança</h2>
-            <p class="text-muted small">Para trocar a senha, você confirma a senha atual e escolhe uma nova.</p>
-            <a href="/conta/alterar-senha" class="btn btn-outline-primary"><i class="bi bi-key me-1"></i>Alterar senha</a>
-        </section>
-        <section class="cartao mt-4">
-            <h2 class="cartao-titulo">Atendidos</h2>
-            <p class="text-muted small">As pessoas atendidas pela clínica ficam cadastradas como atendidos vinculados à sua conta.</p>
-            <a href="/pacientes" class="btn btn-outline-primary"><i class="bi bi-people me-1"></i>Ver atendidos</a>
-        </section>
-    </div>
+    {% endif %}
+
+    <section class="cartao mb-4" aria-labelledby="titulo-seus-dados">
+        <h2 class="cartao-titulo" id="titulo-seus-dados">Seus dados</h2>
+        {{ resumo_erros(titulo_erros, rotulos) }}
+        <form method="post" action="/perfil" novalidate>
+            {{ campo("nome", "Nome completo", autocomplete="name") }}
+            {{ campo("email", "E-mail", tipo="email", autocomplete="email", ajuda="É o e-mail que você usa para entrar.", atributos={"inputmode": "email"}) }}
+            <div class="row g-3">
+                <div class="col-sm-6">{{ campo("telefone", "Telefone com DDD", tipo="tel", autocomplete="tel", atributos={"inputmode": "tel"}) }}</div>
+                <div class="col-sm-6">{{ campo("cpf", "CPF", obrigatorio=False, autocomplete="off", ajuda="Opcional agora, obrigatório para gerar a cobrança.", atributos={"inputmode": "numeric"}) }}</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar alterações</button>
+        </form>
+    </section>
+
+    <section class="cartao" aria-labelledby="titulo-senha">
+        <h2 class="cartao-titulo" id="titulo-senha">Senha</h2>
+        <div class="perfil-senha">
+            <p class="text-muted mb-0">Para trocar a senha, você confirma a atual e escolhe uma nova.</p>
+            <a href="/conta/alterar-senha" class="btn btn-outline-primary"><i class="bi bi-key me-1" aria-hidden="true"></i>Alterar senha</a>
+        </div>
+    </section>
 </div>
 {% endblock %}

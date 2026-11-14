@@ -9,10 +9,12 @@ from app.core.templating import NOMES_MESES
 from app.models.avaliacao import Avaliacao
 from app.models.especialidade import Especialidade
 from app.models.paciente import Paciente
+from app.models.pagamento import Pagamento
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
 from app.models.usuario import Usuario
 from app.services.admin_clientes_service import POR_PAGINA
+from app.services.contratacao_service import TextoPrazo, texto_prazo_pagamento
 from app.services.inicio_cliente_service import PagamentoPendente, pagamentos_pendentes, quando_em_dias
 from app.services.inicio_service import ResumoPlano, planos_do_cliente
 from app.services.plano_service import DURACAO_SESSAO
@@ -212,6 +214,58 @@ class PaginaHistorico:
     total_paginas: int
     total: int
     resumo: ResumoHistorico
+    futuras: int = 0
+
+    @property
+    def primeira(self) -> int:
+        return (self.pagina - 1) * POR_PAGINA + 1 if self.consultas else 0
+
+    @property
+    def ultima(self) -> int:
+        return (self.pagina - 1) * POR_PAGINA + len(self.consultas)
+
+    @property
+    def indice_hoje(self) -> int | None:
+        return posicao_do_divisor(self.futuras, self.total, self.pagina, len(self.consultas))
+
+
+@dataclass(frozen=True)
+class PendenciaPagamento:
+    plano_id: int
+    sessoes: int
+    prazo: TextoPrazo
+
+
+def posicao_do_divisor(futuras: int, total: int, pagina: int, na_pagina: int) -> int | None:
+    # Ordem decrescente: as `futuras` ocupam as posições 0..futuras-1; o "Hoje" fica antes da posição `futuras`
+    if not 0 < futuras < total:
+        return None
+    inicio = (pagina - 1) * POR_PAGINA
+    return futuras - inicio if inicio <= futuras < inicio + na_pagina else None
+
+
+def escolher_pendencia(linhas, agora: datetime) -> PendenciaPagamento | None:
+    validas = []
+    for plano_id, criado_em, data_inicio, forma, sessoes in linhas:
+        prazo = texto_prazo_pagamento(criado_em, data_inicio, forma, agora)
+        if prazo.prazo >= agora:  # RN09: prazo vencido não pede pagamento
+            validas.append((prazo, plano_id, sessoes))
+    if not validas:
+        return None
+    prazo, plano_id, _ = min(validas, key=lambda v: (v[0].prazo, v[1]))
+    return PendenciaPagamento(plano_id, sum(v[2] for v in validas), prazo)
+
+
+def pendencia_do_atendido(db: Session, cliente_id: int, paciente_id: int, agora: datetime) -> PendenciaPagamento | None:
+    linhas = db.execute(
+        select(Plano.id, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento, func.count(Sessao.id))
+        .join(Paciente, Paciente.id == Plano.paciente_id)
+        .join(Sessao, (Sessao.plano_id == Plano.id) & (Sessao.status == StatusSessao.PENDENTE_PAGAMENTO))
+        .outerjoin(Pagamento, Pagamento.plano_id == Plano.id)
+        .where(Plano.paciente_id == paciente_id, Paciente.cliente_id == cliente_id)
+        .group_by(Plano.id, Plano.criado_em, Plano.data_inicio, Pagamento.forma_pagamento)
+    ).all()
+    return escolher_pendencia(linhas, agora)
 
 
 def _contar_no_total(condicao):
@@ -231,6 +285,7 @@ def historico_do_atendido(
         _contar_no_total(Sessao.status == StatusSessao.AGENDADA),
         _contar_no_total(Sessao.status == StatusSessao.PENDENTE_PAGAMENTO),
         _contar_no_total(Avaliacao.comparecimento.is_(True) & com_arquivo),
+        _contar_no_total(Sessao.data_hora >= agora),
     )
 
     def buscar(numero: int):
@@ -253,7 +308,7 @@ def historico_do_atendido(
 
     if not linhas:
         return PaginaHistorico([], pagina, 1, 0, ResumoHistorico())
-    total, realizadas, agendadas, pendentes, avaliacoes = (int(valor or 0) for valor in linhas[0][-5:])
+    total, realizadas, agendadas, pendentes, avaliacoes, futuras = (int(valor or 0) for valor in linhas[0][-6:])
     consultas = [
         ConsultaHistorico(
             id_, data_hora, data_hora + DURACAO_SESSAO, profissional, especialidade, status, bool(remarcada),
@@ -264,4 +319,4 @@ def historico_do_atendido(
              avaliacao_id, comparecimento, tem_arquivo, liberado_em, *_contagens) in linhas
     ]
     resumo = ResumoHistorico(realizadas, agendadas, pendentes, avaliacoes)
-    return PaginaHistorico(consultas, pagina, max(1, -(-total // POR_PAGINA)), total, resumo)
+    return PaginaHistorico(consultas, pagina, max(1, -(-total // POR_PAGINA)), total, resumo, futuras)

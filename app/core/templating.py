@@ -32,6 +32,11 @@ def titulo_do_resumo_de_erros(quantidade: int, editando: bool) -> str:
     return f"Revise {campos} antes de {'salvar' if editando else 'cadastrar'}."
 
 
+def resumo_corrija(quantidade: int, consequencia: str) -> str:
+    campos = "o campo indicado" if quantidade == 1 else f"os {quantidade} campos indicados"
+    return f"Corrija {campos}. {consequencia}"
+
+
 def moeda_fixa(valor: Decimal) -> str:
     return moeda(valor).replace(" ", " ")  # "R$" nunca fica sozinho no fim da linha
 

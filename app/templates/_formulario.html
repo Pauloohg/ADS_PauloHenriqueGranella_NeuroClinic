@@ -21,3 +21,16 @@
 {% macro voltar(href, rotulo) %}
 <a href="{{ href }}" class="pagina-voltar"><i class="bi bi-arrow-left me-1"></i>{{ rotulo }}</a>
 {% endmacro %}
+
+{% macro resumo_erros(titulo, rotulos) %}
+{% if titulo %}
+<div class="alert alert-danger prof-form-erros" role="alert" id="resumo-erros">
+    <p class="prof-form-erros-titulo"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ titulo }}</p>
+    <ul>
+        {% for nome, rotulo in rotulos.items() if nome in erros %}
+        <li><a href="#{{ nome }}">{{ rotulo }}</a>: {{ erros[nome] }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endmacro %}

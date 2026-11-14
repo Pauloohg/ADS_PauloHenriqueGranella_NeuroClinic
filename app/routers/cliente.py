@@ -14,7 +14,7 @@ from app.core.config import (
     PRAZO_PAGAMENTO_HORAS,
 )
 from app.core.ids import inteiro_positivo, ler_inteiro, ler_opcao
-from app.core.templating import moeda, templates, titulo_do_resumo_de_erros
+from app.core.templating import moeda, resumo_corrija, templates, titulo_do_resumo_de_erros
 from app.db.session import get_db
 from app.models.usuario import TipoUsuario, Usuario
 from app.routers.auth import agora_local, agora_utc, erros_por_campo, get_usuario_por_tipo
@@ -60,6 +60,7 @@ MSGS_DADO_EM_USO = {
     "cpf": "Este CPF já está cadastrado em outra conta.",
 }
 # Ordem dos campos no formulário: o resumo de erros no topo segue a mesma ordem
+ROTULOS_CAMPOS_PERFIL = {"nome": "Nome completo", "email": "E-mail", "telefone": "Telefone com DDD", "cpf": "CPF"}
 ROTULOS_CAMPOS_PACIENTE = {"nome": "Nome completo", "data_nascimento": "Data de nascimento"}
 MENSAGENS_PACIENTES = {
     "cadastrado": "Atendido cadastrado com sucesso.",
@@ -77,7 +78,10 @@ def _redirecionar(url: str) -> RedirectResponse:
 def perfil(request: Request, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)):
     cliente = cliente_service.obter_cliente(db, usuario)
     dados = {"nome": usuario.nome, "email": usuario.email, "telefone": cliente.telefone or "", "cpf": cliente.cpf or ""}
-    contexto = {"usuario": usuario, "dados": dados, "erros": {}, "sucesso": request.query_params.get("ok") == "1"}
+    contexto = {
+        "usuario": usuario, "dados": dados, "erros": {}, "sucesso": request.query_params.get("ok") == "1",
+        "rotulos": ROTULOS_CAMPOS_PERFIL, "dados_faltando": cliente_service.texto_dados_faltando(cliente.telefone, cliente.cpf),
+    }
     return templates.TemplateResponse(request, TEMPLATE_PERFIL, contexto)
 
 
@@ -105,10 +109,11 @@ def atualizar_perfil(
         return _redirecionar("/perfil?ok=1")
     for campo in em_uso:
         erros.setdefault(campo, MSGS_DADO_EM_USO[campo])
-    return templates.TemplateResponse(
-        request, TEMPLATE_PERFIL, {"usuario": usuario, "dados": dados_form, "erros": erros},
-        status_code=status.HTTP_400_BAD_REQUEST,
-    )
+    contexto = {
+        "usuario": usuario, "dados": dados_form, "erros": erros, "rotulos": ROTULOS_CAMPOS_PERFIL,
+        "titulo_erros": resumo_corrija(len(erros), "Nada foi salvo."),
+    }
+    return templates.TemplateResponse(request, TEMPLATE_PERFIL, contexto, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 # --- RF03: pacientes do Cliente ------------------------------------------------------------------
