@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy import event, select
 
+from app.core.fuso import local_para_utc
 from app.core.templating import MSG_SEM_PROFISSIONAIS
 from app.db.base import Base
 from app.models.funcionario import Funcionario
@@ -65,7 +66,8 @@ def _prof(db, especialidade, nome, desativado=False):
 
 
 def _sessoes(db, paciente, prof, sessoes):
-    return criar_plano(db, paciente, prof, sessoes)
+    # Reserva criada 1 h antes de AGORA (Pix no prazo): desde o B1 a tela do Admin remove reservas vencidas fora da carência
+    return criar_plano(db, paciente, prof, sessoes, criado_em=local_para_utc(AGORA - timedelta(hours=1)))
 
 
 def _html(resposta) -> str:
@@ -514,4 +516,5 @@ def test_lista_sem_n_mais_1(db, admin, fono, pedag, paciente):
                 _sessoes(db, paciente, prof, [(FUTURA + timedelta(days=d), AGENDADA) for d in range(3)])
     db.expire_all()
     _contar_sql(admin, db, "/admin/funcionarios")
-    assert _contar_sql(admin, db, "/admin/funcionarios") == poucos == 1
+    # 2 fixos: a busca de reservas vencidas (B1, sem DELETE quando não há nada a remover) e a lista agrupada
+    assert _contar_sql(admin, db, "/admin/funcionarios") == poucos == 2

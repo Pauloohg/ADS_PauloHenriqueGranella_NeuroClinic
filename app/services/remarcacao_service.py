@@ -164,9 +164,12 @@ def validar_novo_horario(atual: datetime, novo: datetime, agora: datetime) -> No
 
 def interpretar_horario(texto: str) -> datetime:
     try:
-        return datetime.fromisoformat(texto.strip())
+        novo = datetime.fromisoformat(texto.strip())
     except ValueError:
         raise RemarcacaoInvalida(MSG_ESCOLHA_HORARIO) from None
+    if novo.tzinfo is not None:  # fromisoformat aceita "+05:00" e "Z"; comparar com o agora sem fuso dava 500
+        raise RemarcacaoInvalida(MSG_ESCOLHA_HORARIO)
+    return novo
 
 
 def buscar_sessao_do_cliente(db: Session, cliente_id: int, sessao_id: int) -> SessaoDoCliente:

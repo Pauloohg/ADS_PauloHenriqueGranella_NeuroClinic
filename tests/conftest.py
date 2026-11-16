@@ -1,4 +1,26 @@
+import os
 from datetime import datetime, timezone
+
+# Antes de qualquer import do app: a variável de ambiente vence o .env, então a suíte não depende dele (DEBUG falso no .env derrubava 1003 testes)
+AMBIENTE_DOS_TESTES = {
+    "APP_NAME": "NeuroClinic",
+    "DEBUG": "True",
+    "DATABASE_URL": "postgresql+psycopg2://postgres:postgres@localhost:5432/neuroclinic",
+    "SECRET_KEY": "chave-fixa-dos-testes-nao-usar-em-producao-0123456789",
+    "ALGORITHM": "HS256",
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "480",
+    "RESET_TOKEN_EXPIRE_MINUTES": "30",
+    "ABACATEPAY_API_KEY": "",
+    "ABACATEPAY_BASE_URL": "https://api.abacatepay.com/v2",
+    "ABACATEPAY_WEBHOOK_SECRET": "",
+    "MAIL_USERNAME": "",
+    "MAIL_PASSWORD": "",
+    "MAIL_FROM": "no-reply@neuroclinic.example",
+    "MAIL_SERVER": "smtp.gmail.com",
+    "MAIL_PORT": "587",
+    "AVALIACOES_DIR": "dados/avaliacoes",
+}
+os.environ.update(AMBIENTE_DOS_TESTES)
 
 import httpx
 import pytest
@@ -15,6 +37,9 @@ from app.db.session import get_db
 from app.main import app as fastapi_app
 from app.services import abacatepay_client, pagamento_service
 from tests.abacatepay_falsa import CHAVE_API_TESTE, SECRET_WEBHOOK_TESTE, ApiFalsa
+
+# Campo novo em Settings sem valor acima voltaria a ser lido do .env: falha já na coleta
+assert set(type(settings).model_fields) == set(AMBIENTE_DOS_TESTES), "fixe no AMBIENTE_DOS_TESTES todo campo de Settings"
 
 
 @pytest.fixture(autouse=True)

@@ -313,6 +313,11 @@ def _dados_cobranca(evento: dict) -> tuple[str | None, object]:
     return transparente.get("id"), transparente.get("amount")
 
 
+def _id_de_cobranca_valido(valor) -> bool:
+    # Mesmo limite da coluna: número, lista, NUL ou texto gigante quebravam a consulta no PostgreSQL (500)
+    return isinstance(valor, str) and len(valor) <= Pagamento.abacatepay_payment_id.type.length and "\x00" not in valor
+
+
 def _valor_reais(valor_centavos) -> str:
     try:
         return moeda(Decimal(int(valor_centavos)) / 100)
@@ -394,6 +399,13 @@ def processar_evento(
     if evento.get("event") != EVENTO_PAGAMENTO_CONFIRMADO:
         return ResultadoWebhook("ignorado")
     cobranca_id, valor = _dados_cobranca(evento)
+    if cobranca_id not in (None, "") and not _id_de_cobranca_valido(cobranca_id):
+        # Só o tipo: o conteúdo pode ser enorme ou trazer caracteres que não devem ir para o log
+        logger.warning(
+            "Webhook %s com data.transparent.id inválido (tipo %s); nada foi confirmado.",
+            EVENTO_PAGAMENTO_CONFIRMADO, type(cobranca_id).__name__,
+        )
+        return ResultadoWebhook("desconhecido")
     if not cobranca_id:
         # Só os nomes das chaves: o corpo tem nome, e-mail e CPF do pagador
         logger.warning(

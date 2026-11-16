@@ -1,12 +1,13 @@
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
+from app.core.entrada import recusar_caractere_nul
 from app.core.paginas_erro import ErroInesperado, tratar_http_exception, tratar_validacao_sem_formulario
 from app.core.templating import templates
 from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, meus_atendidos, webhooks
@@ -16,7 +17,8 @@ if settings.DEBUG:
     # Sem isso o link de redefinição de senha (logado em auth_service) não aparece no console
     logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+# Dependência global: roda antes do login e do banco em toda rota (o PostgreSQL recusa o caractere NUL em texto)
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, dependencies=[Depends(recusar_caractere_nul)])
 
 # Fica por dentro do ServerErrorMiddleware: com DEBUG=True o handler de Exception do Starlette seria ignorado
 app.add_middleware(ErroInesperado)

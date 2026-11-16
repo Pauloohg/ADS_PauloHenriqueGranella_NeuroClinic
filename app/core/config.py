@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # Aplicação
     APP_NAME: str = "NeuroClinic"
-    DEBUG: bool = True
+    DEBUG: bool = False  # ligado só pelo .env: com True um 500 sem text/html devolve o traceback inteiro
 
     # Banco de dados (PostgreSQL)
     DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/neuroclinic"

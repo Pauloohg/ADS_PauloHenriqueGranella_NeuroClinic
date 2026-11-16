@@ -15,6 +15,7 @@ from app.schemas.especialidade import EspecialidadeCadastro, EspecialidadeValor
 from app.schemas.funcionario import CAMPOS_CONTATO, FuncionarioCadastro, FuncionarioEdicao
 from app.services import (
     admin_clientes_service, auth_service, especialidade_service, funcionario_service, inicio_service, painel_service,
+    plano_service,
 )
 
 somente_admin = get_usuario_por_tipo(TipoUsuario.ADMIN)
@@ -76,8 +77,15 @@ def _erro_por_parametro(request: Request, grupos) -> str | None:
     return modelo.format(nome=nomes[escolhido]) if modelo and escolhido in nomes else None
 
 
+def _agora_sem_reservas_vencidas(db: Session):
+    # RN05/RN07: reserva vencida fora da carência sai antes de contar consultas futuras (a limpeza só rodava nas telas do Cliente)
+    agora = agora_local()
+    plano_service.remover_planos_vencidos(db, agora)
+    return agora
+
+
 def _lista_funcionarios(request: Request, usuario: Usuario, db: Session, erro: str | None = None, status_code=200):
-    grupos = funcionario_service.listar_por_especialidade(db, agora_local())
+    grupos = funcionario_service.listar_por_especialidade(db, _agora_sem_reservas_vencidas(db))
     ativos = sum(g.ativos for g in grupos)
     desativados = sum(g.desativados for g in grupos)
     contexto = {
@@ -101,7 +109,7 @@ def _form_funcionario(request, usuario, db, dados, erros, funcionario=None, stat
     if funcionario:
         # O cartão mostra o que está SALVO: `funcionario` é lido do banco antes de qualquer alteração
         contexto["perfil"] = funcionario_service.perfil_publico(funcionario.usuario, funcionario.funcionario)
-        contexto["consultas_futuras"] = funcionario_service.contar_sessoes_futuras(db, funcionario.usuario.id, agora_local())
+        contexto["consultas_futuras"] = funcionario_service.contar_sessoes_futuras(db, funcionario.usuario.id, _agora_sem_reservas_vencidas(db))
     return templates.TemplateResponse(request, TEMPLATE_FUNCIONARIO_FORM, contexto, status_code=status_code)
 
 
@@ -189,7 +197,7 @@ def editar_funcionario(
         "registro_profissional": registro_profissional, "apresentacao": apresentacao,
     }
     try:
-        funcionario_service.atualizar(db, funcionario_id, FuncionarioEdicao(**dados_form), agora_local())
+        funcionario_service.atualizar(db, funcionario_id, FuncionarioEdicao(**dados_form), _agora_sem_reservas_vencidas(db))
     except ValidationError as exc:
         erros = erros_por_campo(exc.errors())
     except especialidade_service.EspecialidadeNaoEncontrada:
@@ -210,7 +218,7 @@ def confirmar_desativacao(
     resumo = _buscar_funcionario_ou_404(db, numero) if numero else None
     if resumo is None or not resumo.funcionario.ativo:
         raise _nao_encontrado("Profissional não encontrado.")
-    if funcionario_service.contar_sessoes_futuras(db, numero, agora_local()):
+    if funcionario_service.contar_sessoes_futuras(db, numero, _agora_sem_reservas_vencidas(db)):
         return _redirecionar(f"/admin/funcionarios?erro=sessoes-futuras&profissional={numero}")
     contexto = {
         "usuario": usuario,
@@ -226,7 +234,7 @@ def desativar_funcionario(
 ):
     resumo = _buscar_funcionario_ou_404(db, funcionario_id)
     try:
-        funcionario_service.desativar(db, funcionario_id, agora_local())
+        funcionario_service.desativar(db, funcionario_id, _agora_sem_reservas_vencidas(db))
     except funcionario_service.FuncionarioComSessoesFuturas:
         erro = MSG_FUNCIONARIO_COM_SESSOES.format(nome=resumo.usuario.nome)
         return _lista_funcionarios(request, usuario, db, erro, status.HTTP_409_CONFLICT)

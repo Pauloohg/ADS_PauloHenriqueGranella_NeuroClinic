@@ -11,3 +11,5 @@ docs/
 CLAUDE.md
 # Avaliações do RF09: documentos clínicos nunca vão para o Git
 dados/
+# Exploração adversarial da Semana 8: scripts e saídas locais (logs, PDFs de teste, resultados)
+scripts/exploracao/

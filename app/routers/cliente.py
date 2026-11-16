@@ -326,9 +326,12 @@ def disponibilidade(
 
 def _ler_horario(horario: str) -> time:
     try:
-        return time.fromisoformat(horario)
+        lido = time.fromisoformat(horario)
     except ValueError:
         raise plano_service.HorarioInvalido("Horário inválido.") from None
+    if lido.tzinfo is not None:  # time.fromisoformat aceita "14:00+05:00"; com fuso a simulação quebrava (500)
+        raise plano_service.HorarioInvalido("Horário inválido.")
+    return lido
 
 
 @router.get("/contratar/{funcionario_id}/simulacao")

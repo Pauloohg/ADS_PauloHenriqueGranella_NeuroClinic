@@ -1,7 +1,7 @@
 import re
 
 import pytest
-from fastapi.routing import APIRoute
+from fastapi.routing import iter_route_contexts
 
 from app import main
 from app.main import FORMULARIOS_POR_ROTA, app as fastapi_app
@@ -22,12 +22,19 @@ LINKS_POR_PERFIL = {
 }
 TODOS_OS_LINKS = {href for links in LINKS_POR_PERFIL.values() for href in links}
 
-# POST que não recebem dados digitados pelo usuário (só um botão de ação)
+# POST sem formulário HTML: só um botão de ação (logout, desativar, reativar) ou JSON da AbacatePay (webhook)
 POST_SEM_FORMULARIO = {
     "/logout",
     "/admin/funcionarios/{funcionario_id}/desativar",
     "/admin/funcionarios/{funcionario_id}/reativar",
+    "/webhooks/abacatepay",
 }
+MINIMO_DE_ROTAS_POST = 22  # quantidade real em 16/11; se a enumeração voltar vazia, a trava falha em vez de passar calada
+
+
+def _rotas_post() -> set[str]:
+    # No FastAPI 0.141 o include_router guarda um _IncludedRouter em app.routes; iter_route_contexts abre os routers incluídos
+    return {c.path for c in iter_route_contexts(fastapi_app.routes) if c.methods and "POST" in c.methods}
 
 
 def _menu(html: str) -> str:
@@ -89,12 +96,18 @@ def test_visitante_nao_ve_menu_de_perfil(client):
 
 
 def test_toda_rota_post_de_formulario_esta_em_formularios_por_rota():
-    rotas_post = {
-        rota.path for rota in fastapi_app.routes
-        if isinstance(rota, APIRoute) and "POST" in rota.methods and not rota.path.startswith("/_teste")
-    }
+    rotas_post = {rota for rota in _rotas_post() if not rota.startswith("/_teste")}
     faltando = rotas_post - POST_SEM_FORMULARIO - FORMULARIOS_POR_ROTA.keys()
     assert not faltando, f"rotas POST de formulário fora de FORMULARIOS_POR_ROTA: {faltando}"
+    excecoes_sem_rota = POST_SEM_FORMULARIO - rotas_post
+    assert not excecoes_sem_rota, f"exceções de POST_SEM_FORMULARIO que não correspondem a nenhuma rota: {excecoes_sem_rota}"
+
+
+def test_enumeracao_de_rotas_post_nao_esta_vazia():
+    rotas_post = sorted(_rotas_post())
+    assert len(rotas_post) >= MINIMO_DE_ROTAS_POST, (
+        f"a enumeração achou {len(rotas_post)} rotas POST (mínimo {MINIMO_DE_ROTAS_POST}): {rotas_post}"
+    )
 
 
 @pytest.mark.parametrize("template", sorted(set(FORMULARIOS_POR_ROTA.values())))

@@ -27,6 +27,7 @@ class TextoDeErro:
 
 TEXTO_404 = "Não encontramos o que você procurou. O endereço pode estar errado ou o conteúdo não está disponível para a sua conta."
 TEXTOS_POR_STATUS = {
+    400: TextoDeErro("Dados inválidos", "Os dados enviados contêm caracteres inválidos.", "bi-exclamation-triangle"),
     403: TextoDeErro("Acesso não permitido", "Esta página não está disponível para o seu tipo de conta.", "bi-shield-lock"),
     404: TextoDeErro("Página não encontrada", TEXTO_404, "bi-signpost-split"),
     405: TextoDeErro("Ação não permitida", "Não foi possível fazer isso por aqui.", "bi-slash-circle"),
