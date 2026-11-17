@@ -25,10 +25,11 @@ nacionais), Pytest.
 - Cadastro, login e redefinição de senha por e-mail (link válido por 30 minutos, uso único).
 - Página inicial com o bloco "Primeiros passos" (cadastrar o atendido, contratar um plano, pagar,
   acompanhar as sessões), a próxima sessão e os planos (ativo, aguardando pagamento, encerrado).
-- Perfil (nome, e-mail, telefone, CPF opcional) e alteração de senha.
+- Perfil (nome, e-mail, telefone, CPF opcional) e alteração de senha. O cadastro e o perfil avisam que o nome e o
+  telefone ficam visíveis para os profissionais que atendem a pessoa cadastrada.
 - Cadastro de um ou mais atendidos.
 - Consulta de especialidades e dos profissionais ativos de cada uma, com formação, registro
-  profissional, apresentação e contato quando o Admin os preencheu.
+  profissional, apresentação e contato quando o Admin ou o próprio profissional os preencheu.
 - Contratação e renovação de plano: escolha de especialidade, profissional, atendido, dia(s) e
   horário, frequência semanal e duração. O sistema simula as sessões, valida a disponibilidade, pula
   feriados nacionais e calcula o valor pela quantidade real de sessões, com desconto conforme a
@@ -46,6 +47,9 @@ nacionais), Pytest.
 
 **Profissional**
 - Login, página inicial (com a quantidade de consultas de hoje) e alteração de senha.
+- Meu perfil: o profissional edita a formação, o registro profissional, a apresentação e os contatos (telefone e e-mail
+  de contato) que o Cliente vê ao escolher o profissional. Nome, e-mail de acesso, especialidade e situação continuam
+  com o Admin; se os dois editarem os mesmos campos, vale a última gravação.
 - Agenda de atendimentos por dia, semana ou período (até 92 dias), com o atendido (nome e idade), a
   especialidade e a observação do plano; só aparecem consultas já confirmadas (pagas).
 - Registro do atendimento depois que a sessão termina: o profissional anexa a avaliação em PDF (até
@@ -53,8 +57,9 @@ nacionais), Pytest.
   confirmação no não comparecimento). A aba "A registrar" da
   agenda lista as consultas que esperam esse registro.
 - Meus atendidos: lista dos atendidos com consultas confirmadas com o profissional e, para cada um, o acompanhamento
-  (planos com progresso, consultas, avaliações que ele enviou). Mostra só o que é dele e nenhum dado do responsável
-  nem valores.
+  (planos com progresso, consultas, avaliações que ele enviou). Mostra só o que é dele, sem valores nem pagamento. No
+  detalhe do atendido aparecem o nome e o telefone do responsável, para contato; o e-mail e o CPF nunca aparecem, e o
+  contato não aparece na lista nem na agenda.
 
 **Admin**
 - Gestão de profissionais (cadastro, edição, desativação e reativação, com contato e formação
@@ -62,6 +67,13 @@ nacionais), Pytest.
 - Consulta dos clientes cadastrados, com seus atendidos e planos.
 - Painel gerencial: receita do mês, planos contratados, novos clientes, ranking de profissionais e
   desempenho por especialidade.
+
+**Em todo o sistema**
+- Páginas de erro amigáveis (403, 404, 405, 422 e 500) para quem usa o navegador, sem expor detalhes técnicos; os
+  endpoints JSON, o webhook e os testes recebem o mesmo status e o mesmo JSON de sempre. O 404 é igual para "não
+  existe" e "é de outro Cliente".
+- Entradas inválidas (caractere nulo em campo ou URL, data e hora com fuso, ids malformados) são recusadas com 400 ou
+  404 e uma mensagem clara, nunca com erro 500.
 
 ### Desconto por duração do plano (RN11)
 
@@ -87,10 +99,11 @@ em `app/core/config.py`.
 | 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Concluída |
 | 6 | RF07 (remarcação) | Concluída |
 | 7 | RF09 (avaliações), RF10 (histórico) e acompanhamento dos atendidos pelo profissional | Concluída |
-| 8 | Testes finais, segurança, privacidade e apresentação | Pendente |
+| 8 | Testes finais, segurança, privacidade e apresentação (refinamento visual das telas, páginas de erro, exploração adversarial com correções, suíte de demonstração) | Em andamento (apresentação pendente) |
 
-Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin) e o RF15 (painel
-gerencial). O RF13 (lembrete por WhatsApp) é opcional e só será feito se sobrar tempo.
+Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin), o RF15 (painel
+gerencial) e o RF16 (Meus atendidos do Profissional). O RF13 (lembrete por WhatsApp) foi cancelado em 04/11 e não
+será feito.
 
 ## Passo a passo
 
@@ -139,7 +152,8 @@ Abra o `.env` e ajuste:
 |---|---|
 | `DATABASE_URL` | Usuário e senha do seu PostgreSQL local. |
 | `SECRET_KEY` | Chave dos tokens JWT. Gere uma de verdade: `python -c "import secrets; print(secrets.token_hex(32))"` |
-| `MAIL_*` | Servidor SMTP dos e-mails (redefinição de senha e confirmação de pagamento). Em desenvolvimento, use o Email Sandbox do Mailtrap (gratuito), que intercepta os e-mails sem entregá-los a ninguém. Sem essas variáveis a aplicação funciona, mas nenhum e-mail é enviado (a falha de SMTP é apenas registrada no log). |
+| `DEBUG` | `True` só em desenvolvimento: mostra detalhes técnicos dos erros e deixa o cookie de login funcionar em HTTP comum. O padrão é `False` (use assim na apresentação): o cookie de login passa a ser `Secure`, e o navegador só o envia por HTTPS ou por `localhost`/`127.0.0.1` (testado no Chrome). Abrir o sistema pelo IP da rede local em HTTP com `DEBUG=False` não mantém o login. |
+| `MAIL_*` | Servidor SMTP dos e-mails (redefinição de senha e confirmação de pagamento). Em desenvolvimento, use o Email Sandbox do Mailtrap (gratuito), que intercepta os e-mails sem entregá-los a ninguém (também serve para a apresentação). Sem essas variáveis a aplicação funciona, mas nenhum e-mail é enviado (a falha de SMTP é apenas registrada no log). |
 | `AVALIACOES_DIR` | Opcional. Pasta dos PDFs das avaliações; o padrão é `dados/avaliacoes`, dentro da pasta do projeto (um caminho relativo é sempre contado a partir da raiz do projeto). A pasta é criada sozinha, fica fora de `app/static` e não é versionada. |
 | `ABACATEPAY_API_KEY` | Chave de API da AbacatePay em Dev mode (ver a seção de pagamento abaixo). |
 | `ABACATEPAY_BASE_URL` | `https://api.abacatepay.com/v2` |
@@ -192,16 +206,25 @@ uvicorn app.main:app --reload
 
 Acesse http://localhost:8000. Deve aparecer a página inicial da NeuroClinic.
 
+O log de acesso do `uvicorn` imprime a URL completa de cada requisição, inclusive o segredo do webhook e os links de
+redefinição de senha. Não cole esse log em conversas e, em apresentações, suba com
+`uvicorn app.main:app --no-access-log`.
+
 ### 8. Rodar os testes
 
 ```bash
-pytest
+pytest                                    # suíte completa: 2486 testes, cerca de 17 minutos
+pytest tests/apresentacao -v --tb=short   # suíte de demonstração: 49 testes, poucos segundos
 ```
 
-Os testes usam um banco temporário (SQLite em memória), então não tocam no PostgreSQL. O envio de
-e-mail e qualquer chamada de rede são bloqueados, e a AbacatePay é substituída por uma versão
-falsa. As regras de negócio recebem a data e a hora por parâmetro, o que permite testá-las com
-horários fixos, sem depender do relógio real.
+Os testes usam um banco temporário (SQLite em memória), então não tocam no PostgreSQL e não precisam de banco criado
+nem do `.env` (o `conftest.py` fixa a configuração). O envio de e-mail e qualquer chamada de rede são bloqueados, e a
+AbacatePay é substituída por uma versão falsa. As regras de negócio recebem a data e a hora por parâmetro, o que
+permite testá-las com horários fixos, sem depender do relógio real.
+
+A suíte de demonstração está dividida em `unitarios/` (regras puras, como o desconto da RN11 e os prazos da RN09),
+`integracao/` (serviços com o banco de teste) e `sistema/` (fluxos completos pelas rotas, sem navegador). Como o SQLite
+não é o PostgreSQL, os testes não exercitam travas de linha (`FOR UPDATE`) nem comportamentos próprios do PostgreSQL.
 
 ## Pagamento em desenvolvimento (AbacatePay, Dev mode)
 
@@ -313,7 +336,7 @@ app/
   static/     → CSS/JS customizados (Bootstrap vem via CDN)
 alembic/      → migrations do banco de dados
 scripts/      → scripts de linha de comando (criar_admin, simular_pagamento, simular_webhook)
-tests/        → testes automatizados (Pytest)
+tests/        → testes automatizados (Pytest); tests/apresentacao/ é a suíte rápida de demonstração
 ```
 
 ## Segurança
@@ -322,4 +345,10 @@ tests/        → testes automatizados (Pytest)
   de e-mail em commits, prints ou conversas.
 - Se uma chave for exposta, gere outra no painel do serviço e atualize o `.env`.
 - O e-mail de login do profissional nunca aparece para o Cliente: o contato público é um campo
-  separado, preenchido pelo Admin.
+  separado, preenchido pelo Admin ou pelo próprio profissional.
+- Dados de menores (LGPD): o profissional vê só o nome e a idade do atendido e, no detalhe de quem atende, o nome e o
+  telefone do responsável; nunca CPF, e-mail de login nem data de nascimento. O cadastro e o perfil do Cliente avisam disso.
+- Avaliações só abrem para o Cliente responsável, o Admin e o profissional com consulta do atendido; quem não pode
+  recebe 404.
+- Com `DEBUG=False` o cookie de login é `Secure`: use `DEBUG=False` fora do desenvolvimento.
+- O log de acesso imprime o segredo do webhook (ver "Rodar a aplicação"): rotacione o segredo ao fim dos testes.
