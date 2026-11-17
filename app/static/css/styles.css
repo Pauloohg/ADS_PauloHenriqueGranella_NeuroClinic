@@ -2784,7 +2784,7 @@
 }
 
 .meus-num {
-    text-align: right;
+    text-align: center;
 }
 
 .meus-link {
@@ -5526,4 +5526,16 @@
 .meus-responsavel-vazio {
     color: var(--cor-texto-escuro);
     font-style: italic;
+}
+
+/* --- Profissionais do Admin: "Editar" na mesma posição em toda linha (Semana 8, 17/11) ------------- */
+
+@media (min-width: 768px) {
+    /* Largura do botão "Reativar" (67,3 px medidos), o maior dos dois; "Desativar" encosta à direita */
+    .prof-acoes > :nth-child(2) {
+        display: block;
+        width: 4.25rem;
+        text-align: right;
+        white-space: nowrap;
+    }
 }
