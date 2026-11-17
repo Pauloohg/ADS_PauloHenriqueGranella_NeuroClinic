@@ -65,6 +65,24 @@
     </li>
 </ul>
 
+{% set r = d.responsavel %}
+<section aria-labelledby="titulo-responsavel">
+    <h2 class="titulo-serifa meus-secao-titulo" id="titulo-responsavel">Responsável</h2>
+    <div class="cartao meus-plano meus-responsavel">
+        <p class="meus-responsavel-nome">{{ r.nome }}</p>
+        <p class="meus-responsavel-contato">
+            <i class="bi bi-telephone me-1" aria-hidden="true"></i><span class="visually-hidden">Telefone: </span>
+            {%- if not r.telefone %}
+            <span class="meus-responsavel-vazio">Contato não informado</span>
+            {%- elif r.telefone_link %}
+            <a href="tel:{{ r.telefone_link }}">{{ r.telefone }}</a>
+            {%- else %}
+            {{ r.telefone }}
+            {%- endif %}
+        </p>
+    </div>
+</section>
+
 <section aria-labelledby="titulo-planos">
     <h2 class="titulo-serifa meus-secao-titulo" id="titulo-planos">Planos com você</h2>
     {% for p in d.planos %}
@@ -117,5 +135,5 @@
     {% endif %}
 </section>
 
-<p class="meus-nota">Esta tela mostra só as consultas e os planos com você. Valores, pagamento e dados do responsável não aparecem.</p>
+<p class="meus-nota">Esta tela mostra só as consultas e os planos com você e o contato do responsável. Valores e pagamento não aparecem.</p>
 {% endblock %}

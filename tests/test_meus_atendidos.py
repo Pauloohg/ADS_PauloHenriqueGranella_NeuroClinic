@@ -343,13 +343,15 @@ def test_cada_plano_mostra_a_propria_observacao_e_sem_observacao_nada_aparece(db
 def test_lista_e_detalhe_nao_mostram_dados_pessoais_nem_valores(db, logado_fono, cliente, cenario, pedro, pasta_avaliacoes_temporaria):
     arquivo = db.get(Avaliacao, cenario["avaliacao_fono"]).arquivo_url
     proibidos = (
-        "123.456.789-09", "12345678909", "99999-1234", cliente.email, "Maria Responsável", "Maria",
+        "123.456.789-09", "12345678909", cliente.email,
         "29/10/2018", "2018-10-29", "987,65", "987.65", "R$", "Pix", "Boleto", "desconto",
         arquivo, str(pasta_avaliacoes_temporaria), "dados/avaliacoes",
     )
-    for url in ("/meus-atendidos", f"/meus-atendidos/{pedro.id}"):
+    # Desde 16/11 o DETALHE mostra nome e telefone do responsável; a lista continua sem eles
+    so_no_detalhe = ("99999-1234", "Maria Responsável", "Maria")
+    for url, extras in (("/meus-atendidos", so_no_detalhe), (f"/meus-atendidos/{pedro.id}", ())):
         html = logado_fono.get(url).text
-        for proibido in proibidos:
+        for proibido in proibidos + extras:
             assert proibido not in html, (url, proibido)
     # "pagamento" só pode aparecer na nota de rodapé do detalhe, que diz justamente que ele não aparece
     assert "pagamento" not in logado_fono.get("/meus-atendidos").text.lower()

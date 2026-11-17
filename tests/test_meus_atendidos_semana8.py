@@ -521,8 +521,8 @@ def test_paginacao_so_nas_anteriores_e_os_outros_grupos_continuam(db, logado, fo
 
 def test_nota_de_privacidade_no_rodape(logado, pedro):
     html = _html(logado.get(f"/meus-atendidos/{pedro.id}"))
-    assert ('<p class="meus-nota">Esta tela mostra só as consultas e os planos com você. '
-            "Valores, pagamento e dados do responsável não aparecem.</p>") in html
+    assert ('<p class="meus-nota">Esta tela mostra só as consultas e os planos com você e o contato do responsável. '
+            "Valores e pagamento não aparecem.</p>") in html
 
 
 # --- Acesso e 404 (como antes) --------------------------------------------------------------------------
@@ -564,9 +564,7 @@ def test_html_do_detalhe_nao_tem_dados_sensiveis(db, logado, cliente, pedro, pas
     proibidos = {
         "CPF do responsável": "529.982.247-25",
         "CPF só dígitos": "52998224725",
-        "telefone do responsável": "99876-5432",
         "e-mail do responsável": "responsavel@exemplo.com",
-        "nome do responsável": "Joana",
         "data de nascimento (BR)": "01/03/2019",
         "data de nascimento (ISO)": "2019-03-01",
         "valor do plano (BR)": "1.234,56",

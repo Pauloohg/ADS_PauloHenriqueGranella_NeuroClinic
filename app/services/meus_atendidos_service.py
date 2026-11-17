@@ -4,12 +4,14 @@ from datetime import datetime, time, timedelta
 from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.ids import ler_opcao
+from app.core.ids import ler_opcao, somente_digitos
 from app.core.templating import NOMES_DIAS, descrever_configuracao
 from app.models.avaliacao import Avaliacao
+from app.models.cliente import Cliente
 from app.models.paciente import Paciente
 from app.models.plano import Plano
 from app.models.sessao import Sessao, StatusSessao
+from app.models.usuario import Usuario
 from app.services.admin_clientes_service import POR_PAGINA, calcular_idade
 from app.services.agenda_service import (
     AGUARDANDO_REGISTRO,
@@ -111,6 +113,16 @@ class SessaoComProfissional:
 
 
 @dataclass(frozen=True)
+class Responsavel:
+    nome: str
+    telefone: str | None
+
+    @property
+    def telefone_link(self) -> str:
+        return somente_digitos(self.telefone)
+
+
+@dataclass(frozen=True)
 class DetalheAtendido:
     id: int
     nome: str
@@ -122,6 +134,7 @@ class DetalheAtendido:
     total_paginas: int
     proxima: datetime | None = None
     proxima_texto: str | None = None
+    responsavel: Responsavel | None = None
 
 
 # --- Funções puras (RNF14: agora sempre por parâmetro) -------------------------------------------
@@ -236,16 +249,19 @@ def detalhe_do_atendido(
     realizadas, futuras, aguardando, proxima = _contagens(agora)
     nao_compareceu = _somar(Avaliacao.comparecimento.is_(False))
     enviadas = _somar(and_(Avaliacao.comparecimento.is_(True), Avaliacao.arquivo_url.is_not(None)))
+    # Do responsável só nome e telefone (decisão de 16/11): e-mail (login) e CPF nunca entram neste SELECT
     cabecalho = db.execute(
-        _base(funcionario_id, Paciente.nome, Paciente.data_nascimento, realizadas, futuras, aguardando,
-              nao_compareceu, enviadas, proxima)
+        _base(funcionario_id, Paciente.nome, Paciente.data_nascimento, Usuario.nome, Cliente.telefone,
+              realizadas, futuras, aguardando, nao_compareceu, enviadas, proxima)
+        .join(Cliente, Cliente.usuario_id == Paciente.cliente_id)
+        .join(Usuario, Usuario.id == Cliente.usuario_id)
         .outerjoin(Avaliacao, Avaliacao.sessao_id == Sessao.id)
         .where(Paciente.id == paciente_id)
-        .group_by(Paciente.id, Paciente.nome, Paciente.data_nascimento)
+        .group_by(Paciente.id, Paciente.nome, Paciente.data_nascimento, Usuario.nome, Cliente.telefone)
     ).first()
     if cabecalho is None:
         raise AtendidoNaoEncontrado
-    nome, nascimento, *numeros, prox = cabecalho
+    nome, nascimento, nome_responsavel, telefone, *numeros, prox = cabecalho
     resumo = ResumoAtendido(*(int(n or 0) for n in numeros))
 
     planos = [
@@ -304,4 +320,5 @@ def detalhe_do_atendido(
     return DetalheAtendido(
         paciente_id, nome, calcular_idade(nascimento, agora.date()), resumo, planos, sessoes, pagina, total_paginas,
         prox, quando_relativo(prox, agora) if prox else None,
+        Responsavel(nome_responsavel, (telefone or "").strip() or None),
     )
