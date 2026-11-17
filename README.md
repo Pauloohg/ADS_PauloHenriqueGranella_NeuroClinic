@@ -99,7 +99,8 @@ em `app/core/config.py`.
 | 5 | Ajustes pedidos pela profissional da área (vocabulário, Primeiros passos, desconto por duração, perfil do profissional) e RF08 (agenda do profissional) | Concluída |
 | 6 | RF07 (remarcação) | Concluída |
 | 7 | RF09 (avaliações), RF10 (histórico) e acompanhamento dos atendidos pelo profissional | Concluída |
-| 8 | Testes finais, segurança, privacidade e apresentação (refinamento visual das telas, páginas de erro, exploração adversarial com correções, suíte de demonstração) | Em andamento (apresentação pendente) |
+| 8 | Testes finais, segurança e privacidade (roteiro manual dos três perfis, refinamento visual das telas, páginas de erro, exploração adversarial com correções, suíte de demonstração) | Concluída |
+| 9 | Documentação (DVP 2.0, README), melhorias do roteiro manual (contato do responsável e Meu perfil do profissional) e preparação da apresentação | Em andamento |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin), o RF15 (painel
 gerencial) e o RF16 (Meus atendidos do Profissional). O RF13 (lembrete por WhatsApp) foi cancelado em 04/11 e não
@@ -160,6 +161,8 @@ Abra o `.env` e ajuste:
 | `ABACATEPAY_WEBHOOK_SECRET` | Segredo do webhook, o mesmo valor cadastrado no painel da AbacatePay. |
 
 Não deixe espaço depois do `=` e reinicie o servidor sempre que alterar o `.env`.
+
+Os links enviados por e-mail (como o de redefinição de senha) usam o endereço pelo qual o sistema foi aberto no navegador (`localhost` ou o domínio do ngrok); não há variável de URL base no `.env`.
 
 ### 5. Criar o banco a partir das migrations
 
