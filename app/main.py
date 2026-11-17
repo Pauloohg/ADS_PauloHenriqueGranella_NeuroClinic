@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.entrada import recusar_caractere_nul
 from app.core.paginas_erro import ErroInesperado, tratar_http_exception, tratar_validacao_sem_formulario
 from app.core.templating import templates
-from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, meus_atendidos, webhooks
+from app.routers import admin, agenda, auth, avaliacoes, cliente, conta, consultas, historico, inicio, meu_perfil, meus_atendidos, webhooks
 from app.routers.auth import NaoAutenticado, erros_por_campo
 
 if settings.DEBUG:
@@ -35,6 +35,7 @@ app.include_router(historico.router)
 app.include_router(admin.router)
 app.include_router(agenda.router)
 app.include_router(meus_atendidos.router)
+app.include_router(meu_perfil.router)
 app.include_router(avaliacoes.router)
 app.include_router(webhooks.router)
 
@@ -60,6 +61,7 @@ FORMULARIOS_POR_ROTA = {
     "/consultas/{sessao_id}/remarcar": "cliente/remarcar.html",
     "/agenda/sessoes/{sessao_id}/comparecimento": "funcionario/registrar_atendimento.html",
     "/agenda/sessoes/{sessao_id}/nao-comparecimento": "funcionario/registrar_atendimento.html",
+    "/meu-perfil": "funcionario/perfil.html",
     "/admin/funcionarios/novo": "admin/funcionario_form.html",
     "/admin/funcionarios/{funcionario_id}/editar": "admin/funcionario_form.html",
     "/admin/especialidades/nova": "admin/especialidade_form.html",

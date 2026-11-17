@@ -56,6 +56,11 @@ def classe_especialidade(nome: str) -> str:
 
 # Estado vazio do RF04 (o que o Cliente vê); a lista de Profissionais do Admin cita a mesma frase
 MSG_SEM_PROFISSIONAIS = "Sem profissionais disponíveis no momento"
+# Transparência (LGPD): o Profissional vê nome e telefone do responsável no detalhe do atendido (RF16, 16/11)
+AVISO_CONTATO_CLIENTE = (
+    "Seu nome e telefone ficam visíveis para os profissionais que atendem a pessoa cadastrada, "
+    "apenas para contato sobre os atendimentos."
+)
 # Aviso do Admin (listas de Profissionais e de Especialidades): a mesma frase nas duas telas
 MSG_SEM_PROFISSIONAL_ATIVO = "Sem profissional ativo"
 
@@ -150,6 +155,7 @@ templates.env.filters["percentual"] = percentual
 templates.env.filters["idade"] = idade
 templates.env.globals["rotulos_duracao"] = ROTULOS_DURACAO
 templates.env.globals["msg_sem_profissionais"] = MSG_SEM_PROFISSIONAIS
+templates.env.globals["aviso_contato_cliente"] = AVISO_CONTATO_CLIENTE
 templates.env.globals["msg_sem_profissional_ativo"] = MSG_SEM_PROFISSIONAL_ATIVO
 templates.env.globals["descontos_por_duracao"] = DESCONTO_POR_DURACAO
 templates.env.globals["duracao_sessao_minutos"] = DURACAO_SESSAO_MINUTOS

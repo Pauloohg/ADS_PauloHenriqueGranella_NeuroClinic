@@ -1,0 +1,85 @@
+{% extends "_interno.html" %}
+{% from "_formulario.html" import alertas, resumo_erros with context %}
+{% from "cliente/_perfil_profissional.html" import cartao_profissional %}
+{% set rotulos = rotulos if rotulos is defined else {
+    "formacao": "Formação", "registro_profissional": "Registro profissional", "apresentacao": "Apresentação",
+    "telefone_contato": "Telefone de contato", "email_contato": "E-mail de contato",
+} %}
+
+{% block title %}Meu perfil — NeuroClinic{% endblock %}
+{% block titulo_pagina %}Meu perfil{% endblock %}
+{% block subtitulo_pagina %}O perfil que o cliente vê ao escolher o profissional.{% endblock %}
+
+{% block conteudo %}
+
+{# Mesma marcação do formulário do Admin (admin/funcionario_form.html), sem os campos de acesso #}
+{% macro campo(nome, tipo="text", ajuda="", atributos={}, linhas=0) %}
+{% set erro = erros.get(nome) %}
+{% set descricao = ([nome ~ "-erro"] if erro else []) + ([nome ~ "-ajuda"] if ajuda else []) %}
+<div class="prof-campo">
+    <label for="{{ nome }}" class="form-label">{{ rotulos[nome] }}</label>
+    {% if linhas %}
+    <textarea id="{{ nome }}" name="{{ nome }}" rows="{{ linhas }}" class="form-control {% if erro %}is-invalid{% endif %}"
+              {% if erro %}aria-invalid="true"{% endif %} {% if descricao %}aria-describedby="{{ descricao | join(' ') }}"{% endif %}{{ atributos | xmlattr }}>{{ (dados or {}).get(nome, "") }}</textarea>
+    {% else %}
+    <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}" autocomplete="off"
+           class="form-control {% if erro %}is-invalid{% endif %}" value="{{ (dados or {}).get(nome, '') }}"
+           {% if erro %}aria-invalid="true"{% endif %} {% if descricao %}aria-describedby="{{ descricao | join(' ') }}"{% endif %}{{ atributos | xmlattr }}>
+    {% endif %}
+    {% if erro %}<p class="invalid-feedback d-block prof-campo-erro" id="{{ nome }}-erro"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ erro }}</p>{% endif %}
+    {% if ajuda %}<p class="form-text prof-campo-ajuda" id="{{ nome }}-ajuda">{{ ajuda }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{{ resumo_erros(titulo_erros if titulo_erros is defined else none, rotulos) }}
+{{ alertas("Dados salvos." if sucesso is defined and sucesso else none, erro if erro is defined else none) }}
+
+<form method="post" action="/meu-perfil" class="prof-form" novalidate>
+    {% if profissional is defined and profissional %}
+    <section class="cartao prof-form-parte prof-form-acesso" aria-labelledby="titulo-acesso">
+        <h2 class="titulo-serifa prof-form-titulo" id="titulo-acesso">Acesso ao sistema</h2>
+        <p class="prof-form-nota">Nome, e-mail de acesso e especialidade são alterados pela administração da clínica.</p>
+        <div class="prof-campo">
+            <span class="form-label d-block">Nome completo</span>
+            <p class="prof-campo-fixo">{{ profissional.usuario.nome }}</p>
+        </div>
+        <div class="prof-campo">
+            <span class="form-label d-block">E-mail de acesso</span>
+            <p class="prof-campo-fixo">{{ profissional.usuario.email }}</p>
+            <p class="form-text prof-campo-ajuda">Nunca aparece para o cliente.</p>
+        </div>
+        <div class="prof-campo">
+            <span class="form-label d-block">Especialidade</span>
+            <p class="prof-campo-fixo">{{ profissional.especialidade.nome }}</p>
+        </div>
+        <div class="prof-campo">
+            <span class="form-label d-block">Senha</span>
+            <a href="/conta/alterar-senha" class="btn btn-outline-primary btn-sm"><i class="bi bi-key me-1" aria-hidden="true"></i>Alterar senha</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="cartao prof-form-parte prof-form-perfil" aria-labelledby="titulo-perfil">
+        <h2 class="titulo-serifa prof-form-titulo" id="titulo-perfil">Perfil que o cliente vê</h2>
+        <p class="prof-form-nota">Aparece na escolha do profissional. Todos os campos são opcionais: o que ficar vazio não aparece.</p>
+        {{ campo("formacao", linhas=2, atributos={"maxlength": 300}, ajuda="Ex.: Psicologia (UPF), especialização em Psicopedagogia. Até 300 caracteres.") }}
+        {{ campo("registro_profissional", atributos={"maxlength": 50}, ajuda="Ex.: CRP 07/12345.") }}
+        {{ campo("apresentacao", linhas=4, atributos={"maxlength": 500}, ajuda="Até 500 caracteres, em linguagem simples para quem vai contratar.") }}
+        {{ campo("telefone_contato", tipo="tel", atributos={"maxlength": 20, "inputmode": "tel"}) }}
+        {{ campo("email_contato", tipo="email", atributos={"maxlength": 120, "inputmode": "email"}, ajuda="Diferente do e-mail de acesso. Vazio, nenhum e-mail aparece para o cliente.") }}
+    </section>
+
+    {% if perfil is defined and perfil %}
+    <aside class="cartao prof-form-parte prof-form-previa {{ profissional.especialidade.nome | classe_especialidade or 'esp-neutra' }}" aria-labelledby="titulo-previa">
+        <h2 class="titulo-serifa prof-form-titulo" id="titulo-previa">Como o cliente vê</h2>
+        <p class="prof-form-nota">Reflete o que está salvo. Só aparecem os campos preenchidos.</p>
+        {{ cartao_profissional(perfil, com_botao=False) }}
+    </aside>
+    {% endif %}
+
+    <div class="prof-form-botoes">
+        <button type="submit" class="btn btn-primary">Salvar alterações</button>
+        <a href="/" class="btn btn-link text-decoration-none">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

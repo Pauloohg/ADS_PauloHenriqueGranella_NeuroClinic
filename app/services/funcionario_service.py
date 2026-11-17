@@ -134,6 +134,13 @@ def atualizar(db: Session, funcionario_id: int, dados: FuncionarioEdicao, agora:
     return buscar(db, funcionario_id)
 
 
+def atualizar_contato(db: Session, funcionario_id: int, dados: ContatoProfissional) -> FuncionarioResumo:
+    resumo = buscar(db, funcionario_id)
+    _aplicar_contato(resumo.funcionario, dados)
+    db.commit()
+    return buscar(db, funcionario_id)
+
+
 def condicoes_sessao_futura(agora: datetime, status: tuple[StatusSessao, ...] = STATUS_QUE_PRENDEM):
     # RN05 e RN07: a desativação, a troca de especialidade e as contagens das telas usam SÓ este filtro
     return (Sessao.status.in_(status), Sessao.data_hora >= agora)

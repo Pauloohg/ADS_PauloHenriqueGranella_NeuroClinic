@@ -24,7 +24,9 @@
 <form method="post" action="/cadastro" novalidate>
     {{ campo("nome", "Nome completo", autocomplete="name") }}
     {{ campo("email", "E-mail", tipo="email", autocomplete="email") }}
-    {{ campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") }}
+    {% call campo("telefone", "Telefone (com DDD)", tipo="tel", autocomplete="tel") %}
+        <div class="form-text">{{ aviso_contato_cliente }}</div>
+    {% endcall %}
     {% call campo("senha", "Senha", tipo="password", autocomplete="new-password") %}
         <div class="form-text">Mínimo de 8 caracteres.</div>
     {% endcall %}

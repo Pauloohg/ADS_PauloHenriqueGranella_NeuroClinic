@@ -22,7 +22,7 @@
             {{ campo("nome", "Nome completo", autocomplete="name") }}
             {{ campo("email", "E-mail", tipo="email", autocomplete="email", ajuda="É o e-mail que você usa para entrar.", atributos={"inputmode": "email"}) }}
             <div class="row g-3">
-                <div class="col-sm-6">{{ campo("telefone", "Telefone com DDD", tipo="tel", autocomplete="tel", atributos={"inputmode": "tel"}) }}</div>
+                <div class="col-sm-6">{{ campo("telefone", "Telefone com DDD", tipo="tel", autocomplete="tel", ajuda=aviso_contato_cliente, atributos={"inputmode": "tel"}) }}</div>
                 <div class="col-sm-6">{{ campo("cpf", "CPF", obrigatorio=False, autocomplete="off", ajuda="Opcional agora, obrigatório para gerar a cobrança.", atributos={"inputmode": "numeric"}) }}</div>
             </div>
             <button type="submit" class="btn btn-primary">Salvar alterações</button>
