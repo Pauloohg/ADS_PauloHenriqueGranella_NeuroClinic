@@ -61,10 +61,17 @@ MSG_CELULAR = "Cadastre um telefone celular com DDD em Meu perfil para gerar a c
 MSG_COBRANCA_INDISPONIVEL = (
     "Não foi possível carregar os dados da cobrança agora. Atualize a página em alguns instantes."
 )
+MSG_SEM_COBRANCA = "Este plano ainda não tem cobrança gerada."
+MSG_SIMULACAO_SO_PIX = "A simulação de pagamento só está disponível para cobranças Pix."
+MSG_SIMULACAO_PRAZO = "O prazo de pagamento deste plano terminou: não há cobrança para simular."
+MSG_SIMULACAO_FALHOU = "Não foi possível simular o pagamento agora. Tente de novo em alguns instantes."
+MSG_COBRANCA_FORA_DEV_MODE = "Recusado: a cobrança {id} não é de Dev mode (devMode diferente de true)."
+MSG_RESPOSTA_SEM_DEV_MODE = "Atenção: a resposta da simulação não indicou devMode true (cobrança {id})."
 
 # Cobranças pendentes já lidas da API; a tela de cobrança se atualiza a cada 15 s e não precisa consultar a API toda vez
 _COBRANCAS: dict[str, Cobranca] = {}
 _CONFERENCIAS: dict[str, datetime] = {}
+_CONFERENCIA_IMEDIATA: set[str] = set()  # cobranças recém-simuladas: a próxima conferência ignora o intervalo uma vez
 LIMITE_CACHE = 500
 
 
@@ -77,6 +84,18 @@ class FormaPagamentoInvalida(Exception):
 
 
 class CobrancaNaoGerada(Exception):
+    pass
+
+
+class SimulacaoRecusada(Exception):
+    pass
+
+
+class SimulacaoIndisponivel(Exception):
+    pass
+
+
+class SimulacaoForaDoDevMode(ErroAbacatePay):
     pass
 
 
@@ -187,6 +206,8 @@ def _registrar_conferencia(cobranca_id: str, agora: datetime) -> None:
 
 
 def conferencia_liberada(cobranca_id: str, agora: datetime) -> bool:
+    if cobranca_id in _CONFERENCIA_IMEDIATA:
+        return True
     ultima = _CONFERENCIAS.get(cobranca_id)
     return ultima is None or agora - ultima >= INTERVALO_CONFERENCIA
 
@@ -246,6 +267,7 @@ def conferir_pagamento(
     cobranca_id = pagamento.abacatepay_payment_id
     if pagamento.status != StatusPagamento.PENDENTE or not cobranca_id or not conferencia_liberada(cobranca_id, agora):
         return None
+    _CONFERENCIA_IMEDIATA.discard(cobranca_id)
     _registrar_conferencia(cobranca_id, agora)
     try:
         cobranca = abacatepay_client.consultar_cobranca(cobranca_id, timeout=TIMEOUT_CONFERENCIA)
@@ -285,6 +307,38 @@ def montar_tela_cobranca(
         if cobranca is None:
             erro = MSG_COBRANCA_INDISPONIVEL
     return TelaCobranca(plano, pagamento, cobranca, prazo, no_prazo, erro)
+
+
+# --- Simulação de pagamento (Dev mode, só Pix) ---------------------------------------------------
+
+def simular_pagamento_dev_mode(cobranca_id: str) -> Cobranca:
+    if not abacatepay_client.consultar_cobranca(cobranca_id).dev_mode:
+        raise SimulacaoForaDoDevMode(MSG_COBRANCA_FORA_DEV_MODE.format(id=cobranca_id))
+    resultado = abacatepay_client.simular_pagamento(cobranca_id)
+    if not resultado.dev_mode:
+        raise SimulacaoForaDoDevMode(MSG_RESPOSTA_SEM_DEV_MODE.format(id=cobranca_id))
+    return resultado
+
+
+def simular_pagamento_do_plano(db: Session, cliente_id: int, plano_id: int, agora: datetime) -> None:
+    plano = buscar_plano_do_cliente(db, cliente_id, plano_id)
+    pagamento = buscar_pagamento(db, plano.id)
+    if pagamento is None:
+        raise SimulacaoRecusada(MSG_SEM_COBRANCA)
+    if pagamento.status == StatusPagamento.CONFIRMADO:
+        raise SimulacaoRecusada(MSG_PLANO_PAGO)
+    if pagamento.forma_pagamento != FormaPagamento.PIX:
+        raise SimulacaoRecusada(MSG_SIMULACAO_SO_PIX)
+    if plano_service.prazo_pagamento(plano.criado_em, plano.data_inicio, pagamento.forma_pagamento) < agora:
+        raise SimulacaoRecusada(MSG_SIMULACAO_PRAZO)
+    try:
+        simular_pagamento_dev_mode(pagamento.abacatepay_payment_id)
+    except ErroAbacatePay as exc:
+        logger.warning("Simulação do pagamento %s não concluída (%s)", pagamento.id, type(exc).__name__)
+        raise SimulacaoIndisponivel(MSG_SIMULACAO_FALHOU) from None
+    if len(_CONFERENCIA_IMEDIATA) >= LIMITE_CACHE:
+        _CONFERENCIA_IMEDIATA.clear()
+    _CONFERENCIA_IMEDIATA.add(pagamento.abacatepay_payment_id)
 
 
 # --- Webhook --------------------------------------------------------------------------------------

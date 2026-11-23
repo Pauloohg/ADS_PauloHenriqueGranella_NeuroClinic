@@ -12,6 +12,7 @@ from app.core.config import (
     HORARIOS_ATENDIMENTO,
     INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
     PRAZO_PAGAMENTO_HORAS,
+    settings,
 )
 from app.core.ids import inteiro_positivo, ler_inteiro, ler_opcao
 from app.core.templating import moeda, resumo_corrija, templates, titulo_do_resumo_de_erros
@@ -627,8 +628,31 @@ def ver_cobranca(
         "usuario": usuario, "detalhe": detalhe, "tela": tela, "rotulos_forma": pagamento_service.ROTULOS_FORMA,
         "confirmado_em": pagamento_service.data_confirmacao_local(tela.pagamento),
         "intervalo_atualizacao": INTERVALO_ATUALIZACAO_COBRANCA_SEGUNDOS,
+        "simulacao_habilitada": settings.SIMULACAO_PAGAMENTO_HABILITADA,
         "prazo": contratacao_service.texto_prazo_pagamento(
             tela.plano.criado_em, tela.plano.data_inicio, tela.pagamento.forma_pagamento, agora
         ),
     }
     return templates.TemplateResponse(request, TEMPLATE_COBRANCA, contexto)
+
+
+def _simulacao_habilitada() -> None:
+    if not settings.SIMULACAO_PAGAMENTO_HABILITADA:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+
+@router.post("/planos/{plano_id}/cobranca/simular-pagamento", dependencies=[Depends(_simulacao_habilitada)])
+def simular_pagamento(
+    request: Request, plano_id: int, usuario: Usuario = Depends(somente_cliente), db: Session = Depends(get_db)
+):
+    agora = agora_local()
+    try:
+        pagamento_service.simular_pagamento_do_plano(db, usuario.id, plano_id, agora)
+    except contratacao_service.PlanoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plano não encontrado.") from None
+    except pagamento_service.SimulacaoRecusada as exc:
+        return _plano_nao_pagavel(request, usuario, db, plano_id, agora, str(exc))
+    except pagamento_service.SimulacaoIndisponivel as exc:
+        detalhe = _detalhe_plano_ou_404(db, usuario, plano_id, agora)
+        return _tela_plano(request, usuario, detalhe, str(exc), status.HTTP_503_SERVICE_UNAVAILABLE, db)
+    return _redirecionar(f"/planos/{plano_id}/cobranca")

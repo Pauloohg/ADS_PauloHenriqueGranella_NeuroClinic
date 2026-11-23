@@ -61,6 +61,11 @@
             {% if cobranca.dev_mode %}
             <p class="cob-teste" id="ambiente-testes">Ambiente de testes (Dev mode): nenhum valor real é cobrado.</p>
             {% endif %}
+            {% if simulacao_habilitada and eh_pix and aguardando %}
+            <form method="post" action="/planos/{{ plano.id }}/cobranca/simular-pagamento" class="mt-3" id="form-simular-pagamento">
+                <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-bug me-1" aria-hidden="true"></i>Simular pagamento (ambiente de teste)</button>
+            </form>
+            {% endif %}
         </section>
         {% endif %}
     </div>

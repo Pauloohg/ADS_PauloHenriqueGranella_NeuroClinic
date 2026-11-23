@@ -5,7 +5,7 @@ from sqlalchemy import select
 import app.models  # noqa: F401 — registra todas as tabelas antes de usar a sessão
 from app.db.session import SessionLocal
 from app.models.pagamento import Pagamento
-from app.services import abacatepay_client
+from app.services import pagamento_service
 from app.services.abacatepay_client import ErroAbacatePay
 
 USO = "Uso: python -m scripts.simular_pagamento <id do plano | id da cobrança na AbacatePay>"
@@ -28,16 +28,12 @@ def main(argumentos: list[str], sessao_banco=SessionLocal) -> int:
         return 1
 
     try:
-        atual = abacatepay_client.consultar_cobranca(cobranca_id)
-        if not atual.dev_mode:
-            print(f"Recusado: a cobrança {cobranca_id} não é de Dev mode (devMode diferente de true).")
-            return 1
-        resultado = abacatepay_client.simular_pagamento(cobranca_id)
+        resultado = pagamento_service.simular_pagamento_dev_mode(cobranca_id)
+    except pagamento_service.SimulacaoForaDoDevMode as exc:
+        print(exc.mensagem)
+        return 1
     except ErroAbacatePay as exc:
         print(f"Erro: {exc.mensagem}")
-        return 1
-    if not resultado.dev_mode:
-        print(f"Atenção: a resposta da simulação não indicou devMode true (cobrança {cobranca_id}).")
         return 1
 
     print(f"Cobrança {resultado.id}: status {resultado.status}, valor R$ {resultado.valor_centavos / 100:.2f}, devMode true.")

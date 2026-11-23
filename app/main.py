@@ -58,6 +58,7 @@ FORMULARIOS_POR_ROTA = {
     "/contratar/{funcionario_id}": "cliente/contratar.html",
     "/contratar/{funcionario_id}/confirmar": "cliente/contratar.html",
     "/planos/{plano_id}/pagamento": "cliente/pagamento.html",
+    "/planos/{plano_id}/cobranca/simular-pagamento": "cliente/pagamento.html",
     "/consultas/{sessao_id}/remarcar": "cliente/remarcar.html",
     "/agenda/sessoes/{sessao_id}/comparecimento": "funcionario/registrar_atendimento.html",
     "/agenda/sessoes/{sessao_id}/nao-comparecimento": "funcionario/registrar_atendimento.html",

@@ -13,6 +13,7 @@ AMBIENTE_DOS_TESTES = {
     "ABACATEPAY_API_KEY": "",
     "ABACATEPAY_BASE_URL": "https://api.abacatepay.com/v2",
     "ABACATEPAY_WEBHOOK_SECRET": "",
+    "SIMULACAO_PAGAMENTO_HABILITADA": "False",
     "MAIL_USERNAME": "",
     "MAIL_PASSWORD": "",
     "MAIL_FROM": "no-reply@neuroclinic.example",
@@ -61,6 +62,7 @@ def sem_rede_real(monkeypatch):
     monkeypatch.setattr(abacatepay_client, "_TRANSPORTE", None)
     monkeypatch.setattr(pagamento_service, "_COBRANCAS", {})
     monkeypatch.setattr(pagamento_service, "_CONFERENCIAS", {})
+    monkeypatch.setattr(pagamento_service, "_CONFERENCIA_IMEDIATA", set())
 
 
 @pytest.fixture(autouse=True)

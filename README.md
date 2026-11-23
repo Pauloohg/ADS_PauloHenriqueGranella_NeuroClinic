@@ -100,7 +100,7 @@ em `app/core/config.py`.
 | 6 | RF07 (remarcação) | Concluída |
 | 7 | RF09 (avaliações), RF10 (histórico) e acompanhamento dos atendidos pelo profissional | Concluída |
 | 8 | Testes finais, segurança e privacidade (roteiro manual dos três perfis, refinamento visual das telas, páginas de erro, exploração adversarial com correções, suíte de demonstração) | Concluída |
-| 9 | Documentação (DVP 2.0, README), melhorias do roteiro manual (contato do responsável e Meu perfil do profissional) e preparação da apresentação | Em andamento |
+| 9 | Documentação (DVP 2.0, README), melhorias do roteiro manual (contato do responsável e Meu perfil do profissional), botão de simulação de pagamento para testes e preparação da apresentação | Em andamento |
 
 Também já fazem parte do projeto o RF14 (consulta de clientes pelo Admin), o RF15 (painel
 gerencial) e o RF16 (Meus atendidos do Profissional). O RF13 (lembrete por WhatsApp) foi cancelado em 04/11 e não
@@ -159,6 +159,7 @@ Abra o `.env` e ajuste:
 | `ABACATEPAY_API_KEY` | Chave de API da AbacatePay em Dev mode (ver a seção de pagamento abaixo). |
 | `ABACATEPAY_BASE_URL` | `https://api.abacatepay.com/v2` |
 | `ABACATEPAY_WEBHOOK_SECRET` | Segredo do webhook, o mesmo valor cadastrado no painel da AbacatePay. |
+| `SIMULACAO_PAGAMENTO_HABILITADA` | Opcional. `True` mostra o botão "Simular pagamento (ambiente de teste)" na cobrança Pix (só em Dev mode, para testes e demonstração). O padrão é `False`: com ele desligado o botão não aparece e a rota responde 404. Não deixe ligado fora de testes. |
 
 Não deixe espaço depois do `=` e reinicie o servidor sempre que alterar o `.env`.
 
@@ -216,7 +217,7 @@ redefinição de senha. Não cole esse log em conversas e, em apresentações, s
 ### 8. Rodar os testes
 
 ```bash
-pytest                                    # suíte completa: 2486 testes, cerca de 17 minutos
+pytest                                    # suíte completa: 2506 testes, cerca de 17 minutos
 pytest tests/apresentacao -v --tb=short   # suíte de demonstração: 49 testes, poucos segundos
 ```
 
@@ -270,7 +271,11 @@ recebidas, abra `http://127.0.0.1:4040` (painel local do ngrok).
 
 ### 3. Simular o pagamento
 
-No Dev mode ninguém paga de verdade. Há dois scripts, com papéis diferentes:
+No Dev mode ninguém paga de verdade. Há um botão na tela e dois scripts, com papéis diferentes.
+
+**Botão "Simular pagamento (ambiente de teste)"** (só Pix): aparece na página de cobrança quando `SIMULACAO_PAGAMENTO_HABILITADA=True` no `.env`. Ele só pede à AbacatePay que marque a cobrança como paga (a mesma chamada do script abaixo) e não grava nada no banco: a página de cobrança confere o pagamento na API logo em seguida e confirma pelo caminho normal, sem esperar o intervalo de 10 segundos. Por isso, ao usar o botão, quem confirma é a conferência (o log mostra "confirmado por conferência") e o webhook chega logo depois, encontra o pagamento já confirmado e só responde 200. Para ver o **webhook** confirmar, deixe a página de cobrança aberta e use o script `simular_pagamento` no terminal. Desligado (padrão), o botão não aparece e a rota responde 404; para boleto ele nunca aparece.
+
+Os scripts:
 
 **Pix: `simular_pagamento`** marca a cobrança como paga na própria AbacatePay (a simulação deles
 só existe para Pix):
@@ -305,6 +310,7 @@ do Dev mode (chave `abc_dev_`), e o `simular_webhook` só envia para `localhost`
   continuar livre.
 - Pagamentos que chegam para um plano já removido ou com horário ocupado não são confirmados: o
   caso é registrado no log para estorno manual.
+- O botão "Simular pagamento" é uma ferramenta de teste: só funciona em Dev mode e deve ficar desligado (`SIMULACAO_PAGAMENTO_HABILITADA=False`) fora de testes e demonstrações.
 - O ngrok e o servidor precisam estar rodando para o webhook funcionar. Antes de uma demonstração,
   suba os dois e faça um pagamento de teste; se o webhook falhar, a conferência cobre o Pix com a
   página de cobrança aberta.
@@ -341,17 +347,3 @@ alembic/      → migrations do banco de dados
 scripts/      → scripts de linha de comando (criar_admin, simular_pagamento, simular_webhook)
 tests/        → testes automatizados (Pytest); tests/apresentacao/ é a suíte rápida de demonstração
 ```
-
-## Segurança
-
-- O `.env` e o `.venv` não são versionados. Nunca publique chaves de API, segredos nem credenciais
-  de e-mail em commits, prints ou conversas.
-- Se uma chave for exposta, gere outra no painel do serviço e atualize o `.env`.
-- O e-mail de login do profissional nunca aparece para o Cliente: o contato público é um campo
-  separado, preenchido pelo Admin ou pelo próprio profissional.
-- Dados de menores (LGPD): o profissional vê só o nome e a idade do atendido e, no detalhe de quem atende, o nome e o
-  telefone do responsável; nunca CPF, e-mail de login nem data de nascimento. O cadastro e o perfil do Cliente avisam disso.
-- Avaliações só abrem para o Cliente responsável, o Admin e o profissional com consulta do atendido; quem não pode
-  recebe 404.
-- Com `DEBUG=False` o cookie de login é `Secure`: use `DEBUG=False` fora do desenvolvimento.
-- O log de acesso imprime o segredo do webhook (ver "Rodar a aplicação"): rotacione o segredo ao fim dos testes.

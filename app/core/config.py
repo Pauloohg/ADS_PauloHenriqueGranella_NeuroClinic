@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ABACATEPAY_API_KEY: str = ""
     ABACATEPAY_BASE_URL: str = "https://api.abacatepay.com/v2"
     ABACATEPAY_WEBHOOK_SECRET: str = ""
+    SIMULACAO_PAGAMENTO_HABILITADA: bool = False  # botão de teste na cobrança Pix; a AbacatePay só simula em Dev mode
 
     # E-mail (fastapi-mail)
     MAIL_USERNAME: str = ""
