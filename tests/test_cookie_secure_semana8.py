@@ -25,7 +25,9 @@ def test_cookie_de_login_e_secure_com_debug_desligado(client, db, monkeypatch):
     atributos = _atributos(_set_cookie_do_login(client, db))
 
     assert "secure" in atributos
-    assert {"httponly", "samesite", "max-age"} <= atributos
+    assert {"httponly", "samesite"} <= atributos
+    assert "max-age" not in atributos
+    assert "expires" not in atributos
 
 
 def test_cookie_de_login_nao_e_secure_com_debug_ligado(client, db, monkeypatch):
@@ -34,7 +36,36 @@ def test_cookie_de_login_nao_e_secure_com_debug_ligado(client, db, monkeypatch):
     atributos = _atributos(_set_cookie_do_login(client, db))
 
     assert "secure" not in atributos
-    assert {"httponly", "samesite", "max-age"} <= atributos
+    assert {"httponly", "samesite"} <= atributos
+    assert "max-age" not in atributos
+    assert "expires" not in atributos
+
+
+def test_cookie_de_login_e_de_sessao_e_mantem_o_acesso(client, db):
+    cabecalho = _set_cookie_do_login(client, db)
+
+    atributos = _atributos(cabecalho)
+    assert "max-age" not in atributos and "expires" not in atributos
+
+    for rota in ["/", "/consultas", "/historico", "/perfil"]:
+        resposta = client.get(rota, follow_redirects=False)
+        assert resposta.status_code == 200, rota
+    assert "Maria" in client.get("/").text
+
+
+@pytest.mark.parametrize("debug", [True, False], ids=["debug-ligado", "debug-desligado"])
+def test_logout_apaga_o_cookie_com_os_mesmos_atributos_do_login(debug, client, db, monkeypatch):
+    monkeypatch.setattr(settings, "DEBUG", debug)
+    login = _atributos(_set_cookie_do_login(client, db))
+
+    logout = client.post("/logout", follow_redirects=False)
+    cabecalho = logout.headers["set-cookie"]
+    assert cabecalho.startswith(f'{COOKIE_TOKEN}=""') or cabecalho.startswith(f"{COOKIE_TOKEN}=;")
+
+    apagar = _atributos(cabecalho)
+    assert {"httponly", "samesite", "path", "max-age"} <= apagar
+    assert ("secure" in apagar) is ("secure" in login) is (not debug)
+    assert "samesite=lax" in cabecalho.lower() and "path=/" in cabecalho.lower()
 
 
 @pytest.mark.parametrize("debug", [True, False], ids=["debug-ligado", "debug-desligado"])

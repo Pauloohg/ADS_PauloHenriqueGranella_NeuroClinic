@@ -179,7 +179,6 @@ def login(
     resposta.set_cookie(
         COOKIE_TOKEN,
         token,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         httponly=True,
         samesite="lax",
         secure=not settings.DEBUG,
@@ -190,7 +189,7 @@ def login(
 @router.post("/logout")
 def logout():
     resposta = RedirectResponse("/login", status_code=status.HTTP_303_SEE_OTHER)
-    resposta.delete_cookie(COOKIE_TOKEN)
+    resposta.delete_cookie(COOKIE_TOKEN, httponly=True, samesite="lax", secure=not settings.DEBUG)
     return resposta
 
 

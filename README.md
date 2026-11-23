@@ -217,7 +217,7 @@ redefinição de senha. Não cole esse log em conversas e, em apresentações, s
 ### 8. Rodar os testes
 
 ```bash
-pytest                                    # suíte completa: 2506 testes, cerca de 17 minutos
+pytest                                    # suíte completa: 2509 testes, cerca de 17 minutos
 pytest tests/apresentacao -v --tb=short   # suíte de demonstração: 49 testes, poucos segundos
 ```
 
